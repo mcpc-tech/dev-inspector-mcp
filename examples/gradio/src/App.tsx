@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Client } from "@gradio/client";
 
 interface SpaceInfo {
@@ -54,19 +54,26 @@ function SpaceCard({
 export default function App() {
   // Real Hugging Face Spaces to explore
   const [spaces, setSpaces] = useState<SpaceInfo[]>([
-    { name: "gradio/calculator", endpoints: 0, status: "offline" },
-    { name: "hf-audio/whisper-large-v3-turbo", endpoints: 0, status: "offline" },
-    { name: "black-forest-labs/FLUX.1-schnell", endpoints: 0, status: "offline" },
+    { name: "gradio/calculator", endpoints: 0, status: "loading" },
   ]);
   
-  const [selectedSpace, setSelectedSpace] = useState<string | null>(null);
+  const [selectedSpace, setSelectedSpace] = useState<string | null>("gradio/calculator");
   const [endpoints, setEndpoints] = useState<string[]>([]);
   const [selectedEndpoint, setSelectedEndpoint] = useState<string>("");
-  const [inputValue, setInputValue] = useState("");
+  const [inputValue, setInputValue] = useState('[4, "add", 5]');
   const [results, setResults] = useState<PredictResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [apiInfo, setApiInfo] = useState<unknown>(null);
+  const [initialized, setInitialized] = useState(false);
+
+  // Auto-connect on mount
+  useEffect(() => {
+    if (!initialized) {
+      setInitialized(true);
+      connectToSpace("gradio/calculator");
+    }
+  }, [initialized]);
 
   // Connect to a space and get its API info
   const connectToSpace = async (spaceName: string) => {
@@ -103,10 +110,6 @@ export default function App() {
       // Set default input based on space
       if (spaceName.includes("calculator")) {
         setInputValue('[4, "add", 5]');
-      } else if (spaceName.includes("whisper")) {
-        setInputValue('["https://github.com/gradio-app/gradio/raw/main/test/test_files/audio_sample.wav"]');
-      } else if (spaceName.includes("FLUX")) {
-        setInputValue('["a cat wearing sunglasses", 0, true, 1024, 1024, 4]');
       } else {
         setInputValue('[]');
       }
@@ -290,7 +293,7 @@ export default function App() {
         )}
 
         {/* API Documentation */}
-        {apiInfo && (
+        {apiInfo !== null && (
           <div className="mt-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-6">
             <details>
               <summary className="font-medium text-zinc-900 dark:text-white cursor-pointer hover:text-zinc-600 dark:hover:text-zinc-300">
