@@ -133,8 +133,6 @@ export default function App() {
       
       const duration = performance.now() - startTime;
       
-      // BUG 1: Format duration with comma for large numbers (e.g., "1,234ms")
-      // This will break avgDuration calculation below!
       const formattedDuration = duration > 1000 
         ? `${duration.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}ms`
         : `${duration.toFixed(0)}ms`;
