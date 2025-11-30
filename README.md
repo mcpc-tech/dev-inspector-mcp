@@ -10,6 +10,7 @@ pinned: false
 short_description: AI-powered web debugging with visual element inspection
 tags:
   - building-mcp-track-creative
+  - mcp-in-action-track-creative
 ---
 
 # @mcpc-tech/unplugin-dev-inspector-mcp
@@ -17,6 +18,29 @@ tags:
 **AI-powered visual debugging for React and Vue via MCP (Model Context Protocol) and ACP (Agent Client Protocol).** Works with any MCP-compatible AI client and popular ACP agents like **Claude Code**, **Goose**, **Gemini CLI**, and **OpenCode**. 
 
 Click any UI element to let AI diagnose issues, inspect source code, analyze network requests, and provide intelligent fixes—all through natural conversation.
+
+## 🎬 Demo Video
+
+[![Demo Video](https://img.youtube.com/vi/TCt2oOtPS_k/0.jpg)](https://www.youtube.com/shorts/TCt2oOtPS_k)
+
+👉 **Watch the demo:** [https://www.youtube.com/shorts/TCt2oOtPS_k](https://www.youtube.com/shorts/TCt2oOtPS_k)
+
+## 📢 Social Media
+
+🐦 **Twitter/X Post:** [https://x.com/yaoandyan/status/1995082020431753600](https://x.com/yaoandyan/status/1995082020431753600?s=20)
+
+## 👥 Team
+
+- [@zpharnoex](https://huggingface.co/zpharnoex) - Project Creator
+
+## 🤝 Sponsors & Integrations
+
+This project uses the following sponsor APIs and platforms:
+
+- **Anthropic** - Claude API for MCP integration testing and AI-powered debugging capabilities
+- **Gradio** - `@gradio/client` for connecting to Gradio-powered APIs in the demo app
+
+---
 
 ![Demo: MCP-powered visual debugging in action](https://media.giphy.com/media/sGCk7b783GiGm5vZGl/giphy.gif)
 
