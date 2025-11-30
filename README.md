@@ -21,7 +21,7 @@ Click any UI element to let AI diagnose issues, inspect source code, analyze net
 
 ## 🎬 Demo Video
 
-[![Demo Video](https://img.youtube.com/vi/TCt2oOtPS_k/0.jpg)](https://www.youtube.com/shorts/TCt2oOtPS_k)
+[![Demo Video](https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExbnVvb2Y4MmJqbGJyMGJkendvZjkzZHN5MG4zY21mMXhjemF6dWk4aSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/67nUJwE7Fb2TMhBjhy/giphy.gif)](https://www.youtube.com/shorts/TCt2oOtPS_k)
 
 👉 **Watch the demo:** [https://www.youtube.com/shorts/TCt2oOtPS_k](https://www.youtube.com/shorts/TCt2oOtPS_k)
 
