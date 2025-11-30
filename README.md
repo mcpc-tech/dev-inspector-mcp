@@ -31,7 +31,7 @@ Click any UI element to let AI diagnose issues, inspect source code, analyze net
 
 ## 👥 Team
 
-- [@zpharnoex](https://huggingface.co/zpharnoex) - Project Creator
+- [yaonyan](https://huggingface.co/zpharnoex) - Project Creator
 
 ## 🤝 Sponsors & Integrations
 
