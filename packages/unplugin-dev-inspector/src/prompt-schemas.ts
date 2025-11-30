@@ -34,20 +34,21 @@ export const PROMPT_SCHEMAS = {
     ],
   },
 
-  refresh_chrome_state: {
-    name: "refresh_chrome_state",
-    title: "Refresh Chrome State",
-    description:
-      "Refresh the state of the Chrome DevTools for the specified URL.",
-    arguments: [],
-  },
-
   get_network_requests: {
     name: "get_network_requests",
     title: "Get Network Requests",
     description:
-      "Get all network requests for the specified URL.",
+      "List network requests or get details of a specific one. Always refreshes the list first.",
     // Arguments will be dynamically populated based on available requests
+    arguments: [],
+  },
+
+  get_console_messages: {
+    name: "get_console_messages",
+    title: "Get Console Messages",
+    description:
+      "List console messages or get details of a specific one. Always refreshes the list first.",
+    // Arguments will be dynamically populated based on available messages
     arguments: [],
   },
 } as const;

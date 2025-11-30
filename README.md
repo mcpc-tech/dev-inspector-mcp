@@ -15,7 +15,7 @@ tags:
 
 # @mcpc-tech/unplugin-dev-inspector-mcp
 
-**AI-powered visual debugging for React and Vue via MCP (Model Context Protocol) and ACP (Agent Client Protocol).** Works with any MCP-compatible AI client and popular ACP agents like **Claude Code**, **Goose**, **Gemini CLI**, and **OpenCode**. 
+**AI-powered visual debugging for React and Vue via MCP (Model Context Protocol) and ACP (Agent Client Protocol).** Works with any MCP-compatible AI client and popular ACP agents like **Claude Code**, **Codex CLI**, **Gemini CLI**, and **OpenCode**. 
 
 Click any UI element to let AI diagnose issues, inspect source code, analyze network requests, and provide intelligent fixes—all through natural conversation.
 
@@ -208,11 +208,12 @@ export default {
 
 ## What It Does
 
-**Click element → AI analyzes → Get fix**
+**Click element → Describe issue → AI analyzes → Get fix**
 
 1. Click any UI element to capture context (source, styles, DOM)
-2. AI diagnoses using Chrome DevTools integration
-3. Get intelligent solutions through natural conversation
+2. Describe what's wrong or ask a question about the element
+3. AI diagnoses using Chrome DevTools integration
+4. Get intelligent solutions through natural conversation
 
 **Examples:**
 - "Why is this button not clickable?" → AI checks `pointer-events`, z-index, overlays
@@ -235,6 +236,9 @@ Updates inspection status with optional progress steps.
 ### `execute_page_script`
 Executes JavaScript in browser context. Access to window, document, React/Vue instances, localStorage.
 
+### `chrome_devtools`
+Agentic tool for Chrome DevTools access. Provides network inspection, console logs, performance metrics, element interaction, and more.
+
 ## MCP Prompts
 
 ### `capture_element`
@@ -248,38 +252,17 @@ Opens Chrome with DevTools API. Unlocks network analysis, console logs, performa
 
 **Parameter:** `url` (defaults to dev server)
 
-⚠️ Must call before using Chrome DevTools capabilities.
-
-### `refresh_chrome_state`
-Updates list of available network requests.
+💡 Optional if Chrome is already open. Use when you need to launch a new Chrome instance.
 
 ### `get_network_requests`
-Get detailed info for a specific request (headers, payload, response, timing).
+List network requests or get details of a specific one. Always refreshes the list first.
 
-**Parameter:** `reqid` from refresh list
+**Parameter:** `reqid` (optional) - If provided, get details for that request. If omitted, just list all requests.
 
-## Usage with AI
+### `get_console_messages`
+List console messages or get details of a specific one. Always refreshes the list first.
 
-```bash
-pnpm dev
-```
-
-Connect MCP-compatible AI (Claude Desktop, Cline) and ask:
-
-```
-"Use launch_chrome_devtools to navigate to my app, then capture_element on the broken button"
-```
-
-AI automatically launches Chrome, activates selector, waits for your click, analyzes source/styles/DOM, and suggests fixes.
-
-## Development
-
-```bash
-cd packages/unplugin-dev-inspector
-pnpm build           # Build plugin
-pnpm build:client    # Build UI
-pnpm dev:demo        # Run demo
-```
+**Parameter:** `msgid` (optional) - If provided, get details for that message. If omitted, just list all messages.
 
 ## License
 

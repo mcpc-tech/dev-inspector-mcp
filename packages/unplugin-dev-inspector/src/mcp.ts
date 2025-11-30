@@ -101,7 +101,7 @@ export async function createInspectorMcpServer(serverContext?: ServerContext) {
 
 Provides tools for inspecting network requests, console logs, and performance metrics.
 
-IMPORTANT: Must first call chrome_navigate_page to launch Chrome before using these capabilities.
+If Chrome is already open, this tool can connect to it directly. Otherwise, call chrome_navigate_page first to launch Chrome.
 Default dev server URL: http://${serverContext?.host || 'localhost'}:${serverContext?.port || 5173}
 
 You MUST ask the user for confirmation before navigating to any URL.`,
@@ -196,11 +196,121 @@ You MUST ask the user for confirmation before navigating to any URL.`,
           ],
         },
         {
-          ...PROMPT_SCHEMAS.refresh_chrome_state,
+          ...PROMPT_SCHEMAS.get_network_requests,
+        },
+        {
+          ...PROMPT_SCHEMAS.get_console_messages,
         }
       ],
     };
   });
+
+  // Helper function to refresh chrome state (network requests and console messages)
+  async function refreshChromeState(): Promise<GetPromptResult> {
+    // Get network requests
+    const networkResult = (await callMcpMethod(mcpServer, "tools/call", {
+      name: "chrome_devtools",
+      arguments: {
+        useTool: 'chrome_list_network_requests',
+        hasDefinitions: [
+          'chrome_list_network_requests'
+        ],
+        chrome_list_network_requests: {}
+      },
+    })) as CallToolResult;
+
+    // Get console messages
+    const consoleResult = (await callMcpMethod(mcpServer, "tools/call", {
+      name: "chrome_devtools",
+      arguments: {
+        useTool: 'chrome_list_console_messages',
+        hasDefinitions: [
+          'chrome_list_console_messages'
+        ],
+        chrome_list_console_messages: {}
+      },
+    })) as CallToolResult;
+
+    // Extract reqIds from the network requests text
+    const requestsText = networkResult?.content?.map((item) => item.text).join('\n') || '';
+    const reqIdMatches = requestsText.matchAll(/reqid=(\d+)\s+(GET|POST|PUT|DELETE|PATCH)\s+([^\s]+)\s+\[([^\]]+)\]/g);
+    const requestOptions = Array.from(reqIdMatches)
+      .map(match => {
+        const [, reqId, method, url, status] = match;
+        // Truncate long URLs to 60 characters with ellipsis
+        const truncatedUrl = url.length > 60 ? url.substring(0, 57) + '...' : url;
+        return `  ${reqId}: ${method} ${truncatedUrl} [${status}]`;
+      })
+      .reverse() // Show newest requests first
+      .join('\n');
+
+    // Extract msgIds from the console messages text
+    const messagesText = consoleResult?.content?.map((item) => item.text).join('\n') || '';
+    const msgIdMatches = messagesText.matchAll(/msgid=(\d+)\s+\[([^\]]+)\]\s+(.+)/g);
+    const messageOptions = Array.from(msgIdMatches)
+      .map(match => {
+        const [, msgId, level, text] = match;
+        // Truncate long messages to 60 characters with ellipsis
+        const truncatedText = text.length > 60 ? text.substring(0, 57) + '...' : text;
+        return `  ${msgId}: [${level}] ${truncatedText}`;
+      })
+      .reverse() // Show newest messages first
+      .join('\n');
+
+    // Dynamically update the prompts arguments
+    mcpServer.setRequestHandler(ListPromptsRequestSchema, async (request) => {
+      return {
+        prompts: [
+          {
+            ...PROMPT_SCHEMAS.capture_element,
+          },
+          {
+            ...PROMPT_SCHEMAS.view_inspections,
+          },
+          {
+            ...PROMPT_SCHEMAS.launch_chrome_devtools,
+          },
+          {
+            ...PROMPT_SCHEMAS.get_network_requests,
+            // TODO: currently, MCP prompt arguments are not typed, and can only be strings,
+            // see https://github.com/modelcontextprotocol/modelcontextprotocol/issues/136
+            arguments: [
+              {
+                name: "reqid",
+                description: `Optional. The request ID to get details for. If omitted, only refreshes and lists requests.\n\nAvailable requests:\n${requestOptions || 'No requests available'}`,
+                required: false,
+              }
+            ]
+          },
+          {
+            ...PROMPT_SCHEMAS.get_console_messages,
+            arguments: [
+              {
+                name: "msgid",
+                description: `Optional. The message ID to get details for. If omitted, only refreshes and lists messages.\n\nAvailable messages:\n${messageOptions || 'No messages available'}`,
+                required: false,
+              }
+            ]
+          }
+        ],
+      };
+    });
+
+    await mcpServer.sendPromptListChanged();
+
+    // Combine both results
+    const combinedContent = [
+      ...(networkResult?.content || []),
+      ...(consoleResult?.content || []),
+    ];
+
+    return {
+      messages: combinedContent.map((item) => ({
+        role: "user" as const,
+        content: item,
+      })),
+    } as GetPromptResult;
+  }
 
   mcpServer.setRequestHandler(GetPromptRequestSchema, async (request) => {
     const promptName = request.params.name as keyof typeof PROMPT_SCHEMAS;
@@ -270,7 +380,8 @@ You MUST ask the user for confirmation before navigating to any URL.`,
             },
           })) as CallToolResult;
 
-
+          // Auto-refresh chrome state after navigation to populate network requests and console messages
+          await refreshChromeState();
 
           return {
             messages: [
@@ -295,89 +406,18 @@ You MUST ask the user for confirmation before navigating to any URL.`,
         }
       }
 
-      case 'refresh_chrome_state':
-        try {
-          const result = (await callMcpMethod(mcpServer, "tools/call", {
-            name: "chrome_devtools",
-            arguments: {
-              useTool: 'chrome_list_network_requests',
-              hasDefinitions: [
-                'chrome_list_network_requests'
-              ],
-              chrome_list_network_requests: {}
-            },
-          })) as CallToolResult;
-          // Extract reqIds from the network requests text
-          const requestsText = result?.content?.map((item) => item.text).join('\n') || '';
-          const reqIdMatches = requestsText.matchAll(/reqid=(\d+)\s+(GET|POST|PUT|DELETE|PATCH)\s+([^\s]+)\s+\[([^\]]+)\]/g);
-          const requestOptions = Array.from(reqIdMatches)
-            .map(match => {
-              const [, reqId, method, url, status] = match;
-              // Truncate long URLs to 60 characters with ellipsis
-              const truncatedUrl = url.length > 60 ? url.substring(0, 57) + '...' : url;
-              return `  ${reqId}: ${method} ${truncatedUrl} [${status}]`;
-            })
-            .reverse() // Show newest requests first
-            .join('\n');
-
-          // Dynamically update the prompts arguments
-          mcpServer.setRequestHandler(ListPromptsRequestSchema, async (request) => {
-            return {
-              prompts: [
-                {
-                  ...PROMPT_SCHEMAS.capture_element,
-                },
-                {
-                  ...PROMPT_SCHEMAS.view_inspections,
-                },
-                {
-                  ...PROMPT_SCHEMAS.launch_chrome_devtools,
-                },
-                {
-                  ...PROMPT_SCHEMAS.refresh_chrome_state,
-                },
-                {
-                  ...PROMPT_SCHEMAS.get_network_requests,
-                  // TODO: currently, MCP prompt arguments are not typed, and can only be strings,
-                  // see https://github.com/modelcontextprotocol/modelcontextprotocol/issues/136
-                  arguments: [
-                    {
-                      name: "reqid",
-                      description: `The request ID to get details for. Available requests:\n\n${requestOptions || 'No requests available'}`,
-                      required: true,
-                    }
-                  ]
-                }
-              ],
-            };
-          });
-
-          await mcpServer.sendPromptListChanged()
-
-          return {
-            messages: [
-              ...(result?.content || []).map((item) => ({
-                role: "user" as const,
-                content: item,
-              })),
-            ],
-          } as GetPromptResult;
-        } catch (error) {
-          return {
-            messages: [
-              {
-                role: "user",
-                content: {
-                  type: "text",
-                  text: `Error launching Chrome DevTools: ${error instanceof Error ? error.message : String(error)}`,
-                },
-              },
-            ],
-          } as GetPromptResult;
+      case 'get_network_requests': {
+        // Always refresh first
+        const refreshResult = await refreshChromeState();
+        
+        const reqidStr = request.params.arguments?.reqid as string | undefined;
+        
+        // If no reqid provided, just return the refresh result (list of requests)
+        if (!reqidStr) {
+          return refreshResult;
         }
 
-      case 'get_network_requests':
-        const reqid = parseInt(request.params.arguments?.reqid as string);
+        const reqid = parseInt(reqidStr);
         try {
           const result = (await callMcpMethod(mcpServer, "tools/call", {
             name: "chrome_devtools",
@@ -392,7 +432,54 @@ You MUST ask the user for confirmation before navigating to any URL.`,
             },
           })) as CallToolResult;
 
+          return {
+            messages: [
+              ...(result?.content || []).map((item) => ({
+                role: "user" as const,
+                content: item,
+              })),
+            ],
+          } as GetPromptResult;
+        } catch (error) {
+          return {
+            messages: [
+              {
+                role: "user",
+                content: {
+                  type: "text",
+                  text: `Error getting network request: ${error instanceof Error ? error.message : String(error)}`,
+                },
+              },
+            ],
+          } as GetPromptResult;
+        }
+      }
 
+      case 'get_console_messages': {
+        // Always refresh first
+        const refreshResultConsole = await refreshChromeState();
+        
+        const msgidStr = request.params.arguments?.msgid as string | undefined;
+        
+        // If no msgid provided, just return the refresh result (list of messages)
+        if (!msgidStr) {
+          return refreshResultConsole;
+        }
+
+        const msgid = parseInt(msgidStr);
+        try {
+          const result = (await callMcpMethod(mcpServer, "tools/call", {
+            name: "chrome_devtools",
+            arguments: {
+              useTool: 'chrome_get_console_message',
+              hasDefinitions: [
+                'chrome_get_console_message'
+              ],
+              chrome_get_console_message: {
+                msgid
+              }
+            },
+          })) as CallToolResult;
 
           return {
             messages: [
@@ -409,12 +496,13 @@ You MUST ask the user for confirmation before navigating to any URL.`,
                 role: "user",
                 content: {
                   type: "text",
-                  text: `Error launching Chrome DevTools: ${error instanceof Error ? error.message : String(error)}`,
+                  text: `Error getting console message: ${error instanceof Error ? error.message : String(error)}`,
                 },
               },
             ],
           } as GetPromptResult;
         }
+      }
 
 
       default:
