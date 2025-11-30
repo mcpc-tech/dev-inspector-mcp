@@ -15,9 +15,14 @@ tags:
 
 # @mcpc-tech/unplugin-dev-inspector-mcp
 
-**AI-powered visual debugging for React and Vue via MCP (Model Context Protocol) and ACP (Agent Client Protocol).** Works with any MCP-compatible AI client and popular ACP agents like **Claude Code**, **Codex CLI**, **Gemini CLI**, and **OpenCode**. 
+[![npm version](https://img.shields.io/npm/v/@mcpc-tech/unplugin-dev-inspector-mcp.svg)](https://www.npmjs.com/package/@mcpc-tech/unplugin-dev-inspector-mcp)
+[![npm downloads](https://img.shields.io/npm/dm/@mcpc-tech/unplugin-dev-inspector-mcp.svg)](https://www.npmjs.com/package/@mcpc-tech/unplugin-dev-inspector-mcp)
 
-Click any UI element to let AI diagnose issues, inspect source code, analyze network requests, and provide intelligent fixes—all through natural conversation.
+**AI-powered visual debugging for React & Vue via MCP and ACP.**
+
+Works with any MCP-compatible AI client. Supports ACP agents: **Claude Code**, **Codex CLI**, **Gemini CLI**, **OpenCode**, and [more](https://agentclientprotocol.com/overview/agents).
+
+Click any element → AI diagnoses issues, inspects source, analyzes network, and provides fixes.
 
 ## 🎬 Demo Video
 
@@ -58,7 +63,12 @@ Switch between agents (Claude Code, Goose) and track their debugging progress vi
 ## Quick Start
 
 ```bash
-npm i -D @mcpc-tech/unplugin-dev-inspector-mcp@beta
+# npm
+npm i -D @mcpc-tech/unplugin-dev-inspector-mcp
+# pnpm
+pnpm add -D @mcpc-tech/unplugin-dev-inspector-mcp
+# yarn
+yarn add -D @mcpc-tech/unplugin-dev-inspector-mcp
 ```
 
 ```typescript
