@@ -21,6 +21,22 @@ export interface DevInspectorOptions extends McpConfigOptions, AcpOptions {
   enableMcp?: boolean;
 
   /**
+   * Custom host for MCP server URL
+   * Useful when behind a proxy or in Docker containers
+   * If not specified, uses the Vite server host config
+   * @example "localhost" or "my-dev-server.local"
+   */
+  host?: string;
+
+  /**
+   * Custom port for MCP server URL
+   * Useful when behind a proxy or port forwarding (e.g., Docker, SSH tunnels)
+   * If not specified, uses the Vite server port config
+   * @example 3000
+   */
+  port?: number;
+
+  /**
    * Custom agents configuration
    * If provided, these will be merged with or replace the default agents
    * @see AVAILABLE_AGENTS https://github.com/mcpc-tech/dev-inspector-mcp/blob/main/packages/unplugin-dev-inspector/client/constants/agents.ts
@@ -136,11 +152,12 @@ if (import.meta.env.DEV) {
 
         async configureServer(server) {
           if (enableMcp) {
-            const host = server.config.server.host;
+            const viteHost = server.config.server.host;
             const serverContext = {
-              // Normalize host: if true, use '0.0.0.0', otherwise use the string value or 'localhost'
-              host: typeof host === 'string' ? host : (host === true ? '0.0.0.0' : 'localhost'),
-              port: server.config.server.port || 5173,
+              // Priority: user option > Vite config > fallback to 'localhost'
+              // Normalize Vite host: if true, use '0.0.0.0', otherwise use the string value or 'localhost'
+              host: options.host ?? (typeof viteHost === 'string' ? viteHost : (viteHost === true ? '0.0.0.0' : 'localhost')),
+              port: options.port ?? server.config.server.port ?? 5173,
             };
 
             // Display MCP connection instructions
