@@ -151,23 +151,35 @@ if (import.meta.env.DEV) {
       vite: {
         apply: "serve",
 
-        transformIndexHtml(html) {
-          const autoInject = options.autoInject ?? true;
-          if (!autoInject) return html;
+        transformIndexHtml: {
+          order: 'pre',
+          handler(html, ctx) {
+            const autoInject = options.autoInject ?? true;
+            if (!autoInject) return html;
 
-          // Inject inspector client element and a small bootstrap that
-          // computes the correct absolute URL to the inspector script
-          return html.replace(
-            "</body>",
-            `<dev-inspector-mcp></dev-inspector-mcp><script>
+            // Get server config from context
+            const server = ctx.server;
+            const viteHost = server?.config.server.host;
+            const host = options.host ?? (typeof viteHost === 'string' ? viteHost : (viteHost === true ? '0.0.0.0' : 'localhost'));
+            const port = options.port ?? server?.config.server.port ?? 5173;
+            const base = server?.config.base ?? '/';
+
+            // Use 'localhost' for display when host is '0.0.0.0'
+            const displayHost = host === '0.0.0.0' ? 'localhost' : host;
+
+            // Inject inspector client element and a small bootstrap that
+            // computes the correct absolute URL to the inspector script
+            return html.replace(
+              "</body>",
+              `<dev-inspector-mcp></dev-inspector-mcp><script>
 (function() {
   if (!window.__DEV_INSPECTOR_LOADED__) {
     window.__DEV_INSPECTOR_LOADED__ = true;
     var script = document.createElement('script');
-    var host = (window.__VITE_DEV_SERVER_HOST__ || 'localhost');
-    var port = (window.__VITE_DEV_SERVER_PORT__ || '5173');
-    var base = (window.__VITE_DEV_BASE__ || '/');
-    var origin = window.__VITE_DEV_SERVER_ORIGIN__ || window.location.origin || ('http://' + host + ':' + port);
+    var host = '${displayHost}';
+    var port = '${port}';
+    var base = '${base}';
+    var origin = window.location.origin || ('http://' + host + ':' + port);
     var baseUrl = origin + base;
     if (baseUrl.endsWith('/')) {
       baseUrl = baseUrl.slice(0, -1);
@@ -178,7 +190,8 @@ if (import.meta.env.DEV) {
   }
 })();
 </script></body>`
-          );
+            );
+          },
         },
 
         async configureServer(server) {
