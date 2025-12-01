@@ -45,7 +45,17 @@ async function loadConfig(): Promise<InspectorConfig> {
     return configPromise;
   }
 
-  configPromise = fetch("/__inspector__/config.json")
+  // Use absolute URL based on the dev server origin/host/port, so this
+  // still works when the app itself is accessed via a proxy or different
+  // domain. We intentionally do NOT rely on just a relative path.
+  const host = (window as any).__VITE_DEV_SERVER_HOST__ || window.location.hostname || "localhost";
+  const port = (window as any).__VITE_DEV_SERVER_PORT__ || (window.location.port || "5173");
+  const base = (window as any).__VITE_DEV_BASE__ || (window as any).__vite_base__ || "/";
+  const origin =
+    (window as any).__VITE_DEV_SERVER_ORIGIN__ || window.location.origin || `http://${host}:${port}`;
+  const baseUrl = (origin + base).replace(/\/$/, "");
+
+  configPromise = fetch(`${baseUrl}/__inspector__/config.json`)
     .then((res) => res.json())
     .then((config: InspectorConfig) => {
       configCache = config;

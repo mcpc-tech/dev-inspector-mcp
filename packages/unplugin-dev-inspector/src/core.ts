@@ -99,10 +99,22 @@ if (import.meta.env.DEV) {
     // Create inspector element
     const inspector = document.createElement('dev-inspector-mcp');
     document.body.appendChild(inspector);
-    
+
     // Dynamically load inspector script (only in dev)
     const script = document.createElement('script');
-    script.src = '/__inspector__/inspector.iife.js';
+    // Use Vite dev server host/port/base from environment so this works behind proxies
+    const host = import.meta.env.VITE_DEV_SERVER_HOST || 'localhost';
+    const port = import.meta.env.VITE_DEV_SERVER_PORT || '5173';
+    const base = import.meta.env.BASE_URL || '/';
+    const origin = import.meta.env.VITE_DEV_SERVER_ORIGIN ||
+      // Fallback to window.location.origin if available (e.g. when running via proxy)
+      (typeof window !== 'undefined' ? window.location.origin : 'http://' + host + ':' + port);
+
+      let baseUrl = origin + base;
+      if (baseUrl.endsWith('/')) {
+        baseUrl = baseUrl.slice(0, -1);
+      }
+    script.src = baseUrl + '/__inspector__/inspector.iife.js';
     script.type = 'module';
     document.head.appendChild(script);
   }
@@ -143,10 +155,29 @@ if (import.meta.env.DEV) {
           const autoInject = options.autoInject ?? true;
           if (!autoInject) return html;
 
-          // Inject inspector client script and element
+          // Inject inspector client element and a small bootstrap that
+          // computes the correct absolute URL to the inspector script
           return html.replace(
             "</body>",
-            `<dev-inspector-mcp></dev-inspector-mcp><script src="/__inspector__/inspector.iife.js"></script></body>`
+            `<dev-inspector-mcp></dev-inspector-mcp><script>
+(function() {
+  if (!window.__DEV_INSPECTOR_LOADED__) {
+    window.__DEV_INSPECTOR_LOADED__ = true;
+    var script = document.createElement('script');
+    var host = (window.__VITE_DEV_SERVER_HOST__ || 'localhost');
+    var port = (window.__VITE_DEV_SERVER_PORT__ || '5173');
+    var base = (window.__VITE_DEV_BASE__ || '/');
+    var origin = window.__VITE_DEV_SERVER_ORIGIN__ || window.location.origin || ('http://' + host + ':' + port);
+    var baseUrl = origin + base;
+    if (baseUrl.endsWith('/')) {
+      baseUrl = baseUrl.slice(0, -1);
+    }
+    script.src = baseUrl + '/__inspector__/inspector.iife.js';
+    script.type = 'module';
+    document.head.appendChild(script);
+  }
+})();
+</script></body>`
           );
         },
 

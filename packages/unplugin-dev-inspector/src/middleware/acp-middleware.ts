@@ -78,6 +78,7 @@ export function setupAcpMiddleware(middlewares: Connect.Server, serverContext?: 
           await provider.setModel(model);
         }
         if (delay !== undefined && delay > 0) {
+          console.log(`[dev-inspector] [acp] Delaying response by ${delay}ms, agent: ${agent.name}`);
           await new Promise((resolve) => setTimeout(resolve, delay));
         } 
 
