@@ -91,6 +91,10 @@ export const unplugin = createUnplugin<DevInspectorOptions | undefined>(
 
       load(id) {
         if (id === '\0' + virtualModuleName) {
+          // Get host/port from options or use defaults
+          const host = options.host || 'localhost';
+          const port = options.port || 5173;
+
           // Return dev-only code that is tree-shaken in production
           return `
 // Development-only code - completely removed in production builds
@@ -100,20 +104,20 @@ if (import.meta.env.DEV) {
     const inspector = document.createElement('dev-inspector-mcp');
     document.body.appendChild(inspector);
 
+    // Store dev server config globally (injected at build time)
+    window.__DEV_INSPECTOR_CONFIG__ = {
+      host: '${host}',
+      port: '${port}',
+      base: import.meta.env.BASE_URL || '/'
+    };
+
     // Dynamically load inspector script (only in dev)
     const script = document.createElement('script');
-    // Use Vite dev server host/port/base from environment so this works behind proxies
-    const host = import.meta.env.VITE_DEV_SERVER_HOST || 'localhost';
-    const port = import.meta.env.VITE_DEV_SERVER_PORT || '5173';
-    const base = import.meta.env.BASE_URL || '/';
-    const origin = import.meta.env.VITE_DEV_SERVER_ORIGIN ||
-      // Fallback to window.location.origin if available (e.g. when running via proxy)
-      (typeof window !== 'undefined' ? window.location.origin : 'http://' + host + ':' + port);
-
-      let baseUrl = origin + base;
-      if (baseUrl.endsWith('/')) {
-        baseUrl = baseUrl.slice(0, -1);
-      }
+    const config = window.__DEV_INSPECTOR_CONFIG__;
+    let baseUrl = 'http://' + config.host + ':' + config.port + config.base;
+    if (baseUrl.endsWith('/')) {
+      baseUrl = baseUrl.slice(0, -1);
+    }
     script.src = baseUrl + '/__inspector__/inspector.iife.js';
     script.type = 'module';
     document.head.appendChild(script);
@@ -169,18 +173,22 @@ if (import.meta.env.DEV) {
 
             // Inject inspector client element and a small bootstrap that
             // computes the correct absolute URL to the inspector script
+            // Store the dev server config globally so client code can use it
             return html.replace(
               "</body>",
               `<dev-inspector-mcp></dev-inspector-mcp><script>
 (function() {
   if (!window.__DEV_INSPECTOR_LOADED__) {
     window.__DEV_INSPECTOR_LOADED__ = true;
+    // Store dev server config for client-side use (e.g., config-loader.ts)
+    window.__DEV_INSPECTOR_CONFIG__ = {
+      host: '${displayHost}',
+      port: '${port}',
+      base: '${base}'
+    };
     var script = document.createElement('script');
-    var host = '${displayHost}';
-    var port = '${port}';
-    var base = '${base}';
-    var origin = window.location.origin || ('http://' + host + ':' + port);
-    var baseUrl = origin + base;
+    var config = window.__DEV_INSPECTOR_CONFIG__;
+    var baseUrl = 'http://' + config.host + ':' + config.port + config.base;
     if (baseUrl.endsWith('/')) {
       baseUrl = baseUrl.slice(0, -1);
     }

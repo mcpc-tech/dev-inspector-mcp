@@ -45,15 +45,19 @@ async function loadConfig(): Promise<InspectorConfig> {
     return configPromise;
   }
 
-  // Use absolute URL based on the dev server origin/host/port, so this
-  // still works when the app itself is accessed via a proxy or different
-  // domain. We use window.location values as the primary source since
-  // Vite injects the correct host/port at build time into the HTML.
-  const host = window.location.hostname || "localhost";
-  const port = window.location.port || "5173";
-  const base = (window as any).__vite_base__ || "/";
-  const origin = window.location.origin || `http://${host}:${port}`;
-  const baseUrl = (origin + base).replace(/\/$/, "");
+  // Use the dev server config injected by the plugin at build time.
+  // This ensures we always connect to the correct local dev server,
+  // even when the app is accessed via a proxy or different domain.
+  const injectedConfig = (window as any).__DEV_INSPECTOR_CONFIG__ as {
+    host: string;
+    port: string;
+    base: string;
+  } | undefined;
+
+  const host = injectedConfig?.host || "localhost";
+  const port = injectedConfig?.port || "5173";
+  const base = injectedConfig?.base || "/";
+  const baseUrl = `http://${host}:${port}${base}`.replace(/\/$/, "");
 
   configPromise = fetch(`${baseUrl}/__inspector__/config.json`)
     .then((res) => res.json())
