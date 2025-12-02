@@ -42,7 +42,7 @@ export async function setupMcpMiddleware(middlewares: Connect.Server, serverCont
 
       // SSE messages endpoint (deprecated)
       if (url.startsWith("/__mcp__/messages") && req.method === "POST") {
-        await handleSseMessage(req, res, connectionManager);
+        await handleSseMessage(req, res, serverContext, connectionManager);
         return;
       }
 
@@ -204,7 +204,10 @@ async function handleSseConnection(
   try {
     // Create MCP server for this SSE connection
     const mcpServer = await createInspectorMcpServer(serverContext);
-    const url = new URL(req.url ?? "", `http://${req.headers.host}`);
+    // Use injected serverContext for local dev server address
+    const host = serverContext?.host || "localhost";
+    const port = serverContext?.port || 5173;
+    const url = new URL(req.url ?? "", `http://${host}:${port}`);
     const transport = new SSEServerTransport("/__mcp__/messages", res);
     const sessionId = transport.sessionId;
     const aliasSessionId = url.searchParams.get("sessionId") || sessionId;
@@ -241,10 +244,14 @@ async function handleSseConnection(
 async function handleSseMessage(
   req: IncomingMessage,
   res: ServerResponse,
+  serverContext: ServerContext | undefined,
   connectionManager: ConnectionManager
 ) {
   try {
-    const url = new URL(req.url || "", `http://${req.headers.host}`);
+    // Use injected serverContext for local dev server address
+    const host = serverContext?.host || "localhost";
+    const port = serverContext?.port || 5173;
+    const url = new URL(req.url || "", `http://${host}:${port}`);
     const sessionId = url.searchParams.get("sessionId");
 
     if (!sessionId) {
