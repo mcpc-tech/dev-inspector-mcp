@@ -72,6 +72,10 @@ export const unplugin = createUnplugin<DevInspectorOptions | undefined>(
     const enableMcp = options.enableMcp ?? true;
     const virtualModuleName = options.virtualModuleName ?? 'virtual:dev-inspector-mcp';
 
+    // Resolved server config (populated by Vite's configResolved hook)
+    let resolvedHost = options.host || 'localhost';
+    let resolvedPort = options.port || 5173;
+
     if (!enabled) {
       return {
         name: "unplugin-dev-inspector",
@@ -91,9 +95,9 @@ export const unplugin = createUnplugin<DevInspectorOptions | undefined>(
 
       load(id) {
         if (id === '\0' + virtualModuleName) {
-          // Get host/port from options or use defaults
-          const host = options.host || 'localhost';
-          const port = options.port || 5173;
+          // Use resolved host/port from Vite config
+          const host = resolvedHost;
+          const port = resolvedPort;
 
           // Return dev-only code that is tree-shaken in production
           return `
@@ -154,6 +158,17 @@ if (import.meta.env.DEV) {
       // Vite-specific hooks
       vite: {
         apply: "serve",
+
+        configResolved(config) {
+          // Capture resolved Vite config for virtual module
+          const viteHost = config.server.host;
+          resolvedHost = options.host ?? (typeof viteHost === 'string' ? viteHost : (viteHost === true ? '0.0.0.0' : 'localhost'));
+          resolvedPort = options.port ?? config.server.port ?? 5173;
+          // Use 'localhost' for display when host is '0.0.0.0'
+          if (resolvedHost === '0.0.0.0') {
+            resolvedHost = 'localhost';
+          }
+        },
 
         transformIndexHtml: {
           order: 'pre',

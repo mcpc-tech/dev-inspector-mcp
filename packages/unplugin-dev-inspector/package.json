@@ -1,6 +1,6 @@
 {
   "name": "@mcpc-tech/unplugin-dev-inspector-mcp",
-  "version": "0.0.2-beta.34",
+  "version": "0.0.2-beta.35",
   "description": "Universal dev inspector plugin for React/Vue - inspect component sources and API calls in any bundler",
   "type": "module",
   "license": "MIT",
