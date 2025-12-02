@@ -5,6 +5,7 @@ import { createACPProvider } from "@mcpc-tech/acp-ai-provider";
 import { planEntrySchema } from "@agentclientprotocol/sdk";
 import { z } from "zod";
 import { resolveMcpRemote } from "../utils/resolve-bin";
+import { handleCors } from "../utils/cors";
 import type { ServerContext } from "../mcp";
 import type { AcpOptions } from "../../client/constants/types";
 
@@ -14,6 +15,8 @@ export function setupAcpMiddleware(middlewares: Connect.Server, serverContext?: 
   middlewares.use(
     "/api/acp/chat",
     async (req: IncomingMessage, res: ServerResponse) => {
+      if (handleCors(res, req.method)) return;
+
       if (req.method !== "POST") {
         res.statusCode = 405;
         res.end("Method Not Allowed");

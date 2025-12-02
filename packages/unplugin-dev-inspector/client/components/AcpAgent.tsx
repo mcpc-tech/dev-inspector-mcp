@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useChat } from "@ai-sdk/react";
+import { getDevServerBaseUrl } from "../utils/config-loader";
 import {
   Conversation,
   ConversationContent,
@@ -53,7 +54,7 @@ const ACPAgent = ({ sourceInfo, onClose }: ACPAgentProps = {}) => {
 
   const { messages, sendMessage, status, stop } = useChat({
     transport: new DefaultChatTransport({
-      api: "/api/acp/chat",
+      api: `${getDevServerBaseUrl()}/api/acp/chat`,
     }),
   });
 

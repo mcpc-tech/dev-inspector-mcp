@@ -5,6 +5,7 @@ import { randomUUID } from "crypto";
 import type { Connect } from "vite";
 import { createInspectorMcpServer, type ServerContext } from "../mcp";
 import { ConnectionManager } from "./connection-manager.js";
+import { handleCors } from "../utils/cors";
 
 /**
  * Setup MCP server endpoints in Vite dev server
@@ -15,6 +16,11 @@ export async function setupMcpMiddleware(middlewares: Connect.Server, serverCont
   middlewares.use(
     async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
       const url = req.url || "";
+
+      // Handle CORS for MCP endpoints
+      if (url.startsWith("/__mcp__")) {
+        if (handleCors(res, req.method)) return;
+      }
 
       // Streamable HTTP endpoint
       if (

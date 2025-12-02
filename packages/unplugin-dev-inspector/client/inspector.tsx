@@ -20,6 +20,7 @@ import { InspectorBar } from "./components/InspectorBar";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { AVAILABLE_AGENTS } from "./constants/agents";
+import { getDevServerBaseUrl } from "./utils/config-loader";
 
 interface InspectorContainerProps {
   shadowRoot?: ShadowRoot;
@@ -41,7 +42,7 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({
   // Agent State
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({
-      api: "/api/acp/chat",
+      api: `${getDevServerBaseUrl()}/api/acp/chat`,
     }),
   });
 

@@ -3,6 +3,7 @@ import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 import { useEffect, useRef } from "react";
 import { createClientExecClient } from "@mcpc-tech/cmcp";
 import { TOOL_SCHEMAS } from "../../src/tool-schemas.js";
+import { getDevServerBaseUrl } from "../utils/config-loader";
 
 const STORAGE_KEY = 'inspector-inspection-items';
 const INSPECTION_ID_KEY = 'inspector-current-inspection-id';
@@ -357,7 +358,7 @@ export function useMcp() {
     ]);
 
     const transport = new SSEClientTransport(
-      new URL("/__mcp__/sse?clientType=inspector", window.location.origin),
+      new URL(`/__mcp__/sse?clientType=inspector`, getDevServerBaseUrl()),
     );
 
     client

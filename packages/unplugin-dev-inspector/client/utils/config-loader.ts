@@ -13,6 +13,23 @@ let configCache: InspectorConfig | null = null;
 let configPromise: Promise<InspectorConfig> | null = null;
 
 /**
+ * Get the dev server base URL from injected config.
+ * Uses __DEV_INSPECTOR_CONFIG__ set by the plugin at build time.
+ */
+export function getDevServerBaseUrl(): string {
+  const injectedConfig = (window as any).__DEV_INSPECTOR_CONFIG__ as {
+    host: string;
+    port: string;
+    base: string;
+  } | undefined;
+
+  const host = injectedConfig?.host || "localhost";
+  const port = injectedConfig?.port || "5173";
+  const base = injectedConfig?.base || "/";
+  return `http://${host}:${port}${base}`.replace(/\/$/, "");
+}
+
+/**
  * Merge custom agent with default agent properties
  * If a custom agent has the same name as a default agent, fill in missing properties
  */
@@ -45,19 +62,7 @@ async function loadConfig(): Promise<InspectorConfig> {
     return configPromise;
   }
 
-  // Use the dev server config injected by the plugin at build time.
-  // This ensures we always connect to the correct local dev server,
-  // even when the app is accessed via a proxy or different domain.
-  const injectedConfig = (window as any).__DEV_INSPECTOR_CONFIG__ as {
-    host: string;
-    port: string;
-    base: string;
-  } | undefined;
-
-  const host = injectedConfig?.host || "localhost";
-  const port = injectedConfig?.port || "5173";
-  const base = injectedConfig?.base || "/";
-  const baseUrl = `http://${host}:${port}${base}`.replace(/\/$/, "");
+  const baseUrl = getDevServerBaseUrl();
 
   configPromise = fetch(`${baseUrl}/__inspector__/config.json`)
     .then((res) => res.json())

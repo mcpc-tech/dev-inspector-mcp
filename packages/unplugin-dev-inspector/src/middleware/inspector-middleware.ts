@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import type { Agent } from '../../client/constants/types'
+import { handleCors } from '../utils/cors';
 
 // ESM equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -76,6 +77,11 @@ export function setupInspectorMiddleware(middlewares: Connect.Server, config?: I
   let filesChecked = false;
 
   middlewares.use((req: IncomingMessage, res: ServerResponse, next: () => void) => {
+    // Handle CORS for inspector endpoints
+    if (req.url?.startsWith('/__inspector__')) {
+      if (handleCors(res, req.method)) return;
+    }
+
     if (!filesChecked) {
       cachedScript = getInspectorScript();
       cachedCSS = getInspectorCSS();
