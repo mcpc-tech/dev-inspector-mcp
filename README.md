@@ -64,11 +64,11 @@ Switch between agents (Claude Code, Goose) and track their debugging progress vi
 
 ```bash
 # npm
-npm i -D @mcpc-tech/unplugin-dev-inspector-mcp
+npm i -D @mcpc-tech/unplugin-dev-inspector-mcp@beta
 # pnpm
-pnpm add -D @mcpc-tech/unplugin-dev-inspector-mcp
+pnpm add -D @mcpc-tech/unplugin-dev-inspector-mcp@beta
 # yarn
-yarn add -D @mcpc-tech/unplugin-dev-inspector-mcp
+yarn add -D @mcpc-tech/unplugin-dev-inspector-mcp@beta
 ```
 
 ```typescript
