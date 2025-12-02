@@ -274,6 +274,16 @@ List console messages or get details of a specific one. Always refreshes the lis
 
 **Parameter:** `msgid` (optional) - If provided, get details for that message. If omitted, just list all messages.
 
+## Architecture
+
+For a deep dive into how the MCP context, CMCP library, and Puppet binding mechanism work together, see the [Architecture Documentation](./docs/architecture/mcp-cmcp-puppet-architecture.md).
+
+**Key concepts:**
+- **Hub-and-spoke model**: Vite dev server acts as central hub managing multiple client connections
+- **CMCP bidirectional execution**: Server defines tool schemas, browser client provides implementations
+- **Puppet binding**: Enables Chrome DevTools ↔ Inspector message passthrough
+- **Dynamic rebinding**: Automatic connection recovery after browser refresh
+
 ## License
 
 MIT
