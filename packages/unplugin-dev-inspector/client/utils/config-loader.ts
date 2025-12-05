@@ -99,14 +99,14 @@ export async function getAvailableAgents(): Promise<Agent[]> {
 
 /**
  * Get the default agent name
+ * Falls back to DEFAULT_AGENT_NAME if configured agent doesn't exist
  */
 export async function getDefaultAgent(): Promise<string> {
   const config = await loadConfig();
-
-  if (config.defaultAgent) {
-    return config.defaultAgent;
+  const name = config.defaultAgent;
+  if (name && DEFAULT_AGENTS.some((a) => a.name === name)) {
+    return name;
   }
-
   return DEFAULT_AGENT_NAME;
 }
 
@@ -122,5 +122,9 @@ export function getAvailableAgentsSync(): Agent[] {
 }
 
 export function getDefaultAgentSync(): string {
-  return configCache?.defaultAgent || DEFAULT_AGENT_NAME;
+  const name = configCache?.defaultAgent;
+  if (name && DEFAULT_AGENTS.some((a) => a.name === name)) {
+    return name;
+  }
+  return DEFAULT_AGENT_NAME;
 }
