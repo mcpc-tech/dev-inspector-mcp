@@ -216,23 +216,18 @@ async function handleSseConnection(
     const url = new URL(req.url ?? "", `http://${host}:${port}`);
     const transport = new SSEServerTransport("/__mcp__/messages", res);
     const sessionId = transport.sessionId;
-    const aliasSessionId = url.searchParams.get("sessionId") || sessionId;
+    const clientId = url.searchParams.get("clientId");
     const puppetId = url.searchParams.get("puppetId");
-    const clientType = url.searchParams.get("clientType");
 
     connectionManager.registerTransport(sessionId, transport);
-    if (aliasSessionId) {
-      connectionManager.registerTransport(aliasSessionId, transport);
-    }
 
-    if (clientType === "inspector") {
+    if (clientId === "inspector") {
       connectionManager.handleInspectorConnection(sessionId);
     }
 
-    if (puppetId) {
-      connectionManager.handleWatcherConnection(sessionId, puppetId, transport);
-      // @ts-expect-error - puppet transport marker
-      transport.__puppetId = puppetId;
+    // Watcher connection: clientId identifies who, puppetId identifies target
+    if (clientId && clientId !== "inspector" && puppetId) {
+      connectionManager.handleWatcherConnection(sessionId, clientId, puppetId, transport);
     }
 
     await mcpServer.connect(transport);

@@ -43,7 +43,7 @@ export function setupAcpMiddleware(middlewares: Connect.Server, serverContext?: 
                 command: mcpRemote.command,
                 args: [
                   ...mcpRemote.args,
-                  `http://${serverContext?.host || 'localhost'}:${serverContext?.port || 5173}/__mcp__/sse?puppetId=chrome`,
+                  `http://${serverContext?.host || 'localhost'}:${serverContext?.port || 5173}/__mcp__/sse?clientId=acp&puppetId=inspector`,
                 ],
                 env: [],
                 name: "inspect",

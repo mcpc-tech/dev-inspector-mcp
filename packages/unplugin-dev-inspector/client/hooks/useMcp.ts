@@ -357,7 +357,7 @@ export function useMcp() {
     ]);
 
     const transport = new SSEClientTransport(
-      new URL(`/__mcp__/sse?clientType=inspector`, getDevServerBaseUrl()),
+      new URL(`/__mcp__/sse?clientId=inspector`, getDevServerBaseUrl()),
     );
 
     client

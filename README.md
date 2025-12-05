@@ -89,8 +89,6 @@ export default {
 
 > 💡 **Troubleshooting:** If source locations show `unknown:0:0`, try moving `DevInspector.vite()` **before** framework plugins like `react()`, `vue()`, or `preact()`. This ensures source location injection happens before JSX transformation.
 
-> ⚠️ **Connection Issue:** If using both ACP agents and IDE MCP connections simultaneously, you may experience freezing or unresponsive behavior. Usually, refreshing the browser page resolves this. If not, try reconnecting the MCP connection in your IDE.
-
 Currently supports **Vite**. Webpack, Rollup, esbuild, and Rspack support coming soon.
 
 ### For Non-HTML Projects (Miniapps, Library Bundles)

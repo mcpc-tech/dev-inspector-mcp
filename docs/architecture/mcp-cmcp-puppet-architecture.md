@@ -88,7 +88,7 @@ The system supports two MCP transport protocols:
 └──────────────────────────────────────────────────────────────────────────────┘
                 │                                           │
                 │ SSE Transport                             │ stdio Transport
-                │ (clientType=inspector)                    │
+                │ (clientId=inspector)                      │
                 ▼                                           ▼
 ┌────────────────────────────────────────┐      ┌────────────────────────────────────┐
 │     Browser Inspector Client           │      │      Chrome DevTools MCP Server    │
@@ -235,20 +235,24 @@ Each connection is managed with a unique session ID:
 │                         Session Management Flow                              │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│  1. Client connects to /__mcp__/sse?clientType=inspector                    │
+│  1. Client connects to /__mcp__/sse?clientId=inspector                      │
 │     └── Server creates SSEServerTransport                                   │
 │     └── Generates unique sessionId                                          │
 │     └── Registers in ConnectionManager.transports                           │
 │                                                                             │
-│  2. clientType parameter determines behavior:                               │
-│     ├── "inspector" → handleInspectorConnection()                           │
+│  2. URL parameters determine behavior:                                      │
+│     ├── clientId = who is connecting (inspector, vscode, acp, cursor)       │
+│     └── puppetId = who to control (inspector) - only for watchers           │
+│                                                                             │
+│  3. Connection types:                                                       │
+│     ├── clientId="inspector" → handleInspectorConnection()                  │
 │     │   └── Updates latestInspectorSessionId                                │
-│     │   └── Rebinds all Chrome Watchers to new Inspector                    │
-│     └── puppetId="chrome" → handleWatcherConnection()                       │
-│         └── Adds to chromeWatcherSessionIds                                 │
+│     │   └── Rebinds all watchers to new Inspector                           │
+│     └── clientId="vscode" + puppetId="inspector" → handleWatcherConnection()│
+│         └── Tracked in watchersByClientId                                   │
 │         └── Binds to current Inspector via bindPuppet()                     │
 │                                                                             │
-│  3. On disconnect:                                                          │
+│  4. On disconnect:                                                          │
 │     └── transport.onclose triggers                                          │
 │     └── ConnectionManager.removeTransport() cleans up                       │
 │                                                                             │
@@ -486,7 +490,7 @@ Sequence Diagram:
 Browser (after refresh)    Dev Server              Chrome Watcher
       │                         │                        │
       │ SSE connection          │                        │ (existing connection)
-      │ clientType=inspector    │                        │
+      │ clientId=inspector      │                        │
       │────────────────────────►│                        │
       │                         │                        │
       │                         │ handleInspectorConnection()
@@ -507,7 +511,7 @@ Browser (after refresh)    Dev Server              Chrome Watcher
 ─────────────────────────────────────────────────────────────────────
 ```
 
-### Scenario 4: Multiple Chrome Watchers Exist Simultaneously
+### Scenario 4: Multiple Watchers (VSCode + ACP) Simultaneously
 
 ```
 Connection State Diagram:
@@ -519,21 +523,23 @@ Connection State Diagram:
      │                    │                    │
      ▼                    ▼                    ▼
 ┌──────────┐       ┌──────────┐        ┌──────────┐
-│ Inspector│       │ Chrome   │        │ Chrome   │
-│ Client   │       │ Watcher 1│        │ Watcher 2│
-│ (latest) │       │ (session │        │ (session │
-│          │       │  abc123) │        │  def456) │
+│ Inspector│       │  VSCode  │        │   ACP    │
+│ (browser)│       │ Watcher  │        │ Watcher  │
+│ clientId=│       │ clientId=│        │ clientId=│
+│ inspector│       │  vscode  │        │   acp    │
 └──────────┘       └──────────┘        └──────────┘
      ▲                    │                    │
-     │                    │                    │
+     │                    │ puppetId=inspector │ puppetId=inspector
      └────────────────────┴────────────────────┘
            bindPuppet() bound to same Inspector
 
-chromeWatcherSessionIds = Set { "abc123", "def456" }
-boundPuppets = Map {
-  "abc123" => BoundTransport1,
-  "def456" => BoundTransport2
+watchersByClientId = Map {
+  "vscode" => Set { session-abc },
+  "acp"    => Set { session-xyz }
 }
+
+Each clientId can have only one active connection.
+Multiple different clientIds can coexist.
 
 ─────────────────────────────────────────────────────────────────────
 ```

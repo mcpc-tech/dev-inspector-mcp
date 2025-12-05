@@ -5,14 +5,15 @@ import { bindPuppet } from "@mcpc-tech/cmcp";
 type Transport = StreamableHTTPServerTransport | SSEServerTransport;
 
 /**
- * Manages MCP transport connections between Watcher (VS Code) and Inspector (Browser).
- * Ensures only one chrome puppet binding is active at a time.
+ * Manages MCP transport connections between Watcher (VS Code/ACP) and Inspector (Browser).
+ * Each clientId can have only one active connection at a time.
  */
 export class ConnectionManager {
   public transports: Record<string, Transport> = {};
   private latestInspectorSessionId: string | null = null;
-  private chromeWatcherSessionIds = new Set<string>();
   private boundPuppets = new Map<string, { unbindPuppet: () => void }>();
+  // Track watchers by clientId: clientId -> Set of sessionIds
+  private watchersByClientId = new Map<string, Set<string>>();
 
   getTransport(sessionId: string): Transport | undefined {
     return this.transports[sessionId];
@@ -26,27 +27,33 @@ export class ConnectionManager {
   removeTransport(sessionId: string) {
     delete this.transports[sessionId];
 
-    if (this.chromeWatcherSessionIds.has(sessionId)) {
-      this.chromeWatcherSessionIds.delete(sessionId);
-      
-      const boundPuppet = this.boundPuppets.get(sessionId);
-      if (boundPuppet) {
-        boundPuppet.unbindPuppet();
+    // Clean up from all clientId sets
+    for (const [_clientId, sessionIds] of this.watchersByClientId) {
+      if (sessionIds.has(sessionId)) {
+        sessionIds.delete(sessionId);
+        const boundPuppet = this.boundPuppets.get(sessionId);
+        if (boundPuppet) {
+          boundPuppet.unbindPuppet();
+        }
+        this.boundPuppets.delete(sessionId);
       }
-      this.boundPuppets.delete(sessionId);
     }
   }
 
   /**
-   * Clean up previous chrome watcher connections when a new one connects.
+   * Clean up previous watcher connections for the same clientId.
+   * Ensures only one connection per clientId is active.
    */
-  private cleanupPreviousChromeWatchers(newSessionId: string) {
+  private cleanupPreviousWatchers(clientId: string, newSessionId: string) {
+    const sessionIds = this.watchersByClientId.get(clientId);
+    if (!sessionIds) return;
+
     const sessionsToRemove: string[] = [];
     
-    for (const existingSessionId of this.chromeWatcherSessionIds) {
+    for (const existingSessionId of sessionIds) {
       if (existingSessionId === newSessionId) continue;
       
-      // Unbind puppet to restore inspector's original send method
+      // Unbind puppet
       const boundPuppet = this.boundPuppets.get(existingSessionId);
       if (boundPuppet) {
         boundPuppet.unbindPuppet();
@@ -68,7 +75,7 @@ export class ConnectionManager {
     }
     
     for (const sessionId of sessionsToRemove) {
-      this.chromeWatcherSessionIds.delete(sessionId);
+      sessionIds.delete(sessionId);
     }
   }
 
@@ -81,47 +88,57 @@ export class ConnectionManager {
     const inspectorTransport = this.transports[inspectorSessionId];
     if (!inspectorTransport) return;
 
-    for (const watcherSessionId of this.chromeWatcherSessionIds) {
-      const watcherTransport = this.transports[watcherSessionId];
-      if (!watcherTransport) continue;
+    // Rebind all watchers to the new inspector
+    for (const [_clientId, sessionIds] of this.watchersByClientId) {
+      for (const watcherSessionId of sessionIds) {
+        const watcherTransport = this.transports[watcherSessionId];
+        if (!watcherTransport) continue;
 
-      // Unbind previous puppet if exists
-      const previousBound = this.boundPuppets.get(watcherSessionId);
-      if (previousBound) {
-        previousBound.unbindPuppet();
+        // Unbind previous puppet if exists
+        const previousBound = this.boundPuppets.get(watcherSessionId);
+        if (previousBound) {
+          previousBound.unbindPuppet();
+        }
+
+        // Bind to new inspector
+        const newBound = bindPuppet(watcherTransport, inspectorTransport);
+        this.boundPuppets.set(watcherSessionId, newBound);
       }
-
-      // Bind to new inspector
-      const newBound = bindPuppet(watcherTransport, inspectorTransport);
-      this.boundPuppets.set(watcherSessionId, newBound);
     }
   }
 
+  /**
+   * Handle watcher connection.
+   * @param sessionId - unique session ID
+   * @param clientId - who is connecting (vscode, acp, cursor, etc.)
+   * @param puppetId - who to control (inspector)
+   * @param transport - the transport instance
+   */
   handleWatcherConnection(
     sessionId: string,
+    clientId: string,
     puppetId: string,
     transport: Transport,
   ) {
-    if (puppetId === "chrome") {
-      // Clean up previous chrome watchers to ensure only one is active
-      this.cleanupPreviousChromeWatchers(sessionId);
-      this.chromeWatcherSessionIds.add(sessionId);
+    // Clean up previous watchers with the same clientId
+    this.cleanupPreviousWatchers(clientId, sessionId);
+    
+    // Track this watcher under its clientId
+    if (!this.watchersByClientId.has(clientId)) {
+      this.watchersByClientId.set(clientId, new Set());
+    }
+    this.watchersByClientId.get(clientId)!.add(sessionId);
 
-      if (this.latestInspectorSessionId) {
-        const inspectorTransport = this.transports[this.latestInspectorSessionId];
-        if (inspectorTransport) {
-          const boundTransport = bindPuppet(transport, inspectorTransport);
-          this.boundPuppets.set(sessionId, boundTransport);
-          return boundTransport;
-        }
-      }
-    } else {
-      // Other puppet IDs: bind directly to target transport
-      const targetTransport = this.transports[puppetId];
-      if (targetTransport) {
-        return bindPuppet(transport, targetTransport);
+    // Bind to inspector if puppetId is "inspector" and inspector is available
+    if (puppetId === "inspector" && this.latestInspectorSessionId) {
+      const inspectorTransport = this.transports[this.latestInspectorSessionId];
+      if (inspectorTransport) {
+        const boundTransport = bindPuppet(transport, inspectorTransport);
+        this.boundPuppets.set(sessionId, boundTransport);
+        return boundTransport;
       }
     }
+    
     return null;
   }
 }

@@ -229,7 +229,7 @@ if (import.meta.env.DEV) {
 
             // Display MCP connection instructions
             const displayHost = serverContext.host === '0.0.0.0' ? 'localhost' : serverContext.host;
-            const sseUrl = `http://${displayHost}:${serverContext.port}/__mcp__/sse?puppetId=chrome`;
+            const sseUrl = `http://${displayHost}:${serverContext.port}/__mcp__/sse?clientId=vscode&puppetId=inspector`;
             console.log(`[dev-inspector] 📡 MCP: ${sseUrl}\n`);
 
             await setupMcpMiddleware(server.middlewares, serverContext);
