@@ -64,11 +64,11 @@ Switch between agents (Claude Code, Goose) and track their debugging progress vi
 
 ```bash
 # npm
-npm i -D @mcpc-tech/unplugin-dev-inspector-mcp
+npm i -D @mcpc-tech/unplugin-dev-inspector-mcp@beta
 # pnpm
-pnpm add -D @mcpc-tech/unplugin-dev-inspector-mcp
+pnpm add -D @mcpc-tech/unplugin-dev-inspector-mcp@beta
 # yarn
-yarn add -D @mcpc-tech/unplugin-dev-inspector-mcp
+yarn add -D @mcpc-tech/unplugin-dev-inspector-mcp@beta
 ```
 
 ```typescript
@@ -273,6 +273,16 @@ List network requests or get details of a specific one. Always refreshes the lis
 List console messages or get details of a specific one. Always refreshes the list first.
 
 **Parameter:** `msgid` (optional) - If provided, get details for that message. If omitted, just list all messages.
+
+## Architecture
+
+For a deep dive into how the MCP context, CMCP library, and Puppet binding mechanism work together, see the [Architecture Documentation](./docs/architecture/mcp-cmcp-puppet-architecture.md).
+
+**Key concepts:**
+- **Hub-and-spoke model**: Vite dev server acts as central hub managing multiple client connections
+- **CMCP bidirectional execution**: Server defines tool schemas, browser client provides implementations
+- **Puppet binding**: Enables Chrome DevTools ↔ Inspector message passthrough
+- **Dynamic rebinding**: Automatic connection recovery after browser refresh
 
 ## License
 
