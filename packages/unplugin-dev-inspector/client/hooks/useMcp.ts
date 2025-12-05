@@ -93,7 +93,6 @@ ${result ? `**Result**: ${result}\n` : ''}---`;
 
 function formatResult(sourceInfo: any, description: string) {
   const { file, line, component, elementInfo } = sourceInfo;
-  const fullPath = file.startsWith('examples/') ? file : `examples/demo/${file}`;
 
   const domInfo = elementInfo ? `
 ## DOM Element
@@ -150,7 +149,7 @@ margin: ${elementInfo.styles?.margin}
   return createTextContent(`# Element Inspection Result
 
 ## Source Code
-- **File**: ${fullPath}
+- **File**: ${file}
 - **Line**: ${line}
 - **Component**: ${component}
 ${domInfo}
