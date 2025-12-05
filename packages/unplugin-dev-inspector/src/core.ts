@@ -227,10 +227,10 @@ if (import.meta.env.DEV) {
               port: options.port ?? server.config.server.port ?? 5173,
             };
 
-            // Display MCP connection instructions
+            // Display MCP connection instructions (base URL, clientId added per editor)
             const displayHost = serverContext.host === '0.0.0.0' ? 'localhost' : serverContext.host;
-            const sseUrl = `http://${displayHost}:${serverContext.port}/__mcp__/sse?clientId=vscode&puppetId=inspector`;
-            console.log(`[dev-inspector] 📡 MCP: ${sseUrl}\n`);
+            const baseUrl = `http://${displayHost}:${serverContext.port}/__mcp__/sse`;
+            console.log(`[dev-inspector] 📡 MCP: ${baseUrl}\n`);
 
             await setupMcpMiddleware(server.middlewares, serverContext);
             setupAcpMiddleware(server.middlewares, serverContext, {
@@ -241,7 +241,7 @@ if (import.meta.env.DEV) {
 
             // Auto-update MCP configs for detected editors
             const root = server.config.root;
-            await updateMcpConfigs(root, sseUrl, {
+            await updateMcpConfigs(root, baseUrl, {
               updateConfig: options.updateConfig,
               updateConfigServerName: options.updateConfigServerName,
               updateConfigAdditionalServers: options.updateConfigAdditionalServers,

@@ -216,17 +216,16 @@ async function handleSseConnection(
     const url = new URL(req.url ?? "", `http://${host}:${port}`);
     const transport = new SSEServerTransport("/__mcp__/messages", res);
     const sessionId = transport.sessionId;
-    const clientId = url.searchParams.get("clientId");
-    const puppetId = url.searchParams.get("puppetId");
+    // Default clientId to "agent" for watcher connections without explicit clientId
+    const clientId = url.searchParams.get("clientId") || "agent";
+    const puppetId = url.searchParams.get("puppetId") || "inspector";
 
     connectionManager.registerTransport(sessionId, transport);
 
     if (clientId === "inspector") {
       connectionManager.handleInspectorConnection(sessionId);
-    }
-
-    // Watcher connection: clientId identifies who, puppetId identifies target
-    if (clientId && clientId !== "inspector" && puppetId) {
+    } else {
+      // Watcher connection: bind to inspector
       connectionManager.handleWatcherConnection(sessionId, clientId, puppetId, transport);
     }
 

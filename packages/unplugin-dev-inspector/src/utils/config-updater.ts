@@ -93,12 +93,16 @@ function getConfigPath(id: EditorId, root: string): string {
 async function writeConfig(
   configPath: string,
   serverName: string,
-  sseUrl: string,
+  baseUrl: string,
+  clientId: string,
   urlKey: string,
   format: 'servers' | 'mcpServers',
   additionalServers: Array<{ name: string; url: string }>,
 ): Promise<boolean> {
   await mkdir(configPath.substring(0, configPath.lastIndexOf('/')), { recursive: true });
+  
+  // Build full URL with clientId and puppetId
+  const sseUrl = `${baseUrl}?clientId=${clientId}&puppetId=inspector`;
   
   const config = existsSync(configPath)
     ? JSON.parse(await readFile(configPath, 'utf-8').catch(() => '{}'))
@@ -158,7 +162,7 @@ export async function updateMcpConfigs(
     const editor = EDITORS[id];
     const configPath = getConfigPath(id, root);
     try {
-      const wasUpdated = await writeConfig(configPath, updateConfigServerName, sseUrl, editor.urlKey, editor.format, updateConfigAdditionalServers);
+      const wasUpdated = await writeConfig(configPath, updateConfigServerName, sseUrl, id, editor.urlKey, editor.format, updateConfigAdditionalServers);
       if (wasUpdated) {
         updates.push({ name: editor.name, path: configPath });
         updated.push(id);
@@ -172,7 +176,7 @@ export async function updateMcpConfigs(
   for (const custom of customEditors) {
     const configPath = join(resolvePath(custom.configPath, root), custom.configFileName);
     try {
-      const wasUpdated = await writeConfig(configPath, updateConfigServerName, sseUrl, custom.serverUrlKey || 'url', custom.configFormat || 'mcpServers', updateConfigAdditionalServers);
+      const wasUpdated = await writeConfig(configPath, updateConfigServerName, sseUrl, custom.id, custom.serverUrlKey || 'url', custom.configFormat || 'mcpServers', updateConfigAdditionalServers);
       if (wasUpdated) {
         updates.push({ name: custom.name, path: configPath });
         updated.push(custom.id);
