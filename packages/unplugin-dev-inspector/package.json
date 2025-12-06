@@ -4,6 +4,9 @@
   "description": "Universal dev inspector plugin for React/Vue - inspect component sources and API calls in any bundler",
   "type": "module",
   "license": "MIT",
+  "bin": {
+    "dev-inspector-server": "./dist/cli.js"
+  },
   "files": [
     "dist",
     "client/dist",
@@ -35,6 +38,16 @@
     },
     "./client": {
       "types": "./client.d.ts"
+    },
+    "./loader": {
+      "import": {
+        "types": "./dist/loader.d.ts",
+        "default": "./dist/loader.js"
+      },
+      "require": {
+        "types": "./dist/loader.d.cts",
+        "default": "./dist/loader.cjs"
+      }
     },
     "./package.json": "./package.json"
   },
@@ -98,6 +111,7 @@
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@radix-ui/react-use-controllable-state": "^1.2.2",
+    "@radix-ui/react-visually-hidden": "^1.2.4",
     "@vue/compiler-sfc": "^3.5.24",
     "@xyflow/react": "^12.9.3",
     "ai": "^5.0.95",
