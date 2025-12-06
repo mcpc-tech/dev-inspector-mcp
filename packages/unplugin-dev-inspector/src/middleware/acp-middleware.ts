@@ -54,7 +54,7 @@ export function setupAcpMiddleware(middlewares: Connect.Server, serverContext?: 
         });
 
         const sessionInfo = await provider.initSession();
-        
+
         // Log available modes and models from session info
         console.log('[dev-inspector] [acp] Session initialized');
         if (sessionInfo.modes) {
@@ -67,13 +67,13 @@ export function setupAcpMiddleware(middlewares: Connect.Server, serverContext?: 
           console.log('[dev-inspector] [acp] Available models:', availableModels.map(m => m.modelId).join(', '));
           console.log('[dev-inspector] [acp] Current model:', currentModelId);
         }
-        
+
         // Only set mode/model/delay if options are explicitly specified
         // Agent-specific options take precedence over global options
         const mode = agent.acpMode ?? acpOptions?.acpMode;
         const model = agent.acpModel ?? acpOptions?.acpModel;
         const delay = agent.acpDelay ?? acpOptions?.acpDelay;
-        
+
         if (mode !== undefined) {
           await provider.setMode(mode);
         }
@@ -83,13 +83,24 @@ export function setupAcpMiddleware(middlewares: Connect.Server, serverContext?: 
         if (delay !== undefined && delay > 0) {
           console.log(`[dev-inspector] [acp] Delaying response by ${delay}ms, agent: ${agent.name}`);
           await new Promise((resolve) => setTimeout(resolve, delay));
-        } 
+        }
+
+        // Create abort controller for request cancellation
+        const abortController = new AbortController();
+
+        // Listen for client disconnect to cancel the stream
+        req.on('close', () => {
+          console.log('[dev-inspector] [acp] Client disconnected, aborting stream');
+          abortController.abort();
+          provider.cleanup();
+        });
 
         const result = streamText({
           model: provider.languageModel(),
           // Ensure raw chunks like agent plan are included for streaming
           includeRawChunks: true,
           messages: convertToModelMessages(messages),
+          abortSignal: abortController.signal,
           // onChunk: (chunk) => {
           //   // console.log("Streamed chunk:", chunk);
           // },
@@ -98,6 +109,7 @@ export function setupAcpMiddleware(middlewares: Connect.Server, serverContext?: 
               "Error occurred while streaming text:",
               JSON.stringify(error, null, 2)
             );
+            provider.cleanup();
           },
           tools: provider.tools,
         });

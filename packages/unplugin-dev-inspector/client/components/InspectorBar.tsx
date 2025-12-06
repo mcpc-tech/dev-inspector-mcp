@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { cn } from '../lib/utils';
-import { Eye, Sparkles, ArrowRight, Terminal, CheckCircle2, XCircle, ChevronUp, Inbox } from 'lucide-react';
+import { Eye, Sparkles, ArrowRight, Terminal, CheckCircle2, XCircle, ChevronUp, Inbox, Square } from 'lucide-react';
 import { Shimmer } from '../../src/components/ai-elements/shimmer';
 import type { UIMessage } from 'ai';
 import { processMessage, extractToolName } from '../utils/messageProcessor';
@@ -14,6 +14,7 @@ interface InspectorBarProps {
   isActive: boolean;
   onToggleInspector: () => void;
   onSubmitAgent: (query: string, agentName: string) => void;
+  onCancel?: () => void;
   isAgentWorking: boolean;
   messages: UIMessage[];
   status: 'streaming' | 'submitted' | 'ready' | 'error';
@@ -26,6 +27,7 @@ export const InspectorBar = ({
   isActive,
   onToggleInspector,
   onSubmitAgent,
+  onCancel,
   isAgentWorking,
   messages,
   status,
@@ -213,10 +215,7 @@ export const InspectorBar = ({
         message: result?.message || result
       });
 
-      // Clear after showing result for a moment
-      setTimeout(() => {
-        setInspectionStatus(null);
-      }, 3000);
+      // Keep showing the result - don't auto-clear
     }
 
     window.addEventListener('plan-progress-reported', handleInspectionProgress as EventListener);
@@ -281,8 +280,14 @@ export const InspectorBar = ({
       )}
       onMouseDown={handleMouseDown}
       onMouseEnter={() => {
-        if (!isLocked && allowHover && !isDragging) {
-          setIsExpanded(true);
+        if (!isDragging) {
+          if (isAgentWorking || isLocked) {
+            // When agent is working, show the chat panel on hover
+            setIsExpanded(true);
+            setActivePanel('chat');
+          } else if (allowHover) {
+            setIsExpanded(true);
+          }
         }
       }}
       onMouseLeave={() => {
@@ -296,7 +301,7 @@ export const InspectorBar = ({
     >
       <div className={cn(
         "relative flex items-center backdrop-blur-xl shadow-2xl border border-border",
-        "transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
+        "transition-[width,height,padding,background-color,border-color] duration-200 ease-out",
         isExpanded ? "h-12 p-2 pl-4" : "h-9 px-2 py-1",
         activePanel !== 'none'
           ? "bg-muted/95 rounded-b-lg rounded-t-none border-t-0"
@@ -485,8 +490,9 @@ export const InspectorBar = ({
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={`Ask ${selectedAgent}...`}
-              className="w-full bg-transparent border-none outline-none text-foreground placeholder-muted-foreground text-sm h-7"
+              className="w-full bg-transparent border-none outline-none text-foreground placeholder-muted-foreground text-sm h-7 disabled:opacity-50"
               tabIndex={0}
+              disabled={isAgentWorking}
             />
 
             {/* Expand button - only show when AI is working or has messages */}
@@ -511,22 +517,29 @@ export const InspectorBar = ({
               </button>
             )}
 
-            <button
-              type="submit"
-              disabled={!input.trim() || isAgentWorking}
-              className={cn(
-                "flex items-center justify-center w-7 h-7 rounded-full transition-all flex-shrink-0",
-                input.trim()
-                  ? "bg-foreground text-background scale-100"
-                  : "bg-accent text-muted-foreground/50 scale-90"
-              )}
-            >
-              {isAgentWorking ? (
-                <Sparkles className="w-3.5 h-3.5 animate-spin" />
-              ) : (
+            {isAgentWorking ? (
+              <button
+                type="button"
+                onClick={onCancel}
+                className="flex items-center justify-center w-7 h-7 rounded-full bg-destructive text-destructive-foreground transition-all flex-shrink-0 hover:bg-destructive/90"
+                title="Cancel request"
+              >
+                <Square className="w-3 h-3" />
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={!input.trim()}
+                className={cn(
+                  "flex items-center justify-center w-7 h-7 rounded-full transition-all flex-shrink-0",
+                  input.trim()
+                    ? "bg-foreground text-background scale-100"
+                    : "bg-accent text-muted-foreground/50 scale-90"
+                )}
+              >
                 <ArrowRight className="w-3.5 h-3.5" />
-              )}
-            </button>
+              </button>
+            )}
           </form>
         </div>
       </div>

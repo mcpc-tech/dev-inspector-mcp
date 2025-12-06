@@ -62,7 +62,7 @@ export const InspectionQueue: React.FC<InspectionQueueProps> = ({ items, onRemov
 
   return (
     <div
-      className="w-full bg-card rounded-lg overflow-hidden border border-border"
+      className="w-full bg-card overflow-hidden"
       onClick={(e) => e.stopPropagation()}
     >
       <div className="bg-muted px-4 py-3 border-b border-border">
@@ -125,8 +125,8 @@ export const InspectionQueue: React.FC<InspectionQueueProps> = ({ items, onRemov
                   )}
                 </div>
 
-                {item.status === 'failed' && item.result && (
-                  <p className="text-xs text-destructive mt-1">
+                {(item.status === 'completed' || item.status === 'failed') && item.result && (
+                  <p className={`text-xs mt-1 ${item.status === 'failed' ? 'text-destructive' : 'text-muted-foreground'}`}>
                     {item.result}
                   </p>
                 )}

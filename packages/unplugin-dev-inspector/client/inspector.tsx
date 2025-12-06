@@ -40,11 +40,15 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({
   const { inspections, setInspections } = useInspectionProgress();
 
   // Agent State
-  const { messages, sendMessage, status } = useChat({
+  const { messages, sendMessage, status, stop } = useChat({
     transport: new DefaultChatTransport({
       api: `${getDevServerBaseUrl()}/api/acp/chat`,
     }),
   });
+
+  const handleCancel = () => {
+    stop();
+  };
 
   const overlayRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
@@ -216,6 +220,7 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({
             isActive={isActive}
             onToggleInspector={toggleInspector}
             onSubmitAgent={handleAgentSubmit}
+            onCancel={handleCancel}
             isAgentWorking={status === "streaming" || status === "submitted"}
             messages={messages}
             status={status}

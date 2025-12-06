@@ -431,8 +431,8 @@ importers:
         specifier: ^0.1.25
         version: 0.1.25
       '@mcpc-tech/cmcp':
-        specifier: ^0.0.14
-        version: 0.0.14
+        specifier: ^0.0.15
+        version: 0.0.15
       '@mcpc-tech/core':
         specifier: ^0.3.8
         version: 0.3.8
@@ -1340,8 +1340,8 @@ packages:
   '@mcpc-tech/acp-ai-provider@0.1.25':
     resolution: {integrity: sha512-MiuRFTcXaJ+kMnAUAhBFH28cTjhUQUwNMk9p3g8PKaewIqIVGE8kQxjMTEuSdfSVWhzG86xg1s+s9l5sruvC5Q==}
 
-  '@mcpc-tech/cmcp@0.0.14':
-    resolution: {integrity: sha512-6rMlH3AshlZesJPbl28nMhEiPPsEc1gUp3SyC7bewaVife8bBghT/3IcVqorQtJgH59zeloOOMjlerA1g4UPjw==}
+  '@mcpc-tech/cmcp@0.0.15':
+    resolution: {integrity: sha512-o03iDZpacozvQTn5F0e2UvwPMinJSUZKzoGIQ1HzXnfkYdBvvrKCsU+xN3coMZ7NKMKt3iU+OMXio7u1Pud3YQ==}
 
   '@mcpc-tech/cmcp@0.0.9':
     resolution: {integrity: sha512-xYxB0DvzibeVr81OrVNXRnF2uQkVmggkuU/f3aNBE60eB52A4mTH4Y30XtW6HA/PybCMTqB0FDTuYW8+CwaopA==}
@@ -1452,9 +1452,6 @@ packages:
 
   '@napi-rs/wasm-runtime@0.2.12':
     resolution: {integrity: sha512-ZVWUcfwY4E/yPitQJl481FjFo3K22D6qF0DuFH6Y/nbnE11GY5uguDxZMGXPQ8WQ0128MXQD7TnfHyK4oWoIJQ==}
-
-  '@napi-rs/wasm-runtime@1.0.7':
-    resolution: {integrity: sha512-SeDnOO0Tk7Okiq6DbXmmBODgOAb9dp9gjlphokTUxmt8U3liIP1ZsozBahH69j/RJv+Rfs6IwUKHTgQYJ/HBAw==}
 
   '@napi-rs/wasm-runtime@1.1.0':
     resolution: {integrity: sha512-Fq6DJW+Bb5jaWE69/qOE0D1TUN9+6uWhCeZpdnSBk14pjLcCWR7Q8n49PTSPHazM37JqrsdpEthXy2xn6jWWiA==}
@@ -7735,7 +7732,7 @@ snapshots:
       ai: 5.0.95(zod@3.25.76)
       zod: 3.25.76
 
-  '@mcpc-tech/cmcp@0.0.14':
+  '@mcpc-tech/cmcp@0.0.15':
     dependencies:
       '@modelcontextprotocol/sdk': 1.20.1
       zod: 3.25.76
@@ -7800,7 +7797,7 @@ snapshots:
 
   '@mcpc-tech/ripgrep-napi-wasm32-wasi@0.0.4':
     dependencies:
-      '@napi-rs/wasm-runtime': 1.0.7
+      '@napi-rs/wasm-runtime': 1.1.0
     optional: true
 
   '@mcpc-tech/ripgrep-napi-win32-arm64-msvc@0.0.4':
@@ -7862,13 +7859,6 @@ snapshots:
       strict-event-emitter: 0.5.1
 
   '@napi-rs/wasm-runtime@0.2.12':
-    dependencies:
-      '@emnapi/core': 1.5.0
-      '@emnapi/runtime': 1.5.0
-      '@tybys/wasm-util': 0.10.1
-    optional: true
-
-  '@napi-rs/wasm-runtime@1.0.7':
     dependencies:
       '@emnapi/core': 1.5.0
       '@emnapi/runtime': 1.5.0
