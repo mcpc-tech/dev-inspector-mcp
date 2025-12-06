@@ -1,4 +1,5 @@
 import { createUnplugin } from "unplugin";
+import type { Connect } from "vite";
 import { setupMcpMiddleware } from "./middleware/mcproute-middleware";
 import { setupInspectorMiddleware } from "./middleware/inspector-middleware";
 import { setupAcpMiddleware } from "./middleware/acp-middleware";
@@ -71,6 +72,8 @@ export const unplugin = createUnplugin<DevInspectorOptions | undefined>(
     const enabled = options.enabled ?? process.env.NODE_ENV !== "production";
     const enableMcp = options.enableMcp ?? true;
     const virtualModuleName = options.virtualModuleName ?? 'virtual:dev-inspector-mcp';
+    // Alternative module name for Webpack (doesn't support virtual: scheme)
+    const webpackModuleName = virtualModuleName.replace('virtual:', '');
 
     // Resolved server config (populated by Vite's configResolved hook)
     let resolvedHost = options.host || 'localhost';
@@ -88,7 +91,8 @@ export const unplugin = createUnplugin<DevInspectorOptions | undefined>(
       enforce: "pre",
 
       resolveId(id) {
-        if (id === virtualModuleName) {
+        // Support both 'virtual:dev-inspector-mcp' (Vite) and 'dev-inspector-mcp' (Webpack)
+        if (id === virtualModuleName || id === webpackModuleName) {
           return '\0' + virtualModuleName;
         }
       },
@@ -99,40 +103,39 @@ export const unplugin = createUnplugin<DevInspectorOptions | undefined>(
           const host = resolvedHost;
           const port = resolvedPort;
 
-          // Return dev-only code that is tree-shaken in production
+          // Return dev-only code that works in both Vite and Webpack
+          // Uses typeof check to avoid SSR issues and works with both bundlers
           return `
-// Development-only code - completely removed in production builds
-if (import.meta.env.DEV) {
-  if (typeof document !== 'undefined') {
-    // Create inspector element
-    const inspector = document.createElement('dev-inspector-mcp');
-    document.body.appendChild(inspector);
+// Development-only code - removed in production builds
+if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+  // Create inspector element
+  const inspector = document.createElement('dev-inspector-mcp');
+  document.body.appendChild(inspector);
 
-    // Store dev server config globally (injected at build time)
-    window.__DEV_INSPECTOR_CONFIG__ = {
-      host: '${host}',
-      port: '${port}',
-      base: import.meta.env.BASE_URL || '/'
-    };
+  // Store dev server config globally
+  window.__DEV_INSPECTOR_CONFIG__ = {
+    host: '${host}',
+    port: '${port}',
+    base: '/'
+  };
 
-    // Dynamically load inspector script (only in dev)
-    const script = document.createElement('script');
-    const config = window.__DEV_INSPECTOR_CONFIG__;
-    let baseUrl = 'http://' + config.host + ':' + config.port + config.base;
-    if (baseUrl.endsWith('/')) {
-      baseUrl = baseUrl.slice(0, -1);
-    }
-    script.src = baseUrl + '/__inspector__/inspector.iife.js';
-    script.type = 'module';
-    document.head.appendChild(script);
+  // Dynamically load inspector script
+  const script = document.createElement('script');
+  const config = window.__DEV_INSPECTOR_CONFIG__;
+  let baseUrl = 'http://' + config.host + ':' + config.port + config.base;
+  if (baseUrl.endsWith('/')) {
+    baseUrl = baseUrl.slice(0, -1);
   }
+  script.src = baseUrl + '/__inspector__/inspector.iife.js';
+  script.type = 'module';
+  document.head.appendChild(script);
 }
 `;
         }
       },
 
       async transform(code, id) {
-        if (id.includes('node_modules')) return null;
+        if (!id || id.includes('node_modules')) return null;
 
         if (id.match(/\.(jsx|tsx)$/)) {
           try {
@@ -259,8 +262,67 @@ if (import.meta.env.DEV) {
 
       // Webpack-specific hooks
       webpack(compiler) {
-        // Webpack implementation would go here
-        console.log("⚠️  Webpack support coming soon");
+        if (!enabled) return;
+
+        if (compiler.options.mode !== 'development') return;
+
+        // Initialize standalone server once
+        let serverStarted = false;
+
+        compiler.hooks.beforeCompile.tapAsync('UnpluginDevInspector', async (params, callback) => {
+          if (serverStarted) {
+            callback();
+            return;
+          }
+          serverStarted = true;
+
+          try {
+            const { startStandaloneServer } = await import('./utils/standalone-server');
+            const { server, host, port } = await startStandaloneServer({
+              port: options.port,
+              host: options.host
+            });
+
+            // Update global resolved Host/Port for the load() hook
+            resolvedHost = host;
+            resolvedPort = port;
+
+            const serverContext = { host, port };
+
+            if (enableMcp) {
+              const displayHost = host === '0.0.0.0' ? 'localhost' : host;
+              const baseUrl = `http://${displayHost}:${port}/__mcp__/sse`;
+              console.log(`[dev-inspector] 📡 MCP (Standalone): ${baseUrl}\n`);
+
+              setupMcpMiddleware(server as unknown as Connect.Server, serverContext);
+
+              setupAcpMiddleware(server as unknown as Connect.Server, serverContext, {
+                acpMode: options.acpMode,
+                acpModel: options.acpModel,
+                acpDelay: options.acpDelay,
+              });
+
+              // Auto-update MCP configs
+              const root = compiler.context;
+              await updateMcpConfigs(root, baseUrl, {
+                updateConfig: options.updateConfig,
+                updateConfigServerName: options.updateConfigServerName,
+                updateConfigAdditionalServers: options.updateConfigAdditionalServers,
+                customEditors: options.customEditors,
+              });
+            }
+
+            setupInspectorMiddleware(server as unknown as Connect.Server, {
+              agents: options.agents,
+              defaultAgent: options.defaultAgent,
+            });
+
+            callback();
+          } catch (e) {
+            console.error('[dev-inspector] Failed to start standalone server:', e);
+            callback();
+          }
+        });
       },
 
       // Rollup-specific hooks

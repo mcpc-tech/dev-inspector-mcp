@@ -1,7 +1,7 @@
 import { defineConfig } from "tsdown";
 
 export default defineConfig({
-  entry: ["src/index.ts"],
+  entry: ["src/index.ts", "src/next.tsx"],
   format: ["esm", "cjs"],
   clean: true,
   dts: true,

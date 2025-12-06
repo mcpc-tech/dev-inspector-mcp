@@ -6,7 +6,7 @@ import { join } from "path";
 const LOG_PREFIX = "[dev-inspector] ";
 const HOME_DIR = homedir();
 
-export type EditorId = 'cursor' | 'vscode' | 'windsurf' | 'claude-code';
+export type EditorId = 'cursor' | 'vscode' | 'windsurf' | 'claude-code' | 'antigravity';
 
 export interface CustomEditorConfig {
   id: string;
@@ -41,6 +41,7 @@ const EDITORS: Record<EditorId, { name: string; path: string; file: string; urlK
   vscode: { name: 'VSCode', path: '.vscode', file: 'mcp.json', urlKey: 'url', format: 'servers' },
   windsurf: { name: 'Windsurf', path: join(HOME_DIR, '.codeium', 'windsurf'), file: 'mcp_config.json', urlKey: 'serverUrl', format: 'mcpServers' },
   'claude-code': { name: 'Claude Code', path: '.', file: '.mcp.json', urlKey: 'url', format: 'mcpServers' },
+  antigravity: { name: 'Antigravity', path: join(HOME_DIR, '.gemini', 'antigravity'), file: 'mcp.json', urlKey: 'url', format: 'servers' },
 };
 
 function resolvePath(path: string, root: string): string {
@@ -73,6 +74,8 @@ function detectEditors(root: string): EditorId[] {
       // For cursor/vscode, always create config in project root if not found
       // This allows users to get MCP config without manually creating the directory first
       if (id === 'cursor' || id === 'vscode') return true;
+      // For antigravity, check if the global config directory exists
+      if (id === 'antigravity') return existsSync(editor.path);
       return false;
     }
     // For claude-code, check if file exists (not just dir)
@@ -100,27 +103,27 @@ async function writeConfig(
   additionalServers: Array<{ name: string; url: string }>,
 ): Promise<boolean> {
   await mkdir(configPath.substring(0, configPath.lastIndexOf('/')), { recursive: true });
-  
+
   // Build full URL with clientId and puppetId
   const sseUrl = `${baseUrl}?clientId=${clientId}&puppetId=inspector`;
-  
+
   const config = existsSync(configPath)
     ? JSON.parse(await readFile(configPath, 'utf-8').catch(() => '{}'))
     : {};
 
   const key = format === 'servers' ? 'servers' : 'mcpServers';
   config[key] ||= {};
-  
+
   // Check if the config already has the server with the correct URL
   if (config[key][serverName]) {
-    const existingUrl = format === 'servers' 
-      ? config[key][serverName]?.url 
+    const existingUrl = format === 'servers'
+      ? config[key][serverName]?.url
       : config[key][serverName]?.[urlKey];
     if (existingUrl === sseUrl) {
       return false; // Already up to date
     }
   }
-  
+
   if (format === 'servers') {
     config[key][serverName] = { type: 'sse', url: sseUrl };
     additionalServers.forEach(s => config[key][s.name] = { type: 'sse', url: s.url });

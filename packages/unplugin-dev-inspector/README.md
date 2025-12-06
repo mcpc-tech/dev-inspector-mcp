@@ -71,7 +71,9 @@ pnpm add -D @mcpc-tech/unplugin-dev-inspector-mcp
 yarn add -D @mcpc-tech/unplugin-dev-inspector-mcp
 ```
 
-Add DevInspector to your Vite config:
+Add DevInspector to your project:
+
+### Vite
 
 ```diff
 // vite.config.ts
@@ -91,9 +93,7 @@ Add DevInspector to your Vite config:
 
 > ⚠️ **Plugin order matters:** Place `DevInspector.vite()` **before** `react()`, `vue()`, or `preact()`. Otherwise source locations may show `unknown:0:0`.
 
-Currently supports **Vite**. Webpack, Rollup, esbuild, and Rspack support coming soon.
-
-### For Non-HTML Projects (Miniapps, Library Bundles)
+#### For Non-HTML Projects (Miniapps, Library Bundles)
 
 If your project doesn't use HTML files (e.g., miniapp platforms that only bundle JS):
 
@@ -112,7 +112,7 @@ import 'virtual:dev-inspector-mcp';  // ← Add this import
 
 **✅ Zero Production Impact:** This import is automatically removed in production builds via tree-shaking. The entire dev-inspector code is wrapped in `if (import.meta.env.DEV)` guards, which bundlers statically replace with `false` during production builds.
 
-#### Custom Virtual Module Name
+##### Custom Virtual Module Name
 
 If `virtual:dev-inspector-mcp` conflicts with your project, you can customize it:
 
@@ -130,13 +130,70 @@ DevInspector.vite({
 import 'virtual:my-custom-inspector';  // ← Use your custom name
 ```
 
+### Webpack
+
+```diff
+// webpack.config.js
++const DevInspector = require('@mcpc-tech/unplugin-dev-inspector-mcp');
+
+module.exports = {
+  plugins: [
++    DevInspector.webpack({
++      enabled: true,
++      enableMcp: true,
++    }),
+  ],
+};
+```
+
+### Next.js
+
+```diff
+// next.config.ts
++import DevInspector from '@mcpc-tech/unplugin-dev-inspector-mcp';
+
+const nextConfig: NextConfig = {
++  webpack: (config) => {
++    config.plugins.push(
++      DevInspector.webpack({
++        enabled: true,
++      })
++    );
++    return config;
++  },
+};
+
+export default nextConfig;
+```
+
+Then add to your root layout:
+
+```tsx
+// app/layout.tsx
+import { DevInspector } from "@mcpc-tech/unplugin-dev-inspector-mcp/next";
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <body>
+        <DevInspector />
+        {children}
+      </body>
+    </html>
+  );
+}
+```
+
+> 💡 **Note:** Webpack and Next.js use a standalone server on port 8888. Run `next dev --webpack` for Webpack mode (Next.js 16+ defaults to Turbopack).
+
+
 ## Configuration
 
 ### Auto-Update MCP Config
 
 The plugin automatically updates MCP configuration files for detected editors when the dev server starts. This saves you from manually configuring MCP endpoints.
 
-**Supported editors:** Cursor, VSCode, Windsurf, Claude Code
+**Supported editors:** Cursor, VSCode, Windsurf, Claude Code, Antigravity
 
 ```typescript
 // vite.config.ts
