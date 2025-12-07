@@ -86,15 +86,29 @@ function detectEditors(root: string): EditorId[] {
 /** Find project root by looking for workspace markers */
 function findProjectRoot(from: string): string {
   let dir = from;
+  let packageJsonDir = null;
+
   while (dir !== '/') {
-    if (existsSync(join(dir, '.git')) || 
-        existsSync(join(dir, 'pnpm-workspace.yaml')) ||
-        existsSync(join(dir, 'package.json'))) {
+    // Prioritize definitive root markers
+    if (existsSync(join(dir, '.git')) ||
+      existsSync(join(dir, 'pnpm-workspace.yaml')) ||
+      existsSync(join(dir, 'bun.lockb')) ||
+      existsSync(join(dir, 'pnpm-lock.yaml')) ||
+      existsSync(join(dir, 'yarn.lock')) ||
+      existsSync(join(dir, 'package-lock.json'))) {
       return dir;
     }
+
+    // Keep track of the nearest package.json but keep going up
+    if (!packageJsonDir && existsSync(join(dir, 'package.json'))) {
+      packageJsonDir = dir;
+    }
+
     dir = join(dir, '..');
   }
-  return from;
+
+  // Fallback to nearest package.json if no root marker found
+  return packageJsonDir || from;
 }
 
 /** Get config path, walking up for relative paths */
@@ -103,13 +117,13 @@ function getConfigPath(id: EditorId, root: string): string {
   if (editor.path.startsWith('/')) {
     return join(editor.path, editor.file);
   }
-  
+
   // For VSCode and Cursor, always use the project root
   if (id === 'vscode' || id === 'cursor') {
     const projectRoot = findProjectRoot(root);
     return join(projectRoot, editor.path, editor.file);
   }
-  
+
   const found = findUpDir(editor.path, root);
   return join(found || join(root, editor.path), editor.file);
 }

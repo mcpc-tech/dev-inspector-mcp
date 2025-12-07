@@ -289,7 +289,25 @@ export default {
 - "This API call is failing" → AI analyzes network requests, timing, responses
 - "Where is this component?" → Jump to source file and line number
 
-## MCP Tools
+## Two Workflow Modes
+ 
+ DevInspector offers two ways to interact with your AI, depending on your preference:
+ 
+ ### 1. Editor Mode
+ **Best for:** Code-heavy tasks, refactoring, and maintaining flow.
+ 
+ - **How it works:** You use your IDE's AI assistant (Cursor, Windsurf, Copilot). 
+ - **The Flow:** Click an element in the browser -> The context (source, props, styles) is sent to your Editor via MCP -> You ask your Editor to fix it.
+ - **Why:** Keeps you in your coding environment.
+ 
+ ### 2. Inspector Bar Mode (Recommended)
+ **Best for:** Quick fixes, visual tweaks, or if you don't use an AI editor.
+ 
+ - **How it works:** You use the floating "Inspector Bar" directly in the browser. 
+ - **The Flow:** Click "Ask AI" in the browser -> Select an agent (e.g., Claude Code, Custom Script) -> The agent runs in your terminal but interacts with the browser overlay.
+ - **Why:** No context switching. Great for "what is this?" questions or network debugging.
+ 
+ ## MCP Tools
 
 ### `capture_element_context`
 Activates visual selector. Returns source location, DOM hierarchy, styles, dimensions, and user notes.
