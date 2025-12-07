@@ -83,14 +83,63 @@ function detectEditors(root: string): EditorId[] {
   });
 }
 
+/** Find project root by looking for workspace markers */
+function findProjectRoot(from: string): string {
+  let dir = from;
+  while (dir !== '/') {
+    if (existsSync(join(dir, '.git')) || 
+        existsSync(join(dir, 'pnpm-workspace.yaml')) ||
+        existsSync(join(dir, 'package.json'))) {
+      return dir;
+    }
+    dir = join(dir, '..');
+  }
+  return from;
+}
+
 /** Get config path, walking up for relative paths */
 function getConfigPath(id: EditorId, root: string): string {
   const editor = EDITORS[id];
   if (editor.path.startsWith('/')) {
     return join(editor.path, editor.file);
   }
+  
+  // For VSCode and Cursor, always use the project root
+  if (id === 'vscode' || id === 'cursor') {
+    const projectRoot = findProjectRoot(root);
+    return join(projectRoot, editor.path, editor.file);
+  }
+  
   const found = findUpDir(editor.path, root);
   return join(found || join(root, editor.path), editor.file);
+}
+
+function stripJsonComments(content: string): string {
+  return content
+    .replace(/\/\/.*$/gm, '')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .trim();
+}
+
+function parseConfigFile(content: string): Record<string, any> {
+  try {
+    return JSON.parse(stripJsonComments(content));
+  } catch {
+    return {};
+  }
+}
+
+function getExistingUrl(config: Record<string, any>, key: string, serverName: string, urlKey: string, format: string): string | undefined {
+  if (!config[key]?.[serverName]) return undefined;
+  return format === 'servers' ? config[key][serverName]?.url : config[key][serverName]?.[urlKey];
+}
+
+function addServerToConfig(config: Record<string, any>, key: string, serverName: string, sseUrl: string, urlKey: string, format: string): void {
+  if (format === 'servers') {
+    config[key][serverName] = { type: 'sse', url: sseUrl };
+  } else {
+    config[key][serverName] = { [urlKey]: sseUrl };
+  }
 }
 
 async function writeConfig(
@@ -104,36 +153,31 @@ async function writeConfig(
 ): Promise<boolean> {
   await mkdir(configPath.substring(0, configPath.lastIndexOf('/')), { recursive: true });
 
-  // Build full URL with clientId and puppetId
   const sseUrl = `${baseUrl}?clientId=${clientId}&puppetId=inspector`;
-
-  const config = existsSync(configPath)
-    ? JSON.parse(await readFile(configPath, 'utf-8').catch(() => '{}'))
-    : {};
-
   const key = format === 'servers' ? 'servers' : 'mcpServers';
-  config[key] ||= {};
 
-  // Check if the config already has the server with the correct URL
-  if (config[key][serverName]) {
-    const existingUrl = format === 'servers'
-      ? config[key][serverName]?.url
-      : config[key][serverName]?.[urlKey];
-    if (existingUrl === sseUrl) {
-      return false; // Already up to date
+  let config: Record<string, any> = {};
+  if (existsSync(configPath)) {
+    try {
+      const content = await readFile(configPath, 'utf-8');
+      config = parseConfigFile(content);
+    } catch {
+      console.warn(`${LOG_PREFIX}Could not parse ${configPath}, starting fresh`);
     }
   }
 
-  if (format === 'servers') {
-    config[key][serverName] = { type: 'sse', url: sseUrl };
-    additionalServers.forEach(s => config[key][s.name] = { type: 'sse', url: s.url });
-  } else {
-    config[key][serverName] = { [urlKey]: sseUrl };
-    additionalServers.forEach(s => config[key][s.name] = { [urlKey]: s.url });
+  config[key] ||= {};
+
+  const existingUrl = getExistingUrl(config, key, serverName, urlKey, format);
+  if (existingUrl === sseUrl) {
+    return false;
   }
 
+  addServerToConfig(config, key, serverName, sseUrl, urlKey, format);
+  additionalServers.forEach(s => addServerToConfig(config, key, s.name, s.url, urlKey, format));
+
   await writeFile(configPath, JSON.stringify(config, null, 2) + '\n', 'utf-8');
-  return true; // Config was updated
+  return true;
 }
 
 export async function updateMcpConfigs(
