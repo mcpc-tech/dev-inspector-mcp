@@ -6,6 +6,7 @@ import { setupAcpMiddleware } from "./middleware/acp-middleware";
 import { transformJSX } from "./compiler/jsx-transform";
 import { compileVue } from "./compiler/vue-transform";
 import { updateMcpConfigs, type McpConfigOptions } from "./utils/config-updater";
+import { launchBrowserWithDevTools } from "./utils/browser-launcher";
 import type { Agent, AcpOptions } from "../client/constants/types";
 
 export interface DevInspectorOptions extends McpConfigOptions, AcpOptions {
@@ -65,6 +66,20 @@ export interface DevInspectorOptions extends McpConfigOptions, AcpOptions {
    * @example "virtual:my-inspector" or "virtual:custom-mcp"
    */
   virtualModuleName?: string;
+
+  /**
+   * Automatically open browser with Chrome DevTools when dev server starts
+   * Uses Chrome DevTools Protocol for full debugging capabilities (console, network, etc.)
+   * @default true when enableMcp is true
+   */
+  autoOpenBrowser?: boolean;
+
+  /**
+   * Custom browser launch URL
+   * If not specified, uses the dev server URL (e.g., http://localhost:5173)
+   * @example "http://localhost:5173/dashboard"
+   */
+  browserUrl?: string;
 }
 
 export const unplugin = createUnplugin<DevInspectorOptions | undefined>(
@@ -250,6 +265,27 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
               updateConfigAdditionalServers: options.updateConfigAdditionalServers,
               customEditors: options.customEditors,
             });
+
+            // Auto-open browser with Chrome DevTools
+            const autoOpenBrowser = options.autoOpenBrowser ?? true;
+            if (autoOpenBrowser) {
+              const targetUrl = options.browserUrl ?? `http://${displayHost}:${serverContext.port}`;
+              // Delay browser launch to ensure server is ready
+              setTimeout(async () => {
+                const success = await launchBrowserWithDevTools({
+                  url: targetUrl,
+                  serverContext,
+                });
+                if (success) {
+                  console.log(`[dev-inspector] 🌐 Browser opened: ${targetUrl}`);
+                } else {
+                  console.log(`[dev-inspector] 💡 Use "launch_chrome_devtools" prompt to open browser manually.\n`);
+                }
+              }, 1000);
+            } else {
+              console.log(`[dev-inspector] ⚠️  autoOpenBrowser: false - Console/Network context unavailable`);
+              console.log(`[dev-inspector] 💡 Use "launch_chrome_devtools" prompt to enable.\n`);
+            }
           }
           setupInspectorMiddleware(server.middlewares, {
             agents: options.agents,
@@ -310,6 +346,27 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
                 updateConfigAdditionalServers: options.updateConfigAdditionalServers,
                 customEditors: options.customEditors,
               });
+
+              // Auto-open browser with Chrome DevTools
+              const autoOpenBrowser = options.autoOpenBrowser ?? true;
+              if (autoOpenBrowser) {
+                const targetUrl = options.browserUrl ?? `http://${displayHost}:${port}`;
+                // Delay browser launch to ensure server is ready
+                setTimeout(async () => {
+                  const success = await launchBrowserWithDevTools({
+                    url: targetUrl,
+                    serverContext,
+                  });
+                  if (success) {
+                    console.log(`[dev-inspector] 🌐 Browser opened: ${targetUrl}`);
+                  } else {
+                    console.log(`[dev-inspector] 💡 Use "launch_chrome_devtools" prompt to open browser manually.\n`);
+                  }
+                }, 1000);
+              } else {
+                console.log(`[dev-inspector] ⚠️  autoOpenBrowser: false - Console/Network context unavailable`);
+                console.log(`[dev-inspector] 💡 Use "launch_chrome_devtools" prompt to enable.\n`);
+              }
             }
 
             setupInspectorMiddleware(server as unknown as Connect.Server, {

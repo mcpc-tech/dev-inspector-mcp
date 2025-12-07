@@ -246,11 +246,10 @@ export const InspectorBar = ({
 
     onSubmitAgent(input, selectedAgent);
     setInput('');
-    // Only collapse the bar if no panel is expanded
-    if (activePanel === 'none') {
-      setIsExpanded(false);
-      inputRef.current?.blur();
-    }
+    
+    // Auto-expand chat panel to show message detail
+    setIsExpanded(true);
+    setActivePanel('chat');
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
