@@ -1,7 +1,7 @@
 import { existsSync } from "fs";
 import { mkdir, readFile, writeFile } from "fs/promises";
 import { homedir } from "os";
-import { join } from "path";
+import { join, dirname } from "path";
 
 const LOG_PREFIX = "[dev-inspector] ";
 const HOME_DIR = homedir();
@@ -86,14 +86,24 @@ function detectEditors(root: string): EditorId[] {
 /** Find project root by looking for workspace markers */
 function findProjectRoot(from: string): string {
   let dir = from;
-  while (dir !== '/') {
-    if (existsSync(join(dir, '.git')) || 
-        existsSync(join(dir, 'pnpm-workspace.yaml')) ||
-        existsSync(join(dir, 'package.json'))) {
+  // First pass: look for strong workspace roots (.git, pnpm-workspace.yaml)
+  while (dir !== dirname(dir)) { // Checking for root dir in a cross-platform way
+    if (existsSync(join(dir, '.git')) ||
+      existsSync(join(dir, 'pnpm-workspace.yaml'))) {
       return dir;
     }
-    dir = join(dir, '..');
+    dir = dirname(dir);
   }
+
+  // Second pass: fallback to package.json (closest to CWD)
+  dir = from;
+  while (dir !== dirname(dir)) {
+    if (existsSync(join(dir, 'package.json'))) {
+      return dir;
+    }
+    dir = dirname(dir);
+  }
+
   return from;
 }
 
@@ -103,13 +113,13 @@ function getConfigPath(id: EditorId, root: string): string {
   if (editor.path.startsWith('/')) {
     return join(editor.path, editor.file);
   }
-  
+
   // For VSCode and Cursor, always use the project root
   if (id === 'vscode' || id === 'cursor') {
     const projectRoot = findProjectRoot(root);
     return join(projectRoot, editor.path, editor.file);
   }
-  
+
   const found = findUpDir(editor.path, root);
   return join(found || join(root, editor.path), editor.file);
 }

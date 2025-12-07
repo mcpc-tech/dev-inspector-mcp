@@ -1,0 +1,31 @@
+{
+    "manifest_version": 3,
+    "name": "Dev Inspector",
+    "version": "0.0.1",
+    "description": "AI-powered dev inspector for any webpage",
+    "permissions": [
+        "activeTab",
+        "scripting",
+        "storage"
+    ],
+    "host_permissions": [
+        "<all_urls>"
+    ],
+    "action": {
+        "default_title": "Dev Inspector"
+    },
+    "background": {
+        "service_worker": "background.js",
+        "type": "module"
+    },
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "inspector-overlay.css"
+            ],
+            "matches": [
+                "<all_urls>"
+            ]
+        }
+    ]
+}
