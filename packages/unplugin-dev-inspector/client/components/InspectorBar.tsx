@@ -240,7 +240,10 @@ export const InspectorBar = ({
     // Clear all states for new query
     setToolCall(null);
     setAccumulatedText('');
+    setVisibleFragment('');
+    setInspectionStatus(null);
     lastSeenToolNameRef.current = null;
+    lastProcessedTextRef.current = '';
     setHideInputDuringWork(true);
     setIsLocked(true);
 

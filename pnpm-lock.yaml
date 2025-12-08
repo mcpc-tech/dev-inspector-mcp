@@ -431,8 +431,8 @@ importers:
         specifier: ^7.28.5
         version: 7.28.5
       '@mcpc-tech/acp-ai-provider':
-        specifier: ^0.1.25
-        version: 0.1.25
+        specifier: ^0.1.31
+        version: 0.1.31
       '@mcpc-tech/cmcp':
         specifier: ^0.0.15
         version: 0.0.15
@@ -1343,8 +1343,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
-  '@mcpc-tech/acp-ai-provider@0.1.25':
-    resolution: {integrity: sha512-MiuRFTcXaJ+kMnAUAhBFH28cTjhUQUwNMk9p3g8PKaewIqIVGE8kQxjMTEuSdfSVWhzG86xg1s+s9l5sruvC5Q==}
+  '@mcpc-tech/acp-ai-provider@0.1.31':
+    resolution: {integrity: sha512-ZDLmkmgYSCFV9DuVFvBlVo2YmfS4ONkGLtvBhih1h7crLtPhRYudMLjUjnShjn7GpEiP/93g63IarzT3R4IzgA==}
 
   '@mcpc-tech/cmcp@0.0.15':
     resolution: {integrity: sha512-o03iDZpacozvQTn5F0e2UvwPMinJSUZKzoGIQ1HzXnfkYdBvvrKCsU+xN3coMZ7NKMKt3iU+OMXio7u1Pud3YQ==}
@@ -7760,7 +7760,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@mcpc-tech/acp-ai-provider@0.1.25':
+  '@mcpc-tech/acp-ai-provider@0.1.31':
     dependencies:
       '@agentclientprotocol/sdk': 0.4.9
       '@ai-sdk/provider': 2.0.0

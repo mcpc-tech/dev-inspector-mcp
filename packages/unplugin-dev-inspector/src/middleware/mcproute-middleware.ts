@@ -7,11 +7,22 @@ import { createInspectorMcpServer, type ServerContext } from "../mcp";
 import { ConnectionManager } from "./connection-manager.js";
 import { handleCors } from "../utils/cors";
 
+// Shared connection manager instance for use by other middlewares
+let sharedConnectionManager: ConnectionManager | null = null;
+
+/**
+ * Get the shared connection manager instance
+ */
+export function getConnectionManager(): ConnectionManager | null {
+  return sharedConnectionManager;
+}
+
 /**
  * Setup MCP server endpoints in Vite dev server
  */
 export async function setupMcpMiddleware(middlewares: Connect.Server, serverContext?: ServerContext) {
   const connectionManager = new ConnectionManager();
+  sharedConnectionManager = connectionManager;
 
   middlewares.use(
     async (req: IncomingMessage, res: ServerResponse, next: () => void) => {

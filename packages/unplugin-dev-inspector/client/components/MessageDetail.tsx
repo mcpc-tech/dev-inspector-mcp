@@ -25,10 +25,14 @@ export const MessageDetail: React.FC<MessageDetailProps> = ({
     AVAILABLE_AGENTS.find((a) => a.name === (selectedAgent || DEFAULT_AGENT)) ||
     AVAILABLE_AGENTS[0];
 
+  const isLoading = status === "submitted" || status === "streaming";
+  const lastMessage = messages[messages.length - 1];
+  const isWaitingForAssistant = isLoading && (!lastMessage || lastMessage.role === "user");
+
   return (
     <Conversation className="w-full h-full">
       <ConversationContent className="p-3 space-y-3">
-        {messages.length === 0 ? (
+        {messages.length === 0 && !isLoading ? (
           <div className="flex items-center justify-center h-full text-muted-foreground">
             <div className="text-center">
               <p className="text-sm">No messages yet</p>
@@ -38,33 +42,46 @@ export const MessageDetail: React.FC<MessageDetailProps> = ({
             </div>
           </div>
         ) : (
-          messages.map((message) => (
-            <Message
-              className="items-start"
-              from={message.role as "user" | "assistant"}
-              key={message.id}
-            >
-              <MessageContent>
-                {message.parts.map((part, index) =>
-                  renderMessagePart(
-                    part,
-                    message.id,
-                    index,
-                    status === "streaming",
-                    message.metadata as Record<string, unknown> | undefined
-                  )
+          <>
+            {messages.map((message) => (
+              <Message
+                className="items-start"
+                from={message.role as "user" | "assistant"}
+                key={message.id}
+              >
+                <MessageContent>
+                  {message.parts.map((part, index) =>
+                    renderMessagePart(
+                      part,
+                      message.id,
+                      index,
+                      status === "streaming",
+                      message.metadata as Record<string, unknown> | undefined
+                    )
+                  )}
+                </MessageContent>
+                {message.role === "assistant" && (
+                  <MessageAvatar
+                    name={currentAgent.name}
+                    src={currentAgent.meta?.icon ?? ""}
+                  />
                 )}
-              </MessageContent>
-              {message.role === "assistant" && (
+              </Message>
+            ))}
+            {/* Show loader when waiting for assistant response */}
+            {isWaitingForAssistant && (
+              <Message className="items-start" from="assistant">
+                <MessageContent>
+                  <Loader size={16} />
+                </MessageContent>
                 <MessageAvatar
                   name={currentAgent.name}
                   src={currentAgent.meta?.icon ?? ""}
                 />
-              )}
-            </Message>
-          ))
+              </Message>
+            )}
+          </>
         )}
-        {status === "submitted" && messages.length === 0 && <Loader />}
       </ConversationContent>
       <ConversationScrollButton />
     </Conversation>
