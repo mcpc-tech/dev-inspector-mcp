@@ -5,6 +5,7 @@ import { setupInspectorMiddleware } from "./middleware/inspector-middleware";
 import { setupAcpMiddleware } from "./middleware/acp-middleware";
 import { transformJSX } from "./compiler/jsx-transform";
 import { compileVue } from "./compiler/vue-transform";
+import { compileSvelte } from "./compiler/svelte-transform";
 import { updateMcpConfigs, type McpConfigOptions } from "./utils/config-updater";
 import { launchBrowserWithDevTools } from "./utils/browser-launcher";
 import type { Agent, AcpOptions } from "../client/constants/types";
@@ -172,6 +173,15 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
           }
         }
 
+        if (id.match(/\.svelte$/)) {
+          try {
+            return await compileSvelte({ code, id });
+          } catch (error) {
+            console.error(`[dev-inspector] Failed to transform ${id}:`, error);
+            return null;
+          }
+        }
+
         return null;
       },
 
@@ -287,7 +297,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
             }, 1000);
           } else {
             console.log(`[dev-inspector] ⚠️  autoOpenBrowser: false - Console/Network context unavailable`);
-            console.log(`[dev-inspector] 💡 Use "launch_chrome_devtools" prompt to enable.\n`);
+            console.log(`[dev-inspector] 💡 Use "launch_chrome_devtools" prompt or "chrome_devtools" tool to open browser manually.\n`);
           }
           setupInspectorMiddleware(server.middlewares, {
             agents: options.agents,

@@ -18,7 +18,7 @@ tags:
 [![npm version](https://img.shields.io/npm/v/@mcpc-tech/unplugin-dev-inspector-mcp.svg)](https://www.npmjs.com/package/@mcpc-tech/unplugin-dev-inspector-mcp)
 [![npm downloads](https://img.shields.io/npm/dm/@mcpc-tech/unplugin-dev-inspector-mcp.svg)](https://www.npmjs.com/package/@mcpc-tech/unplugin-dev-inspector-mcp)
 
-**AI-powered visual debugging for React & Vue via MCP and ACP.**
+**AI-powered visual debugging for React, Vue, Svelte, Preact & Next.js via MCP and ACP.**
 
 DevInspector connects your web app directly to your AI agent. Click any element to instantly send its source code, style, and network context to the AI for analysis and fixing.
 
@@ -93,7 +93,7 @@ Add DevInspector to your project:
 ```diff
 // vite.config.ts
 +import DevInspector from '@mcpc-tech/unplugin-dev-inspector-mcp';
- import react from '@vitejs/plugin-react'; // or vue()
+ import react from '@vitejs/plugin-react'; // or vue(), svelte(), preact()
 
  export default {
    plugins: [
@@ -102,12 +102,12 @@ Add DevInspector to your project:
        showInspectorBar: true, // Default: true. Set to false to hide the UI.
 +      autoOpenBrowser: false, // Default: false. Automatically open browser when server starts.
      }),
-     react(), // or vue()
+     react(), // or vue(), svelte(), preact()
    ],
  };
 ```
 
-> ⚠️ **Plugin order matters:** Place `DevInspector.vite()` **before** `react()`, `vue()`, or `preact()`. Otherwise source locations may show `unknown:0:0`.
+> ⚠️ **Plugin order matters:** Place `DevInspector.vite()` **before** `react()`, `vue()`, `svelte()`, or `preact()`. Otherwise source locations may show `unknown:0:0`.
 
 #### For Non-HTML Projects (Miniapps, Library Bundles)
 
