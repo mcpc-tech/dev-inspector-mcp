@@ -99,8 +99,9 @@ Add DevInspector to your project:
    plugins: [
 +    DevInspector.vite({
 +      enabled: true,
-+      enableMcp: true,
-+    }),
+       showInspectorBar: true, // Default: true. Set to false to hide the UI.
++      autoOpenBrowser: false, // Default: false. Automatically open browser when server starts.
+     }),
      react(), // or vue()
    ],
  };
@@ -155,7 +156,6 @@ module.exports = {
   plugins: [
 +    DevInspector.webpack({
 +      enabled: true,
-+      enableMcp: true,
 +    }),
   ],
 };
@@ -261,7 +261,6 @@ export default {
   plugins: [
     DevInspector.vite({
       enabled: true,
-      enableMcp: true,
       // Custom agents (will be merged with default properties)
       agents: [
         {

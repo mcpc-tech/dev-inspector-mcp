@@ -20,7 +20,7 @@ import { InspectorBar } from "./components/InspectorBar";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { AVAILABLE_AGENTS } from "./constants/agents";
-import { getDevServerBaseUrl } from "./utils/config-loader";
+import { getDevServerBaseUrl, getShowInspectorBar } from "./utils/config-loader";
 
 interface InspectorContainerProps {
   shadowRoot?: ShadowRoot;
@@ -33,6 +33,7 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({
 }) => {
   useMcp();
   const { resolvedTheme } = useInspectorTheme();
+  const showInspectorBar = getShowInspectorBar();
 
   const [isActive, setIsActive] = useState(false);
   const [sourceInfo, setSourceInfo] = useState<InspectedElement | null>(null);
@@ -216,18 +217,20 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({
     >
       <InspectorContainerContext.Provider value={mountPoint || null}>
         <div className="pointer-events-auto">
-          <InspectorBar
-            isActive={isActive}
-            onToggleInspector={toggleInspector}
-            onSubmitAgent={handleAgentSubmit}
-            onCancel={handleCancel}
-            isAgentWorking={status === "streaming" || status === "submitted"}
-            messages={messages}
-            status={status}
-            inspectionCount={inspections.length}
-            inspectionItems={inspections}
-            onRemoveInspection={handleRemoveInspection}
-          />
+          {showInspectorBar && (
+            <InspectorBar
+              isActive={isActive}
+              onToggleInspector={toggleInspector}
+              onSubmitAgent={handleAgentSubmit}
+              onCancel={handleCancel}
+              isAgentWorking={status === "streaming" || status === "submitted"}
+              messages={messages}
+              status={status}
+              inspectionCount={inspections.length}
+              inspectionItems={inspections}
+              onRemoveInspection={handleRemoveInspection}
+            />
+          )}
         </div>
 
         <Overlay ref={overlayRef} visible={isActive && bubbleMode === null} />

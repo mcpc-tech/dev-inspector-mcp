@@ -69,6 +69,11 @@ export interface InspectorConfig {
    * @see AVAILABLE_AGENTS https://github.com/mcpc-tech/dev-inspector-mcp/blob/main/packages/unplugin-dev-inspector/client/constants/agents.ts
    */
   defaultAgent?: string;
+
+  /**
+   * @default true
+   */
+  showInspectorBar?: boolean;
 }
 
 export function setupInspectorMiddleware(middlewares: Connect.Server, config?: InspectorConfig) {

@@ -7,6 +7,7 @@ import {
 interface InspectorConfig {
   agents?: Agent[];
   defaultAgent?: string;
+  showInspectorBar?: boolean;
 }
 
 let configCache: InspectorConfig | null = null;
@@ -21,12 +22,24 @@ export function getDevServerBaseUrl(): string {
     host: string;
     port: string;
     base: string;
+    showInspectorBar?: boolean;
   } | undefined;
 
   const host = injectedConfig?.host || "localhost";
   const port = injectedConfig?.port || "5173";
   const base = injectedConfig?.base || "/";
   return `http://${host}:${port}${base}`.replace(/\/$/, "");
+}
+
+/**
+ * Get the showInspectorBar option from injected config.
+ */
+export function getShowInspectorBar(): boolean {
+  const injectedConfig = (window as any).__DEV_INSPECTOR_CONFIG__ as {
+    showInspectorBar?: boolean;
+  } | undefined;
+
+  return injectedConfig?.showInspectorBar ?? true;
 }
 
 /**
