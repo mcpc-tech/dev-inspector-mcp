@@ -20,9 +20,20 @@ tags:
 
 **AI-powered visual debugging for React & Vue via MCP and ACP.**
 
+DevInspector connects your web app directly to your AI agent. Click any element to instantly send its source code, style, and network context to the AI for analysis and fixing.
+
 Works with any MCP-compatible AI client. Supports ACP agents: **Claude Code**, **Codex CLI**, **Gemini CLI**, **OpenCode**, and [more](https://agentclientprotocol.com/overview/agents).
 
-Click any element → AI diagnoses issues, inspects source, analyzes network, and provides fixes.
+## 📑 Table of Contents
+
+- [Demo Video](#-demo-video)
+- [Key Features](#-key-features)
+- [Quick Start](#-quick-start)
+- [Configuration](#-configuration)
+- [How It Works](#-what-it-does)
+- [Workflow Modes](#-two-workflow-modes)
+- [MCP Tools](#-mcp-tools)
+- [Architecture](#-architecture)
 
 ## 🎬 Demo Video
 
@@ -32,7 +43,7 @@ Click any element → AI diagnoses issues, inspects source, analyzes network, an
 
 ## 📢 Social Media
 
-🐦 **Twitter/X Post:** [https://x.com/yaoandyan/status/1995082020431753600](https://x.com/yaoandyan/status/1995082020431753600?s=20)
+🐦 **Twittter/X Post:** [https://x.com/yaoandyan/status/1995082020431753600](https://x.com/yaoandyan/status/1995082020431753600?s=20)
 
 ## 👥 Team
 
@@ -62,11 +73,15 @@ Switch between agents (Claude Code, Goose) and track their debugging progress vi
 
 ## Quick Start
 
+### Installation
+
 ```bash
 # npm
 npm i -D @mcpc-tech/unplugin-dev-inspector-mcp
+
 # pnpm
 pnpm add -D @mcpc-tech/unplugin-dev-inspector-mcp
+
 # yarn
 yarn add -D @mcpc-tech/unplugin-dev-inspector-mcp
 ```

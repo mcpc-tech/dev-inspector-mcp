@@ -1,9 +1,32 @@
 {
   "name": "@mcpc-tech/unplugin-dev-inspector-mcp",
-  "version": "0.0.15",
+  "version": "0.0.16",
   "description": "Universal dev inspector plugin for React/Vue - inspect component sources and API calls in any bundler",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mcpc-tech/dev-inspector-mcp.git",
+    "directory": "packages/unplugin-dev-inspector"
+  },
+  "bugs": {
+    "url": "https://github.com/mcpc-tech/dev-inspector-mcp/issues"
+  },
+  "homepage": "https://github.com/mcpc-tech/dev-inspector-mcp#readme",
+  "keywords": [
+    "mcp",
+    "inspector",
+    "debug",
+    "ai",
+    "agent",
+    "react",
+    "vue",
+    "vite",
+    "webpack",
+    "nextjs",
+    "devtools",
+    "unplugin"
+  ],
   "bin": {
     "dev-inspector-server": "./dist/cli.js"
   },
