@@ -1,24 +1,13 @@
----
-title: Inspect Web Mcp
-emoji: 😻
-colorFrom: purple
-colorTo: red
-sdk: gradio
-sdk_version: 5.49.1
-app_file: app.py
-pinned: false
-short_description: AI-powered web debugging with visual element inspection
-tags:
-  - building-mcp-track-creative
-  - mcp-in-action-track-creative
----
+<p align="center">
+  <img src="./assets/logo.svg" alt="DevInspector Logo" width="200" height="200" />
+</p>
 
 # @mcpc-tech/unplugin-dev-inspector-mcp
 
 [![npm version](https://img.shields.io/npm/v/@mcpc-tech/unplugin-dev-inspector-mcp.svg)](https://www.npmjs.com/package/@mcpc-tech/unplugin-dev-inspector-mcp)
 [![npm downloads](https://img.shields.io/npm/dm/@mcpc-tech/unplugin-dev-inspector-mcp.svg)](https://www.npmjs.com/package/@mcpc-tech/unplugin-dev-inspector-mcp)
 
-**AI-powered visual debugging for React, Vue, Svelte, Preact & Next.js via MCP and ACP.**
+**AI-powered visual debugging for React, Vue, Svelte, SolidJS, Preact & Next.js via MCP and ACP.**
 
 DevInspector connects your web app directly to your AI agent. Click any element to instantly send its source code, style, and network context to the AI for analysis and fixing.
 
@@ -29,6 +18,7 @@ Works with any MCP-compatible AI client. Supports ACP agents: **Claude Code**, *
 - [Demo Video](#-demo-video)
 - [Key Features](#-key-features)
 - [Quick Start](#-quick-start)
+- [Framework Support](#framework-support)
 - [Configuration](#-configuration)
 - [How It Works](#-what-it-does)
 - [Workflow Modes](#-two-workflow-modes)
@@ -88,12 +78,49 @@ yarn add -D @mcpc-tech/unplugin-dev-inspector-mcp
 
 Add DevInspector to your project:
 
+### ⚡ Automated Setup (Recommended)
+
+Run the setup command to automatically configure your `vite.config.ts`, `webpack.config.js`, or `next.config.js`:
+
+```bash
+npx @mcpc-tech/unplugin-dev-inspector-mcp setup
+```
+
+**Options:**
+- `--dry-run` - Preview changes without applying them
+- `--config <path>` - Specify config file path (auto-detect by default)
+- `--bundler <type>` - Specify bundler type: vite, webpack, nextjs
+- `--no-backup` - Skip creating backup files
+- `--help` - Show help message
+
+**Examples:**
+```bash
+# Preview changes before applying
+npx @mcpc-tech/unplugin-dev-inspector-mcp setup --dry-run
+
+# Setup specific config file
+npx @mcpc-tech/unplugin-dev-inspector-mcp setup --config vite.config.ts
+
+# Setup for specific bundler
+npx @mcpc-tech/unplugin-dev-inspector-mcp setup --bundler vite
+```
+
+This will:
+- Detect your bundler configuration
+- Add the necessary import
+- Add the plugin to your configuration
+- Create a backup of your config file
+
+### Manual Configuration
+
+If you prefer to configure it manually:
+
 ### Vite
 
 ```diff
 // vite.config.ts
 +import DevInspector from '@mcpc-tech/unplugin-dev-inspector-mcp';
- import react from '@vitejs/plugin-react'; // or vue(), svelte(), preact()
+ import react from '@vitejs/plugin-react'; // or vue(), svelte(), solid(), preact()
 
  export default {
    plugins: [
@@ -102,12 +129,12 @@ Add DevInspector to your project:
        showInspectorBar: true, // Default: true. Set to false to hide the UI.
 +      autoOpenBrowser: false, // Default: false. Automatically open browser when server starts.
      }),
-     react(), // or vue(), svelte(), preact()
+     react(), // or vue(), svelte(), solid(), preact()
    ],
  };
 ```
 
-> ⚠️ **Plugin order matters:** Place `DevInspector.vite()` **before** `react()`, `vue()`, `svelte()`, or `preact()`. Otherwise source locations may show `unknown:0:0`.
+> ⚠️ **Plugin order matters:** Place `DevInspector.vite()` **before** `react()`, `vue()`, `svelte()`, `solid()`, or `preact()`. Otherwise source locations may show `unknown:0:0`.
 
 #### For Non-HTML Projects (Miniapps, Library Bundles)
 
@@ -200,6 +227,22 @@ export default function RootLayout({ children }) {
 ```
 
 > 💡 **Note:** Webpack and Next.js use a standalone server on port 8888. Run `next dev --webpack` for Webpack mode (Next.js 16+ defaults to Turbopack).
+
+## Framework Support
+
+### ✅ Fully Supported
+
+- **React** - `.jsx` and `.tsx` files (Vite, Webpack, Next.js)
+- **Vue** - `.vue` single-file components (Vite, Webpack)
+- **Svelte** - `.svelte` components (Vite, Webpack)
+- **SolidJS** - `.jsx` and `.tsx` files (Vite, Webpack)
+- **Preact** - `.jsx` and `.tsx` files (Vite, Webpack)
+- **Next.js** - React with Webpack mode
+
+### 🚧 In Progress
+
+- **Angular** - Support coming soon
+
 
 
 ## Configuration

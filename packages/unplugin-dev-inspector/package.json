@@ -28,7 +28,8 @@
     "unplugin"
   ],
   "bin": {
-    "dev-inspector-server": "./dist/cli.js"
+    "dev-inspector-server": "./dist/cli.js",
+    "dev-inspector": "./dist/cli.js"
   },
   "files": [
     "dist",
