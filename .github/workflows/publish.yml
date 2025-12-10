@@ -33,6 +33,26 @@ jobs:
 
       - name: Publish
         working-directory: packages/unplugin-dev-inspector
-        run: npm publish
+        run: |
+          for dir in __*_*/dist; do
+            cd "$dir"
+            NAME=$(node -p "require('./package.json').name")
+            VERSION=$(node -p "require('./package.json').version")
+
+            if npm view "$NAME@$VERSION" version 2>/dev/null; then
+              echo "Skipping $NAME@$VERSION (already published)"
+            else
+              # For prerelease versions, explicitly set tag to prevent it from becoming 'latest'
+              if echo "$VERSION" | grep -qE '\-[a-zA-Z]'; then
+                TAG=$(echo "$VERSION" | sed -E 's/[^-]*-([a-zA-Z]+).*/\1/')
+                echo "Publishing prerelease $NAME@$VERSION with tag: $TAG"
+                npm publish --access public --provenance --tag "$TAG"
+              else
+                echo "Publishing stable release $NAME@$VERSION"
+                npm publish --access public --provenance
+              fi
+            fi
+            cd ../..
+          done
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
