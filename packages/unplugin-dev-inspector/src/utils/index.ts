@@ -1,7 +1,4 @@
-export {
-  resolvePackageBin,
-  resolveMcpRemote,
-} from "./resolve-bin";
+export { resolvePackageBin, resolveMcpRemote } from "./resolve-bin";
 
 export {
   updateMcpConfigs,

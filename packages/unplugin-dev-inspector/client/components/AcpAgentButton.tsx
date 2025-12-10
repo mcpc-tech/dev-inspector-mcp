@@ -1,6 +1,6 @@
-import React from 'react';
-import { cn } from '../lib/utils';
-import { Bot } from 'lucide-react';
+import React from "react";
+import { cn } from "../lib/utils";
+import { Bot } from "lucide-react";
 
 interface AcpAgentButtonProps {
   isActive: boolean;
@@ -22,7 +22,7 @@ export const AcpAgentButton = React.forwardRef<HTMLButtonElement, AcpAgentButton
         "w-10 h-10 rounded-full bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-700 border-0 cursor-pointer shadow-lg z-[999998]",
         "flex items-center justify-center transition-all duration-300 ease-out outline-none",
         "hover:scale-110 hover:shadow-xl hover:from-purple-700 hover:via-purple-800 hover:to-indigo-800",
-        isActive && "scale-110 shadow-xl from-purple-700 via-purple-800 to-indigo-800"
+        isActive && "scale-110 shadow-xl from-purple-700 via-purple-800 to-indigo-800",
       )}
     >
       <Bot className="w-5 h-5 text-white" />
@@ -30,4 +30,4 @@ export const AcpAgentButton = React.forwardRef<HTMLButtonElement, AcpAgentButton
   ),
 );
 
-AcpAgentButton.displayName = 'AcpAgentButton';
+AcpAgentButton.displayName = "AcpAgentButton";

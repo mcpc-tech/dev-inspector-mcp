@@ -10,7 +10,7 @@ export const useAgentEnv = (agentId?: string, keys?: string[]) => {
 
   useEffect(() => {
     if (typeof window === "undefined" || !keys?.length) return;
-    
+
     const initial: Record<string, string> = {};
     keys.forEach((k) => {
       initial[k] = localStorage.getItem(storageKey(k)) ?? "";
@@ -22,7 +22,7 @@ export const useAgentEnv = (agentId?: string, keys?: string[]) => {
   const setEnvVar = (key: string, value: string) => {
     setEnvVars((prev) => ({ ...prev, [key]: value }));
     if (typeof window === "undefined") return;
-    
+
     const sk = storageKey(key);
     if (value.trim()) {
       localStorage.setItem(sk, value);

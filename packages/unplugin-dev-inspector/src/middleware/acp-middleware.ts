@@ -29,7 +29,7 @@ type TransportWithMethods = {
 function callMcpMethodViaTransport(
   transport: TransportWithMethods,
   method: string,
-  params?: unknown
+  params?: unknown,
 ): Promise<unknown> {
   const messageId = Date.now();
   const message = {
@@ -44,7 +44,10 @@ function callMcpMethodViaTransport(
 
     const originalSend = transport.send;
     transport.send = function (payload: JSONRPCMessage) {
-      const payloadObj = payload as { id: number; result: unknown };
+      const payloadObj = payload as {
+        id: number;
+        result: unknown;
+      };
       if (payloadObj.id === messageId) {
         resolve(payloadObj.result);
         transport.send = originalSend;
@@ -57,12 +60,13 @@ function callMcpMethodViaTransport(
 /**
  * Load MCP tools from transport in AI SDK v5 format
  */
-async function loadMcpToolsV5(
-  transport: TransportWithMethods
-): Promise<Record<string, any>> {
+async function loadMcpToolsV5(transport: TransportWithMethods): Promise<Record<string, any>> {
   const tools: Record<string, any> = {};
 
-  const { tools: toolsListFromServer } = (await callMcpMethodViaTransport(transport, "tools/list")) as {
+  const { tools: toolsListFromServer } = (await callMcpMethodViaTransport(
+    transport,
+    "tools/list",
+  )) as {
     tools: ToolInfo[];
   };
 
@@ -83,9 +87,7 @@ async function loadMcpToolsV5(
     });
   }
 
-  console.log(
-    `[dev-inspector] [acp] Loaded ${Object.keys(tools).length} MCP tools`
-  );
+  console.log(`[dev-inspector] [acp] Loaded ${Object.keys(tools).length} MCP tools`);
 
   return tools;
 }
@@ -98,150 +100,154 @@ function getActiveTransport(): TransportWithMethods | null {
   if (!connectionManager) {
     return null;
   }
-  
+
   // Get any available transport from the connection manager
   const sessionIds = Object.keys(connectionManager.transports);
   if (sessionIds.length === 0) {
     return null;
   }
-  
+
   // Return the first available transport
   return connectionManager.transports[sessionIds[0]] as TransportWithMethods;
 }
 
-export function setupAcpMiddleware(middlewares: Connect.Server, serverContext?: ServerContext, acpOptions?: AcpOptions) {
-  middlewares.use(
-    "/api/acp/chat",
-    async (req: IncomingMessage, res: ServerResponse) => {
-      if (handleCors(res, req.method)) return;
+export function setupAcpMiddleware(
+  middlewares: Connect.Server,
+  serverContext?: ServerContext,
+  acpOptions?: AcpOptions,
+) {
+  middlewares.use("/api/acp/chat", async (req: IncomingMessage, res: ServerResponse) => {
+    if (handleCors(res, req.method)) return;
 
-      if (req.method !== "POST") {
-        res.statusCode = 405;
-        res.end("Method Not Allowed");
-        return;
+    if (req.method !== "POST") {
+      res.statusCode = 405;
+      res.end("Method Not Allowed");
+      return;
+    }
+
+    try {
+      const body = await readBody(req);
+      const { messages, agent, envVars } = JSON.parse(body);
+
+      const cwd = process.cwd();
+
+      // Create ACP provider with empty mcpServers - we'll provide tools directly
+      const provider = createACPProvider({
+        command: agent.command,
+        args: agent.args,
+        env: envVars,
+        session: {
+          cwd,
+          mcpServers: [],
+        },
+        authMethodId: agent.authMethodId,
+      });
+
+      // Get active transport from shared connection manager and load tools
+      const transport = getActiveTransport();
+      let mcpTools: Record<string, any> = {};
+      if (transport) {
+        mcpTools = await loadMcpToolsV5(transport);
+      } else {
+        console.warn(
+          "[dev-inspector] [acp] No active MCP transport available, tools will not be loaded",
+        );
       }
 
-      try {
-        const body = await readBody(req);
-        const { messages, agent, envVars } = JSON.parse(body);
+      // Get mode/model/delay options
+      const mode = agent.acpMode ?? acpOptions?.acpMode;
+      const model = agent.acpModel ?? acpOptions?.acpModel;
+      const delay = agent.acpDelay ?? acpOptions?.acpDelay;
 
-        const cwd = process.cwd();
+      if (delay !== undefined && delay > 0) {
+        console.log(`[dev-inspector] [acp] Delaying response by ${delay}ms, agent: ${agent.name}`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
 
-        // Create ACP provider with empty mcpServers - we'll provide tools directly
-        const provider = createACPProvider({
-          command: agent.command,
-          args: agent.args,
-          env: envVars,
-          session: {
-            cwd,
-            mcpServers: [],
-          },
-          authMethodId: agent.authMethodId,
-        });
+      // Create abort controller for request cancellation
+      const abortController = new AbortController();
 
-        // Get active transport from shared connection manager and load tools
-        const transport = getActiveTransport();
-        let mcpTools: Record<string, any> = {};
-        if (transport) {
-          mcpTools = await loadMcpToolsV5(transport);
-        } else {
-          console.warn('[dev-inspector] [acp] No active MCP transport available, tools will not be loaded');
-        }
+      // Listen for client disconnect to cancel the stream
+      req.on("close", () => {
+        console.log("[dev-inspector] [acp] Client disconnected, aborting stream");
+        abortController.abort();
+        provider.cleanup();
+      });
 
-        // Get mode/model/delay options
-        const mode = agent.acpMode ?? acpOptions?.acpMode;
-        const model = agent.acpModel ?? acpOptions?.acpModel;
-        const delay = agent.acpDelay ?? acpOptions?.acpDelay;
-
-        if (delay !== undefined && delay > 0) {
-          console.log(`[dev-inspector] [acp] Delaying response by ${delay}ms, agent: ${agent.name}`);
-          await new Promise((resolve) => setTimeout(resolve, delay));
-        }
-
-        // Create abort controller for request cancellation
-        const abortController = new AbortController();
-
-        // Listen for client disconnect to cancel the stream
-        req.on('close', () => {
-          console.log('[dev-inspector] [acp] Client disconnected, aborting stream');
-          abortController.abort();
+      const result = streamText({
+        model: provider.languageModel(model, mode),
+        // Ensure raw chunks like agent plan are included for streaming
+        includeRawChunks: true,
+        messages: convertToModelMessages(messages),
+        abortSignal: abortController.signal,
+        // Use acpTools to wrap MCP tools with ACP provider dynamic tool
+        tools: acpTools(mcpTools),
+        onError: (error) => {
+          console.error("Error occurred while streaming text:", JSON.stringify(error, null, 2));
           provider.cleanup();
-        });
+        },
+      });
 
-        const result = streamText({
-          model: provider.languageModel(model, mode),
-          // Ensure raw chunks like agent plan are included for streaming
-          includeRawChunks: true,
-          messages: convertToModelMessages(messages),
-          abortSignal: abortController.signal,
-          // Use acpTools to wrap MCP tools with ACP provider dynamic tool
-          tools: acpTools(mcpTools),
-          onError: (error) => {
-            console.error(
-              "Error occurred while streaming text:",
-              JSON.stringify(error, null, 2)
-            );
-            provider.cleanup();
-          },
-        });
+      const response = result.toUIMessageStreamResponse({
+        messageMetadata: ({ part }) => {
+          // Extract plan from raw chunks if available,
+          // raw chunks are not included in UI message streams
+          if (part.type === "raw" && part.rawValue) {
+            const parsed = z
+              .string()
+              .transform((str) => {
+                try {
+                  return JSON.parse(str);
+                } catch {
+                  return null;
+                }
+              })
+              .pipe(z.array(planEntrySchema).optional())
+              .safeParse(part.rawValue);
 
-        const response = result.toUIMessageStreamResponse({
-          messageMetadata: ({ part }) => {
-            // Extract plan from raw chunks if available,
-            // raw chunks are not included in UI message streams
-            if (part.type === "raw" && part.rawValue) {
-              const parsed = z
-                .string()
-                .transform((str) => {
-                  try {
-                    return JSON.parse(str);
-                  } catch {
-                    return null;
-                  }
-                })
-                .pipe(z.array(planEntrySchema).optional())
-                .safeParse(part.rawValue);
-
-              if (parsed.success && parsed.data) {
-                return { plan: parsed.data };
-              }
+            if (parsed.success && parsed.data) {
+              return { plan: parsed.data };
             }
-          },
-          onError: (error) => {
-            console.error("Stream error:", error);
-            return error instanceof Error ? error.message : String(error);
-          },
-        });
-
-        // Copy headers
-        response.headers.forEach((value, key) => {
-          res.setHeader(key, value);
-        });
-
-        // Stream body
-        if (response.body) {
-          const reader = response.body.getReader();
-          try {
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              res.write(value);
-            }
-          } finally {
-            res.end();
           }
-        } else {
+        },
+        onError: (error) => {
+          console.error("Stream error:", error);
+          return error instanceof Error ? error.message : String(error);
+        },
+      });
+
+      // Copy headers
+      response.headers.forEach((value, key) => {
+        res.setHeader(key, value);
+      });
+
+      // Stream body
+      if (response.body) {
+        const reader = response.body.getReader();
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            res.write(value);
+          }
+        } finally {
           res.end();
         }
-      } catch (error) {
-        console.error("ACP Middleware Error:", error);
-        if (!res.headersSent) {
-          res.statusCode = 500;
-          res.end(JSON.stringify({ error: "Internal Server Error" }));
-        }
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      console.error("ACP Middleware Error:", error);
+      if (!res.headersSent) {
+        res.statusCode = 500;
+        res.end(
+          JSON.stringify({
+            error: "Internal Server Error",
+          }),
+        );
       }
     }
-  );
+  });
 }
 
 function readBody(req: IncomingMessage): Promise<string> {

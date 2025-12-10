@@ -1,5 +1,5 @@
 import type { NextConfig } from "next";
-import UnpluginDevInspector from "@mcpc-tech/unplugin-dev-inspector-mcp";
+import UnpluginDevInspector, { turbopackDevInspector } from "@mcpc-tech/unplugin-dev-inspector-mcp";
 
 /**
  * Next.js configuration with both Webpack and Turbopack support
@@ -13,6 +13,8 @@ const nextConfig: NextConfig = {
     config.plugins.push(
       UnpluginDevInspector.webpack({
         enabled: true,
+        autoOpenBrowser: true,
+        browserUrl: 'http://localhost:3000'
       })
     );
     return config;
@@ -21,17 +23,11 @@ const nextConfig: NextConfig = {
   // Turbopack configuration (`next dev --turbopack`)
   // Note: Also requires running `npx dev-inspector-server` for MCP endpoints
   turbopack: {
-    rules: {
-      // Transform TSX files to inject data-source attributes
-      "src/**/*.tsx": {
-        loaders: ["@mcpc-tech/unplugin-dev-inspector-mcp/loader"],
-        as: "*.tsx",
-      },
-      "src/**/*.jsx": {
-        loaders: ["@mcpc-tech/unplugin-dev-inspector-mcp/loader"],
-        as: "*.jsx",
-      },
-    },
+    rules: turbopackDevInspector({
+      enabled: true,
+      autoOpenBrowser: true,
+      browserUrl: 'http://localhost:3000'
+    }),
   },
 };
 

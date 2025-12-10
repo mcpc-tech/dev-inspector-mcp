@@ -1,18 +1,23 @@
-import MagicString from 'magic-string';
-import { parse } from '@babel/parser';
-import type { JSXOpeningElement, JSXIdentifier, JSXMemberExpression, JSXNamespacedName } from '@babel/types';
-import path from 'node:path';
-import { createRequire } from 'node:module';
+import MagicString from "magic-string";
+import { parse } from "@babel/parser";
+import type {
+  JSXOpeningElement,
+  JSXIdentifier,
+  JSXMemberExpression,
+  JSXNamespacedName,
+} from "@babel/types";
+import path from "node:path";
+import { createRequire } from "node:module";
 
 // Use createRequire to load CJS modules
 const require = createRequire(import.meta.url);
-const traverse = require('@babel/traverse').default;
+const traverse = require("@babel/traverse").default;
 
 function normalizePath(id: string): string {
-  return id.split(path.sep).join('/');
+  return id.split(path.sep).join("/");
 }
 
-const DATA_SOURCE_ATTR = 'data-source';
+const DATA_SOURCE_ATTR = "data-source";
 
 interface TransformOptions {
   code: string;
@@ -23,18 +28,18 @@ interface TransformOptions {
  * Check if JSX element name is a Fragment (React.Fragment, Fragment, or <>)
  */
 function isFragment(name: JSXIdentifier | JSXMemberExpression | JSXNamespacedName): boolean {
-  if (name.type === 'JSXIdentifier') {
-    return name.name === 'Fragment';
+  if (name.type === "JSXIdentifier") {
+    return name.name === "Fragment";
   }
-  if (name.type === 'JSXMemberExpression') {
+  if (name.type === "JSXMemberExpression") {
     // React.Fragment
     const object = name.object;
     const property = name.property;
     return (
-      object.type === 'JSXIdentifier' &&
-      object.name === 'React' &&
-      property.type === 'JSXIdentifier' &&
-      property.name === 'Fragment'
+      object.type === "JSXIdentifier" &&
+      object.name === "React" &&
+      property.type === "JSXIdentifier" &&
+      property.name === "Fragment"
     );
   }
   return false;
@@ -42,13 +47,13 @@ function isFragment(name: JSXIdentifier | JSXMemberExpression | JSXNamespacedNam
 
 /**
  * Transform JSX/TSX code to inject data-source attributes for dev inspection.
- * 
+ *
  * Handles:
  * - Regular components: <Div>, <Button>
  * - Member expressions: <Foo.Bar>, <Layout.Content>
  * - Generic components: <Table<T>>, <Select<Option>>
  * - Namespaced: <svg:rect>
- * 
+ *
  * Skips:
  * - Fragments: <>, <Fragment>, <React.Fragment>
  * - Elements that already have data-source
@@ -56,21 +61,15 @@ function isFragment(name: JSXIdentifier | JSXMemberExpression | JSXNamespacedNam
  */
 export function transformJSX({ code, id }: TransformOptions): { code: string; map: any } | null {
   // Quick bailout: no JSX in file
-  if (!code.includes('<')) {
+  if (!code.includes("<")) {
     return null;
   }
 
   let ast;
   try {
     ast = parse(code, {
-      sourceType: 'module',
-      plugins: [
-        'jsx',
-        'typescript',
-        'decorators-legacy',
-        'classProperties',
-        'importMeta',
-      ],
+      sourceType: "module",
+      plugins: ["jsx", "typescript", "decorators-legacy", "classProperties", "importMeta"],
       errorRecovery: true, // Don't throw on minor syntax issues
     });
   } catch {
@@ -101,9 +100,9 @@ export function transformJSX({ code, id }: TransformOptions): { code: string; ma
           // Skip if already has data-source attribute
           const hasDataSource = node.attributes?.some(
             (attr) =>
-              attr.type === 'JSXAttribute' &&
-              attr.name?.type === 'JSXIdentifier' &&
-              attr.name.name === DATA_SOURCE_ATTR
+              attr.type === "JSXAttribute" &&
+              attr.name?.type === "JSXIdentifier" &&
+              attr.name.name === DATA_SOURCE_ATTR,
           );
           if (hasDataSource) {
             return;

@@ -49,17 +49,17 @@ export class ConnectionManager {
     if (!sessionIds) return;
 
     const sessionsToRemove: string[] = [];
-    
+
     for (const existingSessionId of sessionIds) {
       if (existingSessionId === newSessionId) continue;
-      
+
       // Unbind puppet
       const boundPuppet = this.boundPuppets.get(existingSessionId);
       if (boundPuppet) {
         boundPuppet.unbindPuppet();
       }
       this.boundPuppets.delete(existingSessionId);
-      
+
       // Close and remove the old transport
       const transport = this.transports[existingSessionId];
       if (transport) {
@@ -70,10 +70,10 @@ export class ConnectionManager {
         }
         delete this.transports[existingSessionId];
       }
-      
+
       sessionsToRemove.push(existingSessionId);
     }
-    
+
     for (const sessionId of sessionsToRemove) {
       sessionIds.delete(sessionId);
     }
@@ -122,7 +122,7 @@ export class ConnectionManager {
   ) {
     // Clean up previous watchers with the same clientId
     this.cleanupPreviousWatchers(clientId, sessionId);
-    
+
     // Track this watcher under its clientId
     if (!this.watchersByClientId.has(clientId)) {
       this.watchersByClientId.set(clientId, new Set());
@@ -138,7 +138,7 @@ export class ConnectionManager {
         return boundTransport;
       }
     }
-    
+
     return null;
   }
 }

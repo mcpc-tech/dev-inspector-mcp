@@ -34,7 +34,7 @@ function getChromeDevToolsBinPath(): string {
 function callMcpMethod(
   mcpServer: Awaited<ReturnType<typeof mcpc>>,
   method: string,
-  params?: unknown
+  params?: unknown,
 ): Promise<unknown> {
   const messageId = Date.now();
   const message = {
@@ -52,7 +52,10 @@ function callMcpMethod(
 
     const originalSend = mcpServer.transport.send;
     mcpServer.transport.send = function (payload: JSONRPCMessage) {
-      const payloadObj = payload as { id: number; result: unknown };
+      const payloadObj = payload as {
+        id: number;
+        result: unknown;
+      };
       if (payloadObj.id === messageId) {
         resolve(payloadObj.result);
         if (!mcpServer.transport) {
@@ -79,19 +82,18 @@ export async function createInspectorMcpServer(serverContext?: ServerContext) {
       {
         name: "dev-inspector",
         version: "1.0.0",
-        title:
-          "A tool for inspecting and interacting with the development environment.",
+        title: "A tool for inspecting and interacting with the development environment.",
       },
       {
         capabilities: {
           tools: {
-            listChanged: true
+            listChanged: true,
           },
           sampling: {},
           prompts: {
-            listChanged: true
-          }
-        }
+            listChanged: true,
+          },
+        },
       },
     ],
     [
@@ -102,7 +104,7 @@ export async function createInspectorMcpServer(serverContext?: ServerContext) {
 Provides tools for inspecting network requests, console logs, and performance metrics.
 
 If Chrome is already open, this tool can connect to it directly. Otherwise, call chrome_navigate_page first to launch Chrome.
-Default dev server URL: http://${serverContext?.host || 'localhost'}:${serverContext?.port || 5173}
+Default dev server URL: http://${serverContext?.host || "localhost"}:${serverContext?.port || 5173}
 
 You MUST ask the user for confirmation before navigating to any URL.`,
         options: {
@@ -170,11 +172,11 @@ You MUST ask the user for confirmation before navigating to any URL.`,
     {
       ...TOOL_SCHEMAS.execute_page_script,
     },
-  ])
+  ]);
 
   // Prompts
   mcpServer.setRequestHandler(ListPromptsRequestSchema, async (request) => {
-    const defaultUrl = `http://${serverContext?.host || 'localhost'}:${serverContext?.port || 5173}`;
+    const defaultUrl = `http://${serverContext?.host || "localhost"}:${serverContext?.port || 5173}`;
 
     return {
       prompts: [
@@ -200,7 +202,7 @@ You MUST ask the user for confirmation before navigating to any URL.`,
         },
         {
           ...PROMPT_SCHEMAS.get_console_messages,
-        }
+        },
       ],
     };
   });
@@ -211,11 +213,9 @@ You MUST ask the user for confirmation before navigating to any URL.`,
     const networkResult = (await callMcpMethod(mcpServer, "tools/call", {
       name: "chrome_devtools",
       arguments: {
-        useTool: 'chrome_list_network_requests',
-        hasDefinitions: [
-          'chrome_list_network_requests'
-        ],
-        chrome_list_network_requests: {}
+        useTool: "chrome_list_network_requests",
+        hasDefinitions: ["chrome_list_network_requests"],
+        chrome_list_network_requests: {},
       },
     })) as CallToolResult;
 
@@ -223,39 +223,39 @@ You MUST ask the user for confirmation before navigating to any URL.`,
     const consoleResult = (await callMcpMethod(mcpServer, "tools/call", {
       name: "chrome_devtools",
       arguments: {
-        useTool: 'chrome_list_console_messages',
-        hasDefinitions: [
-          'chrome_list_console_messages'
-        ],
-        chrome_list_console_messages: {}
+        useTool: "chrome_list_console_messages",
+        hasDefinitions: ["chrome_list_console_messages"],
+        chrome_list_console_messages: {},
       },
     })) as CallToolResult;
 
     // Extract reqIds from the network requests text
-    const requestsText = networkResult?.content?.map((item) => item.text).join('\n') || '';
-    const reqIdMatches = requestsText.matchAll(/reqid=(\d+)\s+(GET|POST|PUT|DELETE|PATCH)\s+([^\s]+)\s+\[([^\]]+)\]/g);
+    const requestsText = networkResult?.content?.map((item) => item.text).join("\n") || "";
+    const reqIdMatches = requestsText.matchAll(
+      /reqid=(\d+)\s+(GET|POST|PUT|DELETE|PATCH)\s+([^\s]+)\s+\[([^\]]+)\]/g,
+    );
     const requestOptions = Array.from(reqIdMatches)
-      .map(match => {
+      .map((match) => {
         const [, reqId, method, url, status] = match;
         // Truncate long URLs to 60 characters with ellipsis
-        const truncatedUrl = url.length > 60 ? url.substring(0, 57) + '...' : url;
+        const truncatedUrl = url.length > 60 ? url.substring(0, 57) + "..." : url;
         return `  ${reqId}: ${method} ${truncatedUrl} [${status}]`;
       })
       .reverse() // Show newest requests first
-      .join('\n');
+      .join("\n");
 
     // Extract msgIds from the console messages text
-    const messagesText = consoleResult?.content?.map((item) => item.text).join('\n') || '';
+    const messagesText = consoleResult?.content?.map((item) => item.text).join("\n") || "";
     const msgIdMatches = messagesText.matchAll(/msgid=(\d+)\s+\[([^\]]+)\]\s+(.+)/g);
     const messageOptions = Array.from(msgIdMatches)
-      .map(match => {
+      .map((match) => {
         const [, msgId, level, text] = match;
         // Truncate long messages to 60 characters with ellipsis
-        const truncatedText = text.length > 60 ? text.substring(0, 57) + '...' : text;
+        const truncatedText = text.length > 60 ? text.substring(0, 57) + "..." : text;
         return `  ${msgId}: [${level}] ${truncatedText}`;
       })
       .reverse() // Show newest messages first
-      .join('\n');
+      .join("\n");
 
     // Dynamically update the prompts arguments
     mcpServer.setRequestHandler(ListPromptsRequestSchema, async (request) => {
@@ -277,21 +277,21 @@ You MUST ask the user for confirmation before navigating to any URL.`,
             arguments: [
               {
                 name: "reqid",
-                description: `Optional. The request ID to get details for. If omitted, only refreshes and lists requests.\n\nAvailable requests:\n${requestOptions || 'No requests available'}`,
+                description: `Optional. The request ID to get details for. If omitted, only refreshes and lists requests.\n\nAvailable requests:\n${requestOptions || "No requests available"}`,
                 required: false,
-              }
-            ]
+              },
+            ],
           },
           {
             ...PROMPT_SCHEMAS.get_console_messages,
             arguments: [
               {
                 name: "msgid",
-                description: `Optional. The message ID to get details for. If omitted, only refreshes and lists messages.\n\nAvailable messages:\n${messageOptions || 'No messages available'}`,
+                description: `Optional. The message ID to get details for. If omitted, only refreshes and lists messages.\n\nAvailable messages:\n${messageOptions || "No messages available"}`,
                 required: false,
-              }
-            ]
-          }
+              },
+            ],
+          },
         ],
       };
     });
@@ -299,10 +299,7 @@ You MUST ask the user for confirmation before navigating to any URL.`,
     await mcpServer.sendPromptListChanged();
 
     // Combine both results
-    const combinedContent = [
-      ...(networkResult?.content || []),
-      ...(consoleResult?.content || []),
-    ];
+    const combinedContent = [...(networkResult?.content || []), ...(consoleResult?.content || [])];
 
     return {
       messages: combinedContent.map((item) => ({
@@ -347,7 +344,7 @@ You MUST ask the user for confirmation before navigating to any URL.`,
       }
 
       case "launch_chrome_devtools": {
-        const defaultUrl = `http://${serverContext?.host || 'localhost'}:${serverContext?.port || 5173}`;
+        const defaultUrl = `http://${serverContext?.host || "localhost"}:${serverContext?.port || 5173}`;
         const url = (request.params.arguments?.url as string | undefined) || defaultUrl;
 
         try {
@@ -370,13 +367,11 @@ You MUST ask the user for confirmation before navigating to any URL.`,
           const result = (await callMcpMethod(mcpServer, "tools/call", {
             name: "chrome_devtools",
             arguments: {
-              useTool: 'chrome_navigate_page',
-              hasDefinitions: [
-                'chrome_navigate_page'
-              ],
+              useTool: "chrome_navigate_page",
+              hasDefinitions: ["chrome_navigate_page"],
               chrome_navigate_page: {
                 url,
-              }
+              },
             },
           })) as CallToolResult;
 
@@ -406,12 +401,12 @@ You MUST ask the user for confirmation before navigating to any URL.`,
         }
       }
 
-      case 'get_network_requests': {
+      case "get_network_requests": {
         // Always refresh first
         const refreshResult = await refreshChromeState();
-        
+
         const reqidStr = request.params.arguments?.reqid as string | undefined;
-        
+
         // If no reqid provided, just return the refresh result (list of requests)
         if (!reqidStr) {
           return refreshResult;
@@ -422,13 +417,11 @@ You MUST ask the user for confirmation before navigating to any URL.`,
           const result = (await callMcpMethod(mcpServer, "tools/call", {
             name: "chrome_devtools",
             arguments: {
-              useTool: 'chrome_get_network_request',
-              hasDefinitions: [
-                'chrome_get_network_request'
-              ],
+              useTool: "chrome_get_network_request",
+              hasDefinitions: ["chrome_get_network_request"],
               chrome_get_network_request: {
-                reqid
-              }
+                reqid,
+              },
             },
           })) as CallToolResult;
 
@@ -455,12 +448,12 @@ You MUST ask the user for confirmation before navigating to any URL.`,
         }
       }
 
-      case 'get_console_messages': {
+      case "get_console_messages": {
         // Always refresh first
         const refreshResultConsole = await refreshChromeState();
-        
+
         const msgidStr = request.params.arguments?.msgid as string | undefined;
-        
+
         // If no msgid provided, just return the refresh result (list of messages)
         if (!msgidStr) {
           return refreshResultConsole;
@@ -471,13 +464,11 @@ You MUST ask the user for confirmation before navigating to any URL.`,
           const result = (await callMcpMethod(mcpServer, "tools/call", {
             name: "chrome_devtools",
             arguments: {
-              useTool: 'chrome_get_console_message',
-              hasDefinitions: [
-                'chrome_get_console_message'
-              ],
+              useTool: "chrome_get_console_message",
+              hasDefinitions: ["chrome_get_console_message"],
               chrome_get_console_message: {
-                msgid
-              }
+                msgid,
+              },
             },
           })) as CallToolResult;
 
@@ -503,7 +494,6 @@ You MUST ask the user for confirmation before navigating to any URL.`,
           } as GetPromptResult;
         }
       }
-
 
       default:
         throw new Error(`Unknown promptId: ${promptName}`);

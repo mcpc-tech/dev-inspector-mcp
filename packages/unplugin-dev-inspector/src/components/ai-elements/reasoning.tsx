@@ -95,9 +95,7 @@ export const Reasoning = memo(
     };
 
     return (
-      <ReasoningContext.Provider
-        value={{ isStreaming, isOpen, setIsOpen, duration }}
-      >
+      <ReasoningContext.Provider value={{ isStreaming, isOpen, setIsOpen, duration }}>
         <Collapsible
           className={cn("not-prose mb-4", className)}
           onOpenChange={handleOpenChange}
@@ -108,7 +106,7 @@ export const Reasoning = memo(
         </Collapsible>
       </ReasoningContext.Provider>
     );
-  }
+  },
 );
 
 export type ReasoningTriggerProps = ComponentProps<typeof CollapsibleTrigger>;
@@ -123,55 +121,46 @@ const getThinkingMessage = (isStreaming: boolean, duration?: number) => {
   return <p>Thought for {duration} seconds</p>;
 };
 
-export const ReasoningTrigger = memo(
-  ({ className, children, ...props }: ReasoningTriggerProps) => {
-    const { isStreaming, isOpen, duration } = useReasoning();
+export const ReasoningTrigger = memo(({ className, children, ...props }: ReasoningTriggerProps) => {
+  const { isStreaming, isOpen, duration } = useReasoning();
 
-    return (
-      <CollapsibleTrigger
-        className={cn(
-          "flex w-full items-center gap-2 text-muted-foreground text-sm transition-colors hover:text-foreground",
-          className
-        )}
-        {...props}
-      >
-        {children ?? (
-          <>
-            <BrainIcon className="size-4" />
-            {getThinkingMessage(isStreaming, duration)}
-            <ChevronDownIcon
-              className={cn(
-                "size-4 transition-transform",
-                isOpen ? "rotate-180" : "rotate-0"
-              )}
-            />
-          </>
-        )}
-      </CollapsibleTrigger>
-    );
-  }
-);
-
-export type ReasoningContentProps = ComponentProps<
-  typeof CollapsibleContent
-> & {
-  children: string;
-};
-
-export const ReasoningContent = memo(
-  ({ className, children, ...props }: ReasoningContentProps) => (
-    <CollapsibleContent
+  return (
+    <CollapsibleTrigger
       className={cn(
-        "mt-4 text-sm",
-        "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 text-muted-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
-        className
+        "flex w-full items-center gap-2 text-muted-foreground text-sm transition-colors hover:text-foreground",
+        className,
       )}
       {...props}
     >
-      <Streamdown {...props}>{children}</Streamdown>
-    </CollapsibleContent>
-  )
-);
+      {children ?? (
+        <>
+          <BrainIcon className="size-4" />
+          {getThinkingMessage(isStreaming, duration)}
+          <ChevronDownIcon
+            className={cn("size-4 transition-transform", isOpen ? "rotate-180" : "rotate-0")}
+          />
+        </>
+      )}
+    </CollapsibleTrigger>
+  );
+});
+
+export type ReasoningContentProps = ComponentProps<typeof CollapsibleContent> & {
+  children: string;
+};
+
+export const ReasoningContent = memo(({ className, children, ...props }: ReasoningContentProps) => (
+  <CollapsibleContent
+    className={cn(
+      "mt-4 text-sm",
+      "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 text-muted-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
+      className,
+    )}
+    {...props}
+  >
+    <Streamdown {...props}>{children}</Streamdown>
+  </CollapsibleContent>
+));
 
 Reasoning.displayName = "Reasoning";
 ReasoningTrigger.displayName = "ReasoningTrigger";

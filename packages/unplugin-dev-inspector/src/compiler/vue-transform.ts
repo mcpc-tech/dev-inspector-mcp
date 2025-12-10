@@ -1,12 +1,12 @@
-import MagicString from 'magic-string';
-import { parse } from '@vue/compiler-sfc';
-import path from 'node:path';
+import MagicString from "magic-string";
+import { parse } from "@vue/compiler-sfc";
+import path from "node:path";
 
 function normalizePath(id: string): string {
-  return id.split(path.sep).join('/');
+  return id.split(path.sep).join("/");
 }
 
-const DATA_SOURCE_ATTR = 'data-source';
+const DATA_SOURCE_ATTR = "data-source";
 
 interface TransformOptions {
   code: string;
@@ -15,7 +15,7 @@ interface TransformOptions {
 
 export function compileVue({ code, id }: TransformOptions): { code: string; map: any } | null {
   const relativePath = normalizePath(path.relative(process.cwd(), id));
-  
+
   const { descriptor } = parse(code, {
     filename: id,
     sourceMap: true,
@@ -29,16 +29,17 @@ export function compileVue({ code, id }: TransformOptions): { code: string; map:
   let hasModifications = false;
 
   function traverse(node: any) {
-    if (node.type === 1) { // NodeTypes.ELEMENT
+    if (node.type === 1) {
+      // NodeTypes.ELEMENT
       // Check if data-source already exists
       const hasDataSource = node.props.some(
-        (prop: any) => prop.type === 6 && prop.name === DATA_SOURCE_ATTR // NodeTypes.ATTRIBUTE
+        (prop: any) => prop.type === 6 && prop.name === DATA_SOURCE_ATTR, // NodeTypes.ATTRIBUTE
       );
 
       if (!hasDataSource) {
         const { line, column } = node.loc.start;
         const sourceValue = `${relativePath}:${line}:${column}`;
-        
+
         // Insert after tag name
         // node.loc.start.offset points to '<'
         // We need to find the end of the tag name

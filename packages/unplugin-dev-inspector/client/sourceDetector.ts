@@ -1,4 +1,4 @@
-import type { InspectedElement, ReactFiber } from './types';
+import type { InspectedElement, ReactFiber } from "./types";
 
 /**
  * Generate DOM path from element to root
@@ -6,35 +6,35 @@ import type { InspectedElement, ReactFiber } from './types';
 function getDomPath(element: Element): string {
   const path: string[] = [];
   let current: Element | null = element;
-  
+
   while (current && current.nodeType === Node.ELEMENT_NODE) {
     let selector = current.tagName.toLowerCase();
-    
+
     if (current.id) {
       selector += `#${current.id}`;
       path.unshift(selector);
       break; // ID is unique, stop here
-    } else if (current.className && typeof current.className === 'string') {
+    } else if (current.className && typeof current.className === "string") {
       const classes = current.className.trim().split(/\s+/).slice(0, 2); // Limit to 2 classes for readability
       if (classes.length > 0 && classes[0]) {
-        selector += `.${classes.join('.')}`;
+        selector += `.${classes.join(".")}`;
       }
     }
-    
+
     path.unshift(selector);
     current = current.parentElement;
-    
+
     // Limit depth to prevent overly long paths
     if (path.length >= 10) break;
   }
-  
-  return path.join(' > ');
+
+  return path.join(" > ");
 }
 
 function getElementInfo(element: Element) {
   const computedStyles = window.getComputedStyle(element);
   const rect = element.getBoundingClientRect();
-  
+
   // Legacy flat styles for backwards compatibility
   const legacyStyles = {
     display: computedStyles.display,
@@ -48,18 +48,21 @@ function getElementInfo(element: Element) {
     margin: computedStyles.margin,
     border: computedStyles.border,
   };
-  
+
   return {
     tagName: element.tagName.toLowerCase(),
-    textContent: element.textContent?.trim().slice(0, 100) || '',
-    className: element.className || '',
-    id: element.id || '',
-    attributes: Array.from(element.attributes).reduce((acc, attr) => {
-      if (!attr.name.startsWith('data-') && attr.name !== 'class' && attr.name !== 'id') {
-        acc[attr.name] = attr.value;
-      }
-      return acc;
-    }, {} as Record<string, string>),
+    textContent: element.textContent?.trim().slice(0, 100) || "",
+    className: element.className || "",
+    id: element.id || "",
+    attributes: Array.from(element.attributes).reduce(
+      (acc, attr) => {
+        if (!attr.name.startsWith("data-") && attr.name !== "class" && attr.name !== "id") {
+          acc[attr.name] = attr.value;
+        }
+        return acc;
+      },
+      {} as Record<string, string>,
+    ),
     styles: legacyStyles, // Keep for backwards compatibility
     domPath: getDomPath(element),
     boundingBox: {
@@ -172,17 +175,40 @@ export const getSourceInfo = (element: Element): InspectedElement => {
   const maxDepth = 20;
   let depth = 0;
 
-  // Check current element and parents for data-source attribute
+  // Check current element and parents for data-source or data-insp-path attribute
   while (current && depth < maxDepth) {
-    const dataSource = current.getAttribute('data-source');
+    const dataSource = current.getAttribute("data-source");
+    const inspPath = current.getAttribute("data-insp-path");
+
+    if (inspPath) {
+      // Parse data-insp-path format: "file:line:col:tag"
+      const parts = inspPath.split(":");
+      if (parts.length >= 4) {
+        const tag = parts.pop() || "";
+        const col = parts.pop() || "0";
+        const line = parts.pop() || "0";
+        const file = parts.join(":");
+
+        return {
+          file: file,
+          component: tag || element.tagName.toLowerCase(),
+          apis: [],
+          line: parseInt(line, 10),
+          column: parseInt(col, 10),
+          element,
+          elementInfo: getElementInfo(element),
+        };
+      }
+    }
+
     if (dataSource) {
       // Parse data-source format: "file:line:col"
-      const parts = dataSource.split(':');
+      const parts = dataSource.split(":");
       if (parts.length >= 3) {
-        const col = parts.pop() || '0';
-        const line = parts.pop() || '0';
-        const file = parts.join(':'); // Re-join in case file path contains colons
-        
+        const col = parts.pop() || "0";
+        const line = parts.pop() || "0";
+        const file = parts.join(":"); // Re-join in case file path contains colons
+
         return {
           file: file,
           component: element.tagName.toLowerCase(),
@@ -203,25 +229,32 @@ export const getSourceInfo = (element: Element): InspectedElement => {
   depth = 0;
 
   while (current && depth < maxDepth) {
-    const fiberKey = Object.keys(current as any).find(key =>
-      key.startsWith('__reactInternalInstance') ||
-      key.startsWith('__reactFiber') ||
-      key.startsWith('__react'),
+    const fiberKey = Object.keys(current as any).find(
+      (key) =>
+        key.startsWith("__reactInternalInstance") ||
+        key.startsWith("__reactFiber") ||
+        key.startsWith("__react"),
     );
 
     if (fiberKey) {
       let fiber: ReactFiber | undefined = (current as any)[fiberKey];
 
       while (fiber) {
-        if (fiber.type && typeof fiber.type === 'function') {
-          const componentName: string = fiber.type.name || fiber.type.displayName || 'Anonymous';
-          if (componentName && componentName !== 'Anonymous' && componentName !== '') {
-            const metadata = (window as any).__SOURCE_INSPECTOR__ && (window as any).__SOURCE_INSPECTOR__[componentName];
+        if (fiber.type && typeof fiber.type === "function") {
+          const componentName: string = fiber.type.name || fiber.type.displayName || "Anonymous";
+          if (componentName && componentName !== "Anonymous" && componentName !== "") {
+            const metadata =
+              (window as any).__SOURCE_INSPECTOR__ &&
+              (window as any).__SOURCE_INSPECTOR__[componentName];
             if (metadata) {
-              return { ...metadata, element, elementInfo: getElementInfo(element) };
+              return {
+                ...metadata,
+                element,
+                elementInfo: getElementInfo(element),
+              };
             }
             return {
-              file: 'unknown',
+              file: "unknown",
               component: componentName,
               apis: [],
               line: 0,
@@ -240,7 +273,7 @@ export const getSourceInfo = (element: Element): InspectedElement => {
   }
 
   return {
-    file: 'unknown',
+    file: "unknown",
     component: element.tagName.toLowerCase(),
     apis: [],
     line: 0,

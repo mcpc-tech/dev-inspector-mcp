@@ -20,52 +20,53 @@ export function getConnectionManager(): ConnectionManager | null {
 /**
  * Setup MCP server endpoints in Vite dev server
  */
-export async function setupMcpMiddleware(middlewares: Connect.Server, serverContext?: ServerContext) {
+export async function setupMcpMiddleware(
+  middlewares: Connect.Server,
+  serverContext?: ServerContext,
+) {
   const connectionManager = new ConnectionManager();
   sharedConnectionManager = connectionManager;
 
-  middlewares.use(
-    async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
-      const url = req.url || "";
+  middlewares.use(async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
+    const url = req.url || "";
 
-      // Handle CORS for MCP endpoints
-      if (url.startsWith("/__mcp__")) {
-        if (handleCors(res, req.method)) return;
-      }
-
-      // Streamable HTTP endpoint
-      if (
-        url.startsWith("/__mcp__") &&
-        !url.startsWith("/__mcp__/sse") &&
-        !url.startsWith("/__mcp__/messages")
-      ) {
-        if (req.method === "POST") {
-          await handleStreamableHttpPost(req, res, serverContext, connectionManager);
-        } else if (req.method === "GET") {
-          await handleStreamableHttpGet(req, res, connectionManager);
-        } else if (req.method === "DELETE") {
-          await handleStreamableHttpDelete(req, res, connectionManager);
-        } else {
-          res.writeHead(405).end("Method Not Allowed");
-        }
-        return;
-      }
-
-      // SSE endpoint (deprecated)
-      if (url.startsWith("/__mcp__/sse") && req.method === "GET") {
-        await handleSseConnection(req, res, serverContext, connectionManager);
-        return;
-      }
-
-      // SSE messages endpoint (deprecated)
-      if (url.startsWith("/__mcp__/messages") && req.method === "POST") {
-        await handleSseMessage(req, res, serverContext, connectionManager);
-        return;
-      }
-
-      next();
+    // Handle CORS for MCP endpoints
+    if (url.startsWith("/__mcp__")) {
+      if (handleCors(res, req.method)) return;
     }
-  );
+
+    // Streamable HTTP endpoint
+    if (
+      url.startsWith("/__mcp__") &&
+      !url.startsWith("/__mcp__/sse") &&
+      !url.startsWith("/__mcp__/messages")
+    ) {
+      if (req.method === "POST") {
+        await handleStreamableHttpPost(req, res, serverContext, connectionManager);
+      } else if (req.method === "GET") {
+        await handleStreamableHttpGet(req, res, connectionManager);
+      } else if (req.method === "DELETE") {
+        await handleStreamableHttpDelete(req, res, connectionManager);
+      } else {
+        res.writeHead(405).end("Method Not Allowed");
+      }
+      return;
+    }
+
+    // SSE endpoint (deprecated)
+    if (url.startsWith("/__mcp__/sse") && req.method === "GET") {
+      await handleSseConnection(req, res, serverContext, connectionManager);
+      return;
+    }
+
+    // SSE messages endpoint (deprecated)
+    if (url.startsWith("/__mcp__/messages") && req.method === "POST") {
+      await handleSseMessage(req, res, serverContext, connectionManager);
+      return;
+    }
+
+    next();
+  });
 }
 
 /**
@@ -75,7 +76,7 @@ async function handleStreamableHttpPost(
   req: IncomingMessage,
   res: ServerResponse,
   serverContext: ServerContext | undefined,
-  connectionManager: ConnectionManager
+  connectionManager: ConnectionManager,
 ) {
   try {
     const sessionId = req.headers["mcp-session-id"] as string | undefined;
@@ -91,16 +92,20 @@ async function handleStreamableHttpPost(
       if (existingTransport instanceof StreamableHTTPServerTransport) {
         transport = existingTransport;
       } else {
-        res.writeHead(400, { "Content-Type": "application/json" }).end(
-          JSON.stringify({
-            jsonrpc: "2.0",
-            error: {
-              code: -32000,
-              message: "Session exists but uses a different transport protocol",
-            },
-            id: null,
+        res
+          .writeHead(400, {
+            "Content-Type": "application/json",
           })
-        );
+          .end(
+            JSON.stringify({
+              jsonrpc: "2.0",
+              error: {
+                code: -32000,
+                message: "Session exists but uses a different transport protocol",
+              },
+              id: null,
+            }),
+          );
         return;
       }
     } else if (!sessionId && isInitializeRequest(parsedBody)) {
@@ -122,16 +127,20 @@ async function handleStreamableHttpPost(
 
       await mcpServer.connect(transport);
     } else {
-      res.writeHead(400, { "Content-Type": "application/json" }).end(
-        JSON.stringify({
-          jsonrpc: "2.0",
-          error: {
-            code: -32000,
-            message: "Invalid session ID or not an initialize request",
-          },
-          id: null,
+      res
+        .writeHead(400, {
+          "Content-Type": "application/json",
         })
-      );
+        .end(
+          JSON.stringify({
+            jsonrpc: "2.0",
+            error: {
+              code: -32000,
+              message: "Invalid session ID or not an initialize request",
+            },
+            id: null,
+          }),
+        );
       return;
     }
 
@@ -139,16 +148,20 @@ async function handleStreamableHttpPost(
   } catch (error) {
     console.error("Error handling Streamable HTTP POST:", error);
     if (!res.headersSent) {
-      res.writeHead(500, { "Content-Type": "application/json" }).end(
-        JSON.stringify({
-          jsonrpc: "2.0",
-          error: {
-            code: -32603,
-            message: "Internal server error",
-          },
-          id: null,
+      res
+        .writeHead(500, {
+          "Content-Type": "application/json",
         })
-      );
+        .end(
+          JSON.stringify({
+            jsonrpc: "2.0",
+            error: {
+              code: -32603,
+              message: "Internal server error",
+            },
+            id: null,
+          }),
+        );
     }
   }
 }
@@ -159,7 +172,7 @@ async function handleStreamableHttpPost(
 async function handleStreamableHttpGet(
   req: IncomingMessage,
   res: ServerResponse,
-  connectionManager: ConnectionManager
+  connectionManager: ConnectionManager,
 ) {
   const sessionId = req.headers["mcp-session-id"] as string | undefined;
 
@@ -187,7 +200,7 @@ async function handleStreamableHttpGet(
 async function handleStreamableHttpDelete(
   req: IncomingMessage,
   res: ServerResponse,
-  connectionManager: ConnectionManager
+  connectionManager: ConnectionManager,
 ) {
   const sessionId = req.headers["mcp-session-id"] as string | undefined;
 
@@ -216,7 +229,7 @@ async function handleSseConnection(
   req: IncomingMessage,
   res: ServerResponse,
   serverContext: ServerContext | undefined,
-  connectionManager: ConnectionManager
+  connectionManager: ConnectionManager,
 ) {
   try {
     // Create MCP server for this SSE connection
@@ -256,7 +269,7 @@ async function handleSseMessage(
   req: IncomingMessage,
   res: ServerResponse,
   serverContext: ServerContext | undefined,
-  connectionManager: ConnectionManager
+  connectionManager: ConnectionManager,
 ) {
   try {
     // Use injected serverContext for local dev server address

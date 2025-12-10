@@ -1,10 +1,5 @@
 import React, { useState } from "react";
-import {
-  Task,
-  TaskTrigger,
-  TaskContent,
-  TaskItem,
-} from "./ai-elements/task";
+import { Task, TaskTrigger, TaskContent, TaskItem } from "./ai-elements/task";
 import { CheckCircle2, Circle, AlertCircle, Loader } from "lucide-react";
 
 interface PlanStep {
@@ -62,17 +57,13 @@ export function PlanProgress({ plan }: PlanProgressProps) {
                   {getStatusIcon(step.status)}
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-foreground">
-                        {step.title}
-                      </span>
+                      <span className="font-medium text-foreground">{step.title}</span>
                       <span className="text-xs text-muted-foreground">
                         {getStatusText(step.status)}
                       </span>
                     </div>
                     {step.description && (
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {step.description}
-                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">{step.description}</p>
                     )}
                   </div>
                 </div>

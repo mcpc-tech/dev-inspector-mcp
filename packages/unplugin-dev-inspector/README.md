@@ -53,12 +53,15 @@ This project uses the following sponsor APIs and platforms:
 ## Key Features
 
 ### 🎯 Visual Context
+
 Click any element to instantly send its source code location, computed styles, and DOM hierarchy to AI. No more explaining "it's the blue button in the header".
 
 ### 🛠️ Full DevTools Access
+
 AI can access Chrome DevTools to analyze network requests, console logs, and performance metrics. It sees what you see.
 
 ### 🤖 Multi-Agent Workflow
+
 Switch between agents (Claude Code, Goose) and track their debugging progress visually with step-by-step status updates.
 
 ## Quick Start
@@ -87,6 +90,7 @@ npx @mcpc-tech/unplugin-dev-inspector-mcp setup
 ```
 
 **Options:**
+
 - `--dry-run` - Preview changes without applying them
 - `--config <path>` - Specify config file path (auto-detect by default)
 - `--bundler <type>` - Specify bundler type: vite, webpack, nextjs
@@ -94,6 +98,7 @@ npx @mcpc-tech/unplugin-dev-inspector-mcp setup
 - `--help` - Show help message
 
 **Examples:**
+
 ```bash
 # Preview changes before applying
 npx @mcpc-tech/unplugin-dev-inspector-mcp setup --dry-run
@@ -106,6 +111,7 @@ npx @mcpc-tech/unplugin-dev-inspector-mcp setup --bundler vite
 ```
 
 This will:
+
 - Detect your bundler configuration
 - Add the necessary import
 - Add the plugin to your configuration
@@ -243,8 +249,6 @@ export default function RootLayout({ children }) {
 
 - **Angular** - Support coming soon
 
-
-
 ## Configuration
 
 ### Auto-Update MCP Config
@@ -258,13 +262,13 @@ The plugin automatically updates MCP configuration files for detected editors wh
 DevInspector.vite({
   // Auto-detect and update (default: true)
   updateConfig: true,
-  
+
   // Or specify editors manually
   updateConfig: ['cursor', 'vscode'],
-  
+
   // Or disable
   updateConfig: false,
-  
+
   // Server name in MCP config (default: 'dev-inspector')
   updateConfigServerName: 'my-app-inspector',
 })
@@ -289,12 +293,11 @@ DevInspector.vite({
 
 ### Custom Agents
 
-This plugin uses the [Agent Client Protocol (ACP)](https://agentclientprotocol.com) to connect with AI agents. 
+This plugin uses the [Agent Client Protocol (ACP)](https://agentclientprotocol.com) to connect with AI agents.
 
 ⏱️ **Note:** Initial connection may be slow as agents are launched via `npx` (downloads packages on first run).
 
 Default agents: [View configuration →](https://github.com/mcpc-tech/dev-inspector-mcp/blob/main/packages/unplugin-dev-inspector/client/constants/agents.ts)
-
 
 You can customize available AI agents and set a default agent:
 
@@ -327,10 +330,10 @@ export default {
 ```
 
 **Key Features:**
+
 - Custom agents with the **same name** as [default agents](https://agentclientprotocol.com/overview/agents) automatically inherit missing properties (icons, env)
 - You can override just the command/args while keeping default icons
 - If no custom agents provided, defaults are: Claude Code, Codex CLI, Gemini CLI, Kimi CLI, Goose, OpenCode
-
 
 ## What It Does
 
@@ -342,56 +345,67 @@ export default {
 4. Get intelligent solutions through natural conversation
 
 **Examples:**
+
 - "Why is this button not clickable?" → AI checks `pointer-events`, z-index, overlays
 - "This API call is failing" → AI analyzes network requests, timing, responses
 - "Where is this component?" → Jump to source file and line number
 
 ## Two Workflow Modes
- 
- DevInspector offers two ways to interact with your AI, depending on your preference:
- 
- ### 1. Editor Mode
- **Best for:** Code-heavy tasks, refactoring, and maintaining flow.
- 
- - **How it works:** You use your IDE's AI assistant (Cursor, Windsurf, Copilot). 
- - **The Flow:** Click an element in the browser -> The context (source, props, styles) is sent to your Editor via MCP -> You ask your Editor to fix it.
- - **Why:** Keeps you in your coding environment.
- 
- ### 2. Inspector Bar Mode (Recommended)
- **Best for:** Quick fixes, visual tweaks, or if you don't use an AI editor.
- 
- - **How it works:** You use the floating "Inspector Bar" directly in the browser. 
- - **The Flow:** Click "Ask AI" in the browser -> Select an agent (e.g., Claude Code, Custom Script) -> The agent runs in your terminal but interacts with the browser overlay.
- - **Why:** No context switching. Great for "what is this?" questions or network debugging.
- 
- ## MCP Tools
+
+DevInspector offers two ways to interact with your AI, depending on your preference:
+
+### 1. Editor Mode
+
+**Best for:** Code-heavy tasks, refactoring, and maintaining flow.
+
+- **How it works:** You use your IDE's AI assistant (Cursor, Windsurf, Copilot).
+- **The Flow:** Click an element in the browser -> The context (source, props, styles) is sent to your Editor via MCP -> You ask your Editor to fix it.
+- **Why:** Keeps you in your coding environment.
+
+### 2. Inspector Bar Mode (Recommended)
+
+**Best for:** Quick fixes, visual tweaks, or if you don't use an AI editor.
+
+- **How it works:** You use the floating "Inspector Bar" directly in the browser.
+- **The Flow:** Click "Ask AI" in the browser -> Select an agent (e.g., Claude Code, Custom Script) -> The agent runs in your terminal but interacts with the browser overlay.
+- **Why:** No context switching. Great for "what is this?" questions or network debugging.
+
+## MCP Tools
 
 ### `capture_element_context`
+
 Activates visual selector. Returns source location, DOM hierarchy, styles, dimensions, and user notes.
 
 ### `list_inspections`
+
 Shows all inspections with ID, element details, notes, and status (pending/in-progress/completed/failed).
 
 ### `update_inspection_status`
+
 Updates inspection status with optional progress steps.
 
 **Parameters:** `status`, `message` (required for completed/failed), `progress`, `inspectionId` (optional)
 
 ### `execute_page_script`
+
 Executes JavaScript in browser context. Access to window, document, React/Vue instances, localStorage.
 
 ### `chrome_devtools`
+
 Agentic tool for Chrome DevTools access. Provides network inspection, console logs, performance metrics, element interaction, and more.
 
 ## MCP Prompts
 
 ### `capture_element`
+
 Capture and analyze UI element context.
 
 ### `view_inspections`
+
 View all pending, in-progress, and completed inspections.
 
 ### `launch_chrome_devtools`
+
 Opens Chrome with DevTools API. Unlocks network analysis, console logs, performance metrics.
 
 **Parameter:** `url` (defaults to dev server)
@@ -399,11 +413,13 @@ Opens Chrome with DevTools API. Unlocks network analysis, console logs, performa
 💡 Optional if Chrome is already open. Use when you need to launch a new Chrome instance.
 
 ### `get_network_requests`
+
 List network requests or get details of a specific one. Always refreshes the list first.
 
 **Parameter:** `reqid` (optional) - If provided, get details for that request. If omitted, just list all requests.
 
 ### `get_console_messages`
+
 List console messages or get details of a specific one. Always refreshes the list first.
 
 **Parameter:** `msgid` (optional) - If provided, get details for that message. If omitted, just list all messages.
@@ -413,6 +429,7 @@ List console messages or get details of a specific one. Always refreshes the lis
 For a deep dive into how the MCP context, CMCP library, and Puppet binding mechanism work together, see the [Architecture Documentation](./docs/architecture/mcp-cmcp-puppet-architecture.md).
 
 **Key concepts:**
+
 - **Hub-and-spoke model**: Vite dev server acts as central hub managing multiple client connections
 - **CMCP bidirectional execution**: Server defines tool schemas, browser client provides implementations
 - **Puppet binding**: Enables Chrome DevTools ↔ Inspector message passthrough

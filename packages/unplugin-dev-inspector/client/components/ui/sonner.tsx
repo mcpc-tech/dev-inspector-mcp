@@ -4,16 +4,18 @@ import {
   Loader2Icon,
   OctagonXIcon,
   TriangleAlertIcon,
-} from "lucide-react"
-import { useInspectorTheme } from "../../context/ThemeContext"
-import { Toaster as Sonner } from "sonner"
-import { useShadowRoot } from "../../inspector"
+} from "lucide-react";
+import { useInspectorTheme } from "../../context/ThemeContext";
+import { Toaster as Sonner } from "sonner";
+import { useShadowRoot } from "../../inspector";
 
-type ToasterProps = React.ComponentProps<typeof Sonner> & { container?: HTMLElement | null }
+type ToasterProps = React.ComponentProps<typeof Sonner> & {
+  container?: HTMLElement | null;
+};
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useInspectorTheme()
-  const shadowRoot = useShadowRoot()
+  const { theme = "system" } = useInspectorTheme();
+  const shadowRoot = useShadowRoot();
 
   return (
     <Sonner
@@ -37,7 +39,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       container={shadowRoot}
       {...props}
     />
-  )
-}
+  );
+};
 
-export { Toaster }
+export { Toaster };

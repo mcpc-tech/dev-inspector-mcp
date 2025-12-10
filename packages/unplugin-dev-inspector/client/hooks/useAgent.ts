@@ -27,7 +27,7 @@ export const useAgent = (defaultAgent: string) => {
   const setAgent = (newAgent: string) => {
     setAgentState(newAgent);
     if (typeof window === "undefined") return;
-    
+
     if (newAgent?.trim()) {
       localStorage.setItem(AGENT_STORAGE_KEY, newAgent);
     } else {

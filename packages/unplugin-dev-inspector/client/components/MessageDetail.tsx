@@ -36,9 +36,7 @@ export const MessageDetail: React.FC<MessageDetailProps> = ({
           <div className="flex items-center justify-center h-full text-muted-foreground">
             <div className="text-center">
               <p className="text-sm">No messages yet</p>
-              <p className="text-xs mt-1">
-                Enter a question below to start
-              </p>
+              <p className="text-xs mt-1">Enter a question below to start</p>
             </div>
           </div>
         ) : (
@@ -56,15 +54,12 @@ export const MessageDetail: React.FC<MessageDetailProps> = ({
                       message.id,
                       index,
                       status === "streaming",
-                      message.metadata as Record<string, unknown> | undefined
-                    )
+                      message.metadata as Record<string, unknown> | undefined,
+                    ),
                   )}
                 </MessageContent>
                 {message.role === "assistant" && (
-                  <MessageAvatar
-                    name={currentAgent.name}
-                    src={currentAgent.meta?.icon ?? ""}
-                  />
+                  <MessageAvatar name={currentAgent.name} src={currentAgent.meta?.icon ?? ""} />
                 )}
               </Message>
             ))}
@@ -74,10 +69,7 @@ export const MessageDetail: React.FC<MessageDetailProps> = ({
                 <MessageContent>
                   <Loader size={16} />
                 </MessageContent>
-                <MessageAvatar
-                  name={currentAgent.name}
-                  src={currentAgent.meta?.icon ?? ""}
-                />
+                <MessageAvatar name={currentAgent.name} src={currentAgent.meta?.icon ?? ""} />
               </Message>
             )}
           </>

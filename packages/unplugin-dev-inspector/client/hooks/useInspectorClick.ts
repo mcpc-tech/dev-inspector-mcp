@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
-import { getSourceInfo } from '../sourceDetector';
-import type { InspectedElement } from '../types';
+import { useEffect } from "react";
+import { getSourceInfo } from "../sourceDetector";
+import type { InspectedElement } from "../types";
 
 interface UseInspectorClickProps {
   isActive: boolean;
@@ -28,7 +28,7 @@ export const useInspectorClick = ({
       onElementInspected(info, e.target as Element);
     };
 
-    document.addEventListener('click', handleClick, true);
-    return () => document.removeEventListener('click', handleClick, true);
+    document.addEventListener("click", handleClick, true);
+    return () => document.removeEventListener("click", handleClick, true);
   }, [isActive, isWaitingForFeedback, onElementInspected, btnRef]);
 };

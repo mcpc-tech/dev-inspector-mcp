@@ -4,7 +4,8 @@ import DevInspector from '@mcpc-tech/unplugin-dev-inspector-mcp';
 
 export default defineConfig({
   plugins: [DevInspector.vite({
-      enabled: true,
-    }),
-    solid()],
+    enabled: true,
+    autoOpenBrowser: true,
+  }),
+  solid()],
 })

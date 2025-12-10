@@ -5,8 +5,8 @@ import { createClientExecClient } from "@mcpc-tech/cmcp";
 import { TOOL_SCHEMAS } from "../../src/tool-schemas.js";
 import { getDevServerBaseUrl } from "../utils/config-loader";
 
-const STORAGE_KEY = 'inspector-inspection-items';
-const INSPECTION_ID_KEY = 'inspector-current-inspection-id';
+const STORAGE_KEY = "inspector-inspection-items";
+const INSPECTION_ID_KEY = "inspector-current-inspection-id";
 const TIMEOUT_MS = 600_000;
 
 let pendingResolve: ((value: any) => void) | null = null;
@@ -34,17 +34,17 @@ function createTextContent(text: string) {
 }
 
 function formatElementInfo(elementInfo: any) {
-  if (!elementInfo) return '';
+  if (!elementInfo) return "";
 
   const { tagName, textContent, className, id: elemId, styles } = elementInfo;
-  const idAttr = elemId ? ` id="${elemId}"` : '';
-  const classAttr = className ? ` class="${className}"` : '';
+  const idAttr = elemId ? ` id="${elemId}"` : "";
+  const classAttr = className ? ` class="${className}"` : "";
 
   return `
 **DOM Element**:
 \`\`\`
 Tag: <${tagName}${idAttr}${classAttr}>
-Text: ${textContent || '(empty)'}
+Text: ${textContent || "(empty)"}
 \`\`\`
 
 **Key Styles**:
@@ -61,16 +61,20 @@ function getAllFeedbacks() {
     const items = saved ? JSON.parse(saved) : [];
 
     if (items.length === 0) {
-      return createTextContent("# No Inspection Items\n\nThe queue is empty. Use 'capture_element_context' to capture elements for investigation.");
+      return createTextContent(
+        "# No Inspection Items\n\nThe queue is empty. Use 'capture_element_context' to capture elements for investigation.",
+      );
     }
 
-    const feedbackList = items.map((item: any, index: number) => {
-      const { id, sourceInfo, description, status, progress, result } = item;
-      const statusText = (status === 'loading' && progress)
-        ? `LOADING (${progress.completed}/${progress.total} steps)`
-        : status.toUpperCase();
+    const feedbackList = items
+      .map((item: any, index: number) => {
+        const { id, sourceInfo, description, status, progress, result } = item;
+        const statusText =
+          status === "loading" && progress
+            ? `LOADING (${progress.completed}/${progress.total} steps)`
+            : status.toUpperCase();
 
-      return `## ${index + 1}. Feedback ID: \`${id}\`
+        return `## ${index + 1}. Feedback ID: \`${id}\`
 
 **Status**: ${statusText}
 **File**: ${sourceInfo.file}
@@ -80,12 +84,15 @@ ${formatElementInfo(sourceInfo.elementInfo)}
 **User Request**:
 ${description}
 
-${result ? `**Result**: ${result}\n` : ''}---`;
-    }).join('\n\n');
+${result ? `**Result**: ${result}\n` : ""}---`;
+      })
+      .join("\n\n");
 
     const hint = `\n\n## How to Update\n\nUse \`update_inspection_status\` tool to update any inspection:\n\n\`\`\`\nupdate_inspection_status({\n  inspectionId: "feedback-xxx",  // Copy from above\n  status: "completed",\n  message: "Your findings here"\n})\n\`\`\``;
 
-    return createTextContent(`# Inspection Queue (${items.length} items)\n\n${feedbackList}${hint}`);
+    return createTextContent(
+      `# Inspection Queue (${items.length} items)\n\n${feedbackList}${hint}`,
+    );
   } catch (e) {
     return createTextContent("# Error\n\nFailed to load inspection items.");
   }
@@ -94,22 +101,29 @@ ${result ? `**Result**: ${result}\n` : ''}---`;
 function formatResult(sourceInfo: any, description: string) {
   const { file, line, component, elementInfo } = sourceInfo;
 
-  const domInfo = elementInfo ? `
+  const domInfo = elementInfo
+    ? `
 ## DOM Element
 \`\`\`
-Tag: <${elementInfo.tagName}${elementInfo.id ? ` id="${elementInfo.id}"` : ''}${elementInfo.className ? ` class="${elementInfo.className}"` : ''}>
-Text: ${elementInfo.textContent || '(empty)'}
-DOM Path: ${elementInfo.domPath || 'N/A'}
+Tag: <${elementInfo.tagName}${elementInfo.id ? ` id="${elementInfo.id}"` : ""}${elementInfo.className ? ` class="${elementInfo.className}"` : ""}>
+Text: ${elementInfo.textContent || "(empty)"}
+DOM Path: ${elementInfo.domPath || "N/A"}
 \`\`\`
 
 ### Position & Size
-${elementInfo.boundingBox ? `
+${
+  elementInfo.boundingBox
+    ? `
 - **Position**: (${Math.round(elementInfo.boundingBox.x)}, ${Math.round(elementInfo.boundingBox.y)})
 - **Size**: ${Math.round(elementInfo.boundingBox.width)}px × ${Math.round(elementInfo.boundingBox.height)}px
-` : ''}
+`
+    : ""
+}
 
 ### Computed Styles (Key Properties)
-${elementInfo.computedStyles ? `
+${
+  elementInfo.computedStyles
+    ? `
 **Layout**:
 - display: ${elementInfo.computedStyles.layout.display}
 - position: ${elementInfo.computedStyles.layout.position}
@@ -131,9 +145,10 @@ ${elementInfo.computedStyles ? `
 
 **Effects**:
 - opacity: ${elementInfo.computedStyles.effects.opacity}
-- box-shadow: ${elementInfo.computedStyles.effects.boxShadow || 'none'}
-- transform: ${elementInfo.computedStyles.effects.transform || 'none'}
-` : `
+- box-shadow: ${elementInfo.computedStyles.effects.boxShadow || "none"}
+- transform: ${elementInfo.computedStyles.effects.transform || "none"}
+`
+    : `
 **Legacy Styles**:
 \`\`\`css
 display: ${elementInfo.styles?.display}
@@ -143,8 +158,10 @@ font-size: ${elementInfo.styles?.fontSize}
 padding: ${elementInfo.styles?.padding}
 margin: ${elementInfo.styles?.margin}
 \`\`\`
-`}
-` : '';
+`
+}
+`
+    : "";
 
   return createTextContent(`# Element Inspection Result
 
@@ -168,8 +185,10 @@ ${description}
 function patchContext(args: any) {
   const { code } = args;
 
-  if (!code || typeof code !== 'string') {
-    return createTextContent('Error: Missing or invalid "code" parameter. Please provide JavaScript code to execute.');
+  if (!code || typeof code !== "string") {
+    return createTextContent(
+      'Error: Missing or invalid "code" parameter. Please provide JavaScript code to execute.',
+    );
   }
 
   try {
@@ -182,10 +201,10 @@ function patchContext(args: any) {
     let formattedResult: string;
 
     if (result === undefined) {
-      formattedResult = '(undefined)';
+      formattedResult = "(undefined)";
     } else if (result === null) {
-      formattedResult = '(null)';
-    } else if (typeof result === 'object') {
+      formattedResult = "(null)";
+    } else if (typeof result === "object") {
       try {
         // Try to serialize to JSON
         formattedResult = JSON.stringify(result, null, 2);
@@ -198,30 +217,33 @@ function patchContext(args: any) {
     }
 
     return createTextContent(`${formattedResult}`);
-
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    const errorStack = error instanceof Error ? error.stack : '';
+    const errorStack = error instanceof Error ? error.stack : "";
 
-    return createTextContent(`## Error\n\`\`\`\n${errorMessage}\n\`\`\`\n\n${errorStack ? `## Stack Trace\n\`\`\`\n${errorStack}\n\`\`\`\n` : ''}\n## Suggestions\n- Check syntax errors\n- Verify element selectors exist\n- Ensure code returns a value\n- Check browser console for additional errors`);
+    return createTextContent(
+      `## Error\n\`\`\`\n${errorMessage}\n\`\`\`\n\n${errorStack ? `## Stack Trace\n\`\`\`\n${errorStack}\n\`\`\`\n` : ""}\n## Suggestions\n- Check syntax errors\n- Verify element selectors exist\n- Ensure code returns a value\n- Check browser console for additional errors`,
+    );
   }
 }
 
 function updateInspectionStatus(args: any) {
   const { inspectionId: providedId, status, progress, message } = args;
-  let inspectionId = providedId || sessionStorage.getItem(INSPECTION_ID_KEY) || '';
+  let inspectionId = providedId || sessionStorage.getItem(INSPECTION_ID_KEY) || "";
 
   if (!inspectionId) {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       const items = saved ? JSON.parse(saved) : [];
-      const loadingItem = items.find((item: any) => item.status === 'in-progress');
+      const loadingItem = items.find((item: any) => item.status === "in-progress");
 
       if (loadingItem) {
         inspectionId = loadingItem.id;
         sessionStorage.setItem(INSPECTION_ID_KEY, inspectionId);
       } else {
-        return createTextContent("Error: No active inspection item found. Please use 'list_inspections' to see the queue, then provide the inspectionId parameter.");
+        return createTextContent(
+          "Error: No active inspection item found. Please use 'list_inspections' to see the queue, then provide the inspectionId parameter.",
+        );
       }
     } catch {
       return createTextContent("Error: No active inspection item");
@@ -229,7 +251,7 @@ function updateInspectionStatus(args: any) {
   }
 
   // Handle deletion
-  if (status === 'deleted') {
+  if (status === "deleted") {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       const items = saved ? JSON.parse(saved) : [];
@@ -238,9 +260,11 @@ function updateInspectionStatus(args: any) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(filteredItems));
       sessionStorage.removeItem(INSPECTION_ID_KEY);
 
-      window.dispatchEvent(new CustomEvent("inspection-deleted", {
-        detail: { inspectionId },
-      }));
+      window.dispatchEvent(
+        new CustomEvent("inspection-deleted", {
+          detail: { inspectionId },
+        }),
+      );
 
       return createTextContent(`Inspection ${inspectionId} deleted successfully.`);
     } catch (error) {
@@ -249,30 +273,40 @@ function updateInspectionStatus(args: any) {
   }
 
   if (progress) {
-    window.dispatchEvent(new CustomEvent("plan-progress-reported", {
-      detail: { plan: { steps: progress.steps }, inspectionId, timestamp: new Date().toISOString() },
-    }));
+    window.dispatchEvent(
+      new CustomEvent("plan-progress-reported", {
+        detail: {
+          plan: { steps: progress.steps },
+          inspectionId,
+          timestamp: new Date().toISOString(),
+        },
+      }),
+    );
   }
 
-  if (status === 'completed' || status === 'failed') {
+  if (status === "completed" || status === "failed") {
     sessionStorage.removeItem(INSPECTION_ID_KEY);
-    const resultMessage = message || (status === 'completed' ? 'Task completed' : 'Task failed');
-    window.dispatchEvent(new CustomEvent("inspection-result-received", {
-      detail: {
-        status: status,
-        result: { message: resultMessage },
-        inspectionId,
-      },
-    }));
+    const resultMessage = message || (status === "completed" ? "Task completed" : "Task failed");
+    window.dispatchEvent(
+      new CustomEvent("inspection-result-received", {
+        detail: {
+          status: status,
+          result: { message: resultMessage },
+          inspectionId,
+        },
+      }),
+    );
     return createTextContent(`Inspection marked as ${status}.`);
-  } else if (status === 'in-progress' && message && !progress) {
-    window.dispatchEvent(new CustomEvent("inspection-status-updated", {
-      detail: {
-        status: 'in-progress',
-        message: message,
-        inspectionId,
-      },
-    }));
+  } else if (status === "in-progress" && message && !progress) {
+    window.dispatchEvent(
+      new CustomEvent("inspection-status-updated", {
+        detail: {
+          status: "in-progress",
+          message: message,
+          inspectionId,
+        },
+      }),
+    );
   }
 
   return createTextContent("Status updated");
@@ -285,11 +319,8 @@ export function useMcp() {
     if (clientRef.current) return;
 
     const client = createClientExecClient(
-      new Client(
-        { name: "inspector", version: "0.1.0" },
-        { capabilities: { tools: {} } }
-      ),
-      "inspector"
+      new Client({ name: "inspector", version: "0.1.0" }, { capabilities: { tools: {} } }),
+      "inspector",
     );
 
     // Tool implementations
@@ -328,8 +359,14 @@ export function useMcp() {
 
     // Register all event listeners
     const eventHandlers = [
-      { event: "element-inspected", handler: handleElementInspected },
-      { event: "inspector-cancelled", handler: handleInspectorCancelled },
+      {
+        event: "element-inspected",
+        handler: handleElementInspected,
+      },
+      {
+        event: "inspector-cancelled",
+        handler: handleInspectorCancelled,
+      },
     ];
 
     eventHandlers.forEach(({ event, handler }) => {

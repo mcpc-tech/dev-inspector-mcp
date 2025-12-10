@@ -27,10 +27,7 @@ interface InspectorContainerProps {
   mountPoint?: HTMLElement;
 }
 
-const InspectorContainer: React.FC<InspectorContainerProps> = ({
-  shadowRoot,
-  mountPoint,
-}) => {
+const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mountPoint }) => {
   useMcp();
   const { resolvedTheme } = useInspectorTheme();
   const showInspectorBar = getShowInspectorBar();
@@ -59,10 +56,10 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({
 
   useEffect(() => {
     if (shadowRoot && shadowRoot.host) {
-      if (resolvedTheme === 'dark') {
-        shadowRoot.host.classList.add('dark');
+      if (resolvedTheme === "dark") {
+        shadowRoot.host.classList.add("dark");
       } else {
-        shadowRoot.host.classList.remove('dark');
+        shadowRoot.host.classList.remove("dark");
       }
     }
   }, [resolvedTheme, shadowRoot]);
@@ -102,8 +99,6 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({
     return () => window.removeEventListener("activate-inspector", handleActivateInspector);
   }, [isActive, showNotif]);
 
-
-
   useInspectorHover({
     isActive,
     isWaitingForFeedback: bubbleMode !== null,
@@ -139,9 +134,7 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({
       setBubbleMode(null);
     }
 
-    showNotif(
-      newActive ? "🔍 Inspector ON - Click any element" : "✅ Inspector OFF"
-    );
+    showNotif(newActive ? "🔍 Inspector ON - Click any element" : "✅ Inspector OFF");
   };
 
   const handleInspectionSubmit = (description: string) => {
@@ -172,7 +165,7 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({
           description,
           inspectionId,
         },
-      })
+      }),
     );
 
     setBubbleMode(null);
@@ -200,7 +193,7 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({
           agent: currentAgent,
           envVars: {},
         },
-      }
+      },
     );
   };
 
@@ -212,7 +205,7 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({
     <div
       className={cn(
         "font-sans antialiased w-full h-full pointer-events-none fixed inset-0",
-        resolvedTheme === "dark" && "dark"
+        resolvedTheme === "dark" && "dark",
       )}
     >
       <InspectorContainerContext.Provider value={mountPoint || null}>
@@ -271,8 +264,11 @@ class DevInspector extends HTMLElement {
       React.createElement(
         InspectorThemeProvider,
         null,
-        React.createElement(InspectorContainer, { shadowRoot, mountPoint })
-      )
+        React.createElement(InspectorContainer, {
+          shadowRoot,
+          mountPoint,
+        }),
+      ),
     );
   }
 }

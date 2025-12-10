@@ -1,24 +1,24 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from "react";
 
 /**
  * A hook to buffer text updates to avoid rapid flickering.
  * It waits for sentence endings or a full buffer before updating,
  * and throttles updates to a maximum speed.
  */
-export function useTextBuffer(
-  targetText: string,
-  isStreaming: boolean,
-  throttleMs: number = 50
-) {
-  const [displayedText, setDisplayedText] = useState('');
+export function useTextBuffer(targetText: string, isStreaming: boolean, throttleMs: number = 50) {
+  const [displayedText, setDisplayedText] = useState("");
   const lastUpdateRef = useRef(0);
-  const lastSourceTextRef = useRef('');
+  const lastSourceTextRef = useRef("");
 
   useEffect(() => {
     // 1. Handle Reset/Context Switch
     // If the new text is shorter than what we have, or doesn't start with what we have,
     // it's a reset or new context.
-    if (targetText.length < displayedText.length || (displayedText && !targetText.startsWith(displayedText.slice(0, Math.min(displayedText.length, 20))))) {
+    if (
+      targetText.length < displayedText.length ||
+      (displayedText &&
+        !targetText.startsWith(displayedText.slice(0, Math.min(displayedText.length, 20))))
+    ) {
       setDisplayedText(targetText);
       lastSourceTextRef.current = targetText;
       lastUpdateRef.current = Date.now();
@@ -58,7 +58,6 @@ export function useTextBuffer(
       lastSourceTextRef.current = targetText;
       lastUpdateRef.current = now;
     }
-
   }, [targetText, isStreaming, throttleMs, displayedText]);
 
   return displayedText;

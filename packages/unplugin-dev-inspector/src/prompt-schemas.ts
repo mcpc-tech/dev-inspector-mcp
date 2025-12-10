@@ -7,16 +7,14 @@ export const PROMPT_SCHEMAS = {
   capture_element: {
     name: "capture_element",
     title: "Capture Element Context",
-    description:
-      "Capture context about a UI element for troubleshooting and investigation.",
+    description: "Capture context about a UI element for troubleshooting and investigation.",
     arguments: [],
   },
 
   view_inspections: {
     name: "view_inspections",
     title: "View All Inspections",
-    description:
-      "View all element inspections in the queue with their status.",
+    description: "View all element inspections in the queue with their status.",
     arguments: [],
   },
 

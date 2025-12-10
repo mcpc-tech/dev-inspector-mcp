@@ -21,7 +21,8 @@ export function usePlanProgress() {
     }
 
     window.addEventListener("plan-progress-reported", handlePlanProgress as EventListener);
-    return () => window.removeEventListener("plan-progress-reported", handlePlanProgress as EventListener);
+    return () =>
+      window.removeEventListener("plan-progress-reported", handlePlanProgress as EventListener);
   }, []);
 
   return plan;

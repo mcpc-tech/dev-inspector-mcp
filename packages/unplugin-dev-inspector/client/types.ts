@@ -135,7 +135,7 @@ export interface EnhancedNetworkRequest {
   id: string;
   url: string;
   method: string;
-  type: 'fetch' | 'xhr';
+  type: "fetch" | "xhr";
   timestamp: number;
   duration?: number;
   requestHeaders: Record<string, string>;

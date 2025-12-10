@@ -6,7 +6,7 @@ import { join } from "path";
 const LOG_PREFIX = "[dev-inspector] ";
 const HOME_DIR = homedir();
 
-export type EditorId = 'cursor' | 'vscode' | 'windsurf' | 'claude-code' | 'antigravity';
+export type EditorId = "cursor" | "vscode" | "windsurf" | "claude-code" | "antigravity";
 
 export interface CustomEditorConfig {
   id: string;
@@ -17,7 +17,7 @@ export interface CustomEditorConfig {
   /** @default 'url' */
   serverUrlKey?: string;
   /** @default 'mcpServers' */
-  configFormat?: 'servers' | 'mcpServers';
+  configFormat?: "servers" | "mcpServers";
 }
 
 export interface McpConfigOptions {
@@ -28,44 +28,86 @@ export interface McpConfigOptions {
    * - `EditorId[]`: Specific editors only
    * @default true
    */
-  updateConfig?: boolean | 'auto' | EditorId[];
+  updateConfig?: boolean | "auto" | EditorId[];
   /** @default 'dev-inspector' */
   updateConfigServerName?: string;
-  updateConfigAdditionalServers?: Array<{ name: string; url: string }>;
+  updateConfigAdditionalServers?: Array<{
+    name: string;
+    url: string;
+  }>;
   customEditors?: CustomEditorConfig[];
 }
 
 // Built-in editor configs
-const EDITORS: Record<EditorId, { name: string; path: string; file: string; urlKey: string; format: 'servers' | 'mcpServers' }> = {
-  cursor: { name: 'Cursor', path: '.cursor', file: 'mcp.json', urlKey: 'url', format: 'mcpServers' },
-  vscode: { name: 'VSCode', path: '.vscode', file: 'mcp.json', urlKey: 'url', format: 'servers' },
-  windsurf: { name: 'Windsurf', path: join(HOME_DIR, '.codeium', 'windsurf'), file: 'mcp_config.json', urlKey: 'serverUrl', format: 'mcpServers' },
-  'claude-code': { name: 'Claude Code', path: '.', file: '.mcp.json', urlKey: 'url', format: 'mcpServers' },
-  antigravity: { name: 'Antigravity', path: join(HOME_DIR, '.gemini', 'antigravity'), file: 'mcp.json', urlKey: 'url', format: 'servers' },
+const EDITORS: Record<
+  EditorId,
+  {
+    name: string;
+    path: string;
+    file: string;
+    urlKey: string;
+    format: "servers" | "mcpServers";
+  }
+> = {
+  cursor: {
+    name: "Cursor",
+    path: ".cursor",
+    file: "mcp.json",
+    urlKey: "url",
+    format: "mcpServers",
+  },
+  vscode: {
+    name: "VSCode",
+    path: ".vscode",
+    file: "mcp.json",
+    urlKey: "url",
+    format: "servers",
+  },
+  windsurf: {
+    name: "Windsurf",
+    path: join(HOME_DIR, ".codeium", "windsurf"),
+    file: "mcp_config.json",
+    urlKey: "serverUrl",
+    format: "mcpServers",
+  },
+  "claude-code": {
+    name: "Claude Code",
+    path: ".",
+    file: ".mcp.json",
+    urlKey: "url",
+    format: "mcpServers",
+  },
+  antigravity: {
+    name: "Antigravity",
+    path: join(HOME_DIR, ".gemini", "antigravity"),
+    file: "mcp.json",
+    urlKey: "url",
+    format: "servers",
+  },
 };
 
 function resolvePath(path: string, root: string): string {
-  if (path.startsWith('/')) return path;
-  if (path.startsWith('~')) return join(HOME_DIR, path.slice(1));
+  if (path.startsWith("/")) return path;
+  if (path.startsWith("~")) return join(HOME_DIR, path.slice(1));
   return join(root, path);
 }
 
 /** Find directory by walking up from root (for monorepo support) */
 function findUpDir(name: string, from: string): string | null {
   let dir = from;
-  while (dir !== '/') {
+  while (dir !== "/") {
     const target = join(dir, name);
     if (existsSync(target)) return target;
-    dir = join(dir, '..');
+    dir = join(dir, "..");
   }
   return null;
 }
 
 function detectEditors(root: string): EditorId[] {
-  return (Object.keys(EDITORS) as EditorId[]).filter(id => {
+  return (Object.keys(EDITORS) as EditorId[]).filter((id) => {
     const editor = EDITORS[id];
     // Global paths (windsurf) - check if directory exists
-    if (editor.path.startsWith('/')) {
+    if (editor.path.startsWith("/")) {
       return existsSync(editor.path);
     }
     // Relative paths - walk up to find (monorepo support)
@@ -73,13 +115,13 @@ function detectEditors(root: string): EditorId[] {
     if (!found) {
       // For cursor/vscode, always create config in project root if not found
       // This allows users to get MCP config without manually creating the directory first
-      if (id === 'cursor' || id === 'vscode') return true;
+      if (id === "cursor" || id === "vscode") return true;
       // For antigravity, check if the global config directory exists
-      if (id === 'antigravity') return existsSync(editor.path);
+      if (id === "antigravity") return existsSync(editor.path);
       return false;
     }
     // For claude-code, check if file exists (not just dir)
-    return id === 'claude-code' ? existsSync(join(found, editor.file)) : true;
+    return id === "claude-code" ? existsSync(join(found, editor.file)) : true;
   });
 }
 
@@ -88,23 +130,25 @@ function findProjectRoot(from: string): string {
   let dir = from;
   let packageJsonDir = null;
 
-  while (dir !== '/') {
+  while (dir !== "/") {
     // Prioritize definitive root markers
-    if (existsSync(join(dir, '.git')) ||
-      existsSync(join(dir, 'pnpm-workspace.yaml')) ||
-      existsSync(join(dir, 'bun.lockb')) ||
-      existsSync(join(dir, 'pnpm-lock.yaml')) ||
-      existsSync(join(dir, 'yarn.lock')) ||
-      existsSync(join(dir, 'package-lock.json'))) {
+    if (
+      existsSync(join(dir, ".git")) ||
+      existsSync(join(dir, "pnpm-workspace.yaml")) ||
+      existsSync(join(dir, "bun.lockb")) ||
+      existsSync(join(dir, "pnpm-lock.yaml")) ||
+      existsSync(join(dir, "yarn.lock")) ||
+      existsSync(join(dir, "package-lock.json"))
+    ) {
       return dir;
     }
 
     // Keep track of the nearest package.json but keep going up
-    if (!packageJsonDir && existsSync(join(dir, 'package.json'))) {
+    if (!packageJsonDir && existsSync(join(dir, "package.json"))) {
       packageJsonDir = dir;
     }
 
-    dir = join(dir, '..');
+    dir = join(dir, "..");
   }
 
   // Fallback to nearest package.json if no root marker found
@@ -114,12 +158,12 @@ function findProjectRoot(from: string): string {
 /** Get config path, walking up for relative paths */
 function getConfigPath(id: EditorId, root: string): string {
   const editor = EDITORS[id];
-  if (editor.path.startsWith('/')) {
+  if (editor.path.startsWith("/")) {
     return join(editor.path, editor.file);
   }
 
   // For VSCode and Cursor, always use the project root
-  if (id === 'vscode' || id === 'cursor') {
+  if (id === "vscode" || id === "cursor") {
     const projectRoot = findProjectRoot(root);
     return join(projectRoot, editor.path, editor.file);
   }
@@ -130,8 +174,8 @@ function getConfigPath(id: EditorId, root: string): string {
 
 function stripJsonComments(content: string): string {
   return content
-    .replace(/\/\/.*$/gm, '')
-    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\/\/.*$/gm, "")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
     .trim();
 }
 
@@ -143,14 +187,27 @@ function parseConfigFile(content: string): Record<string, any> {
   }
 }
 
-function getExistingUrl(config: Record<string, any>, key: string, serverName: string, urlKey: string, format: string): string | undefined {
+function getExistingUrl(
+  config: Record<string, any>,
+  key: string,
+  serverName: string,
+  urlKey: string,
+  format: string,
+): string | undefined {
   if (!config[key]?.[serverName]) return undefined;
-  return format === 'servers' ? config[key][serverName]?.url : config[key][serverName]?.[urlKey];
+  return format === "servers" ? config[key][serverName]?.url : config[key][serverName]?.[urlKey];
 }
 
-function addServerToConfig(config: Record<string, any>, key: string, serverName: string, sseUrl: string, urlKey: string, format: string): void {
-  if (format === 'servers') {
-    config[key][serverName] = { type: 'sse', url: sseUrl };
+function addServerToConfig(
+  config: Record<string, any>,
+  key: string,
+  serverName: string,
+  sseUrl: string,
+  urlKey: string,
+  format: string,
+): void {
+  if (format === "servers") {
+    config[key][serverName] = { type: "sse", url: sseUrl };
   } else {
     config[key][serverName] = { [urlKey]: sseUrl };
   }
@@ -162,18 +219,20 @@ async function writeConfig(
   baseUrl: string,
   clientId: string,
   urlKey: string,
-  format: 'servers' | 'mcpServers',
+  format: "servers" | "mcpServers",
   additionalServers: Array<{ name: string; url: string }>,
 ): Promise<boolean> {
-  await mkdir(configPath.substring(0, configPath.lastIndexOf('/')), { recursive: true });
+  await mkdir(configPath.substring(0, configPath.lastIndexOf("/")), {
+    recursive: true,
+  });
 
   const sseUrl = `${baseUrl}?clientId=${clientId}&puppetId=inspector`;
-  const key = format === 'servers' ? 'servers' : 'mcpServers';
+  const key = format === "servers" ? "servers" : "mcpServers";
 
   let config: Record<string, any> = {};
   if (existsSync(configPath)) {
     try {
-      const content = await readFile(configPath, 'utf-8');
+      const content = await readFile(configPath, "utf-8");
       config = parseConfigFile(content);
     } catch {
       console.warn(`${LOG_PREFIX}Could not parse ${configPath}, starting fresh`);
@@ -188,9 +247,9 @@ async function writeConfig(
   }
 
   addServerToConfig(config, key, serverName, sseUrl, urlKey, format);
-  additionalServers.forEach(s => addServerToConfig(config, key, s.name, s.url, urlKey, format));
+  additionalServers.forEach((s) => addServerToConfig(config, key, s.name, s.url, urlKey, format));
 
-  await writeFile(configPath, JSON.stringify(config, null, 2) + '\n', 'utf-8');
+  await writeFile(configPath, JSON.stringify(config, null, 2) + "\n", "utf-8");
   return true;
 }
 
@@ -198,12 +257,15 @@ export async function updateMcpConfigs(
   root: string,
   sseUrl: string,
   options: McpConfigOptions,
-  logger?: { info?: (msg: string) => void; error?: (msg: string) => void },
+  logger?: {
+    info?: (msg: string) => void;
+    error?: (msg: string) => void;
+  },
 ): Promise<void> {
   const log = logger || console;
   const {
     updateConfig = true,
-    updateConfigServerName = 'dev-inspector',
+    updateConfigServerName = "dev-inspector",
     updateConfigAdditionalServers = [],
     customEditors = [],
   } = options;
@@ -211,9 +273,12 @@ export async function updateMcpConfigs(
   if (updateConfig === false) return;
 
   // Get editors to update
-  const editorIds = updateConfig === true || updateConfig === 'auto'
-    ? detectEditors(root)
-    : Array.isArray(updateConfig) ? updateConfig : [];
+  const editorIds =
+    updateConfig === true || updateConfig === "auto"
+      ? detectEditors(root)
+      : Array.isArray(updateConfig)
+        ? updateConfig
+        : [];
 
   const updated: string[] = [];
   const updates: Array<{ name: string; path: string }> = [];
@@ -223,9 +288,20 @@ export async function updateMcpConfigs(
     const editor = EDITORS[id];
     const configPath = getConfigPath(id, root);
     try {
-      const wasUpdated = await writeConfig(configPath, updateConfigServerName, sseUrl, id, editor.urlKey, editor.format, updateConfigAdditionalServers);
+      const wasUpdated = await writeConfig(
+        configPath,
+        updateConfigServerName,
+        sseUrl,
+        id,
+        editor.urlKey,
+        editor.format,
+        updateConfigAdditionalServers,
+      );
       if (wasUpdated) {
-        updates.push({ name: editor.name, path: configPath });
+        updates.push({
+          name: editor.name,
+          path: configPath,
+        });
         updated.push(id);
       }
     } catch (e) {
@@ -237,9 +313,20 @@ export async function updateMcpConfigs(
   for (const custom of customEditors) {
     const configPath = join(resolvePath(custom.configPath, root), custom.configFileName);
     try {
-      const wasUpdated = await writeConfig(configPath, updateConfigServerName, sseUrl, custom.id, custom.serverUrlKey || 'url', custom.configFormat || 'mcpServers', updateConfigAdditionalServers);
+      const wasUpdated = await writeConfig(
+        configPath,
+        updateConfigServerName,
+        sseUrl,
+        custom.id,
+        custom.serverUrlKey || "url",
+        custom.configFormat || "mcpServers",
+        updateConfigAdditionalServers,
+      );
       if (wasUpdated) {
-        updates.push({ name: custom.name, path: configPath });
+        updates.push({
+          name: custom.name,
+          path: configPath,
+        });
         updated.push(custom.id);
       }
     } catch (e) {
@@ -248,7 +335,7 @@ export async function updateMcpConfigs(
   }
 
   if (updated.length > 0) {
-    const updateMessages = updates.map(u => `Updated ${u.name}: ${u.path}`).join(', ');
+    const updateMessages = updates.map((u) => `Updated ${u.name}: ${u.path}`).join(", ");
     log.info?.(`${LOG_PREFIX}${updateMessages}`);
   }
 }

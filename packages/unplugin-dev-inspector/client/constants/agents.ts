@@ -77,7 +77,10 @@ export const AVAILABLE_AGENTS: Agent[] = [
     args: ["-y", "@tencent-ai/codebuddy-code", "--acp"],
     env: [
       { key: "CODEBUDDY_API_KEY", required: false },
-      { key: "CODEBUDDY_INTERNET_ENVIRONMENT", required: false },
+      {
+        key: "CODEBUDDY_INTERNET_ENVIRONMENT",
+        required: false,
+      },
     ],
     meta: {
       icon: svgToDataUri(AGENT_ICONS.codebuddy),

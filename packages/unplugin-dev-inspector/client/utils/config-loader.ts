@@ -18,12 +18,14 @@ let configPromise: Promise<InspectorConfig> | null = null;
  * Uses __DEV_INSPECTOR_CONFIG__ set by the plugin at build time.
  */
 export function getDevServerBaseUrl(): string {
-  const injectedConfig = (window as any).__DEV_INSPECTOR_CONFIG__ as {
-    host: string;
-    port: string;
-    base: string;
-    showInspectorBar?: boolean;
-  } | undefined;
+  const injectedConfig = (window as any).__DEV_INSPECTOR_CONFIG__ as
+    | {
+        host: string;
+        port: string;
+        base: string;
+        showInspectorBar?: boolean;
+      }
+    | undefined;
 
   const host = injectedConfig?.host || "localhost";
   const port = injectedConfig?.port || "5173";
@@ -35,9 +37,11 @@ export function getDevServerBaseUrl(): string {
  * Get the showInspectorBar option from injected config.
  */
 export function getShowInspectorBar(): boolean {
-  const injectedConfig = (window as any).__DEV_INSPECTOR_CONFIG__ as {
-    showInspectorBar?: boolean;
-  } | undefined;
+  const injectedConfig = (window as any).__DEV_INSPECTOR_CONFIG__ as
+    | {
+        showInspectorBar?: boolean;
+      }
+    | undefined;
 
   return injectedConfig?.showInspectorBar ?? true;
 }

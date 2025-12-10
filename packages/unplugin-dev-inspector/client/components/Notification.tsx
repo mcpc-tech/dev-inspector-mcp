@@ -1,5 +1,5 @@
-import React from 'react';
-import { Badge } from './ui/badge';
+import React from "react";
+import { Badge } from "./ui/badge";
 
 interface NotificationProps {
   message: string;

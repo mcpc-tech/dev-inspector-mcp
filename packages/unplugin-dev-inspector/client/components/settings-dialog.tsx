@@ -70,7 +70,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
     setIsOpen(false);
   };
 
-  const hasAllRequiredKeys = 
+  const hasAllRequiredKeys =
     requiredKeyNames.length === 0 ||
     requiredKeyNames.every((k) => (values[k] ?? "").trim().length > 0) ||
     (requiredKeyNames.length === 1 && apiKey.trim().length > 0);
@@ -104,7 +104,10 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                 type="password"
                 value={tempKeys[keyName] ?? ""}
                 onChange={(e) =>
-                  setTempKeys((s) => ({ ...s, [keyName]: e.target.value }))
+                  setTempKeys((s) => ({
+                    ...s,
+                    [keyName]: e.target.value,
+                  }))
                 }
                 className="w-full"
                 placeholder={`Enter your ${keyName}`}

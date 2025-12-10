@@ -6,11 +6,7 @@ import {
   ConversationContent,
   ConversationScrollButton,
 } from "./ai-elements/conversation";
-import {
-  Message,
-  MessageAvatar,
-  MessageContent,
-} from "./ai-elements/message";
+import { Message, MessageAvatar, MessageContent } from "./ai-elements/message";
 import {
   PromptInput,
   PromptInputModelSelect,
@@ -42,7 +38,8 @@ const ACPAgent = ({ sourceInfo, onClose }: ACPAgentProps = {}) => {
   const [input, setInput] = useState("");
   const { agent: selectedAgent, setAgent: setSelectedAgent } = useAgent(DEFAULT_AGENT);
 
-  const currentAgent = AVAILABLE_AGENTS.find((agent) => agent.name === selectedAgent) || AVAILABLE_AGENTS[0];
+  const currentAgent =
+    AVAILABLE_AGENTS.find((agent) => agent.name === selectedAgent) || AVAILABLE_AGENTS[0];
   const requiredKeys = currentAgent.env.filter((e) => e.key && e.required).map((e) => e.key);
   const { envVars, setEnvVar } = useAgentEnv(currentAgent.command, requiredKeys);
 
@@ -80,7 +77,7 @@ const ACPAgent = ({ sourceInfo, onClose }: ACPAgentProps = {}) => {
           agent: currentAgent,
           envVars: preparedEnv,
         },
-      }
+      },
     );
     setInput("");
   };
@@ -103,15 +100,12 @@ const ACPAgent = ({ sourceInfo, onClose }: ACPAgentProps = {}) => {
                       message.id,
                       index,
                       status === "streaming",
-                      message.metadata as Record<string, unknown> | undefined
-                    )
+                      message.metadata as Record<string, unknown> | undefined,
+                    ),
                   )}
                 </MessageContent>
                 {message.role === "assistant" && (
-                  <MessageAvatar
-                    name={currentAgent.command}
-                    src={currentAgent.meta?.icon ?? ""}
-                  />
+                  <MessageAvatar name={currentAgent.command} src={currentAgent.meta?.icon ?? ""} />
                 )}
               </Message>
             ))}
@@ -139,19 +133,13 @@ const ACPAgent = ({ sourceInfo, onClose }: ACPAgentProps = {}) => {
           />
           <PromptInputToolbar>
             <PromptInputTools>
-              <PromptInputModelSelect
-                onValueChange={setSelectedAgent}
-                value={selectedAgent}
-              >
+              <PromptInputModelSelect onValueChange={setSelectedAgent} value={selectedAgent}>
                 <PromptInputModelSelectTrigger>
                   <PromptInputModelSelectValue />
                 </PromptInputModelSelectTrigger>
                 <PromptInputModelSelectContent>
                   {AVAILABLE_AGENTS.map((agentOption: Agent) => (
-                    <PromptInputModelSelectItem
-                      key={agentOption.name}
-                      value={agentOption.name}
-                    >
+                    <PromptInputModelSelectItem key={agentOption.name} value={agentOption.name}>
                       {agentOption.name}
                     </PromptInputModelSelectItem>
                   ))}
@@ -166,9 +154,7 @@ const ACPAgent = ({ sourceInfo, onClose }: ACPAgentProps = {}) => {
             </PromptInputTools>
             <PromptInputSubmit
               onAbort={stop}
-              disabled={
-                !input || requiredKeys.some((k) => !(envVars[k] ?? "").trim())
-              }
+              disabled={!input || requiredKeys.some((k) => !(envVars[k] ?? "").trim())}
               status={status}
             />
           </PromptInputToolbar>

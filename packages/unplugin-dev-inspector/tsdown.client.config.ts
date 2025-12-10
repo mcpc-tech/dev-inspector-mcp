@@ -42,14 +42,15 @@ export default defineConfig({
         // Handle ?raw (SVG) and ?png imports
         const match = id.match(/\?(raw|png)$/);
         if (!match) return null;
-        
+
         const suffix = match[0];
         const cleanId = id.replace(suffix, "");
-        const importerDir = importer 
-          ? path.dirname(importer.replace(/\?.*$/, ""))
-          : process.cwd();
+        const importerDir = importer ? path.dirname(importer.replace(/\?.*$/, "")) : process.cwd();
         const resolved = path.resolve(importerDir, cleanId);
-        return { id: resolved + suffix, moduleSideEffects: false };
+        return {
+          id: resolved + suffix,
+          moduleSideEffects: false,
+        };
       },
       load(id) {
         if (id.endsWith("?raw")) {
@@ -85,7 +86,7 @@ export default defineConfig({
       async load(id) {
         if (id === "\0virtual:styles") {
           const cssInput = fs.readFileSync("client/styles.css", "utf-8");
-          
+
           const clientDir = path.resolve(process.cwd(), "client");
           const result = await postcss([
             tailwindcss({
@@ -101,7 +102,9 @@ export default defineConfig({
 
           // Ensure dist directory exists for reference file
           if (!fs.existsSync("client/dist")) {
-            fs.mkdirSync("client/dist", { recursive: true });
+            fs.mkdirSync("client/dist", {
+              recursive: true,
+            });
           }
 
           // Write the processed CSS file for reference

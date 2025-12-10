@@ -1,11 +1,11 @@
-import type { Connect } from 'vite';
-import type { IncomingMessage, ServerResponse } from 'http';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-import type { Agent } from '../../client/constants/types'
-import { handleCors } from '../utils/cors';
+import type { Connect } from "vite";
+import type { IncomingMessage, ServerResponse } from "http";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
+import type { Agent } from "../../client/constants/types";
+import { handleCors } from "../utils/cors";
 
 // ESM equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -17,45 +17,51 @@ const __dirname = dirname(__filename);
  */
 function getInspectorScript(): string | null {
   const possiblePaths = [
-    path.resolve(process.cwd(), 'packages/unplugin-dev-inspector/client/dist/inspector.iife.js'),
-    path.resolve(__dirname, '../../client/dist/inspector.iife.js'),
-    path.resolve(__dirname, '../client/dist/inspector.iife.js'),
-    path.resolve(process.cwd(), 'node_modules/@mcpc-tech/unplugin-dev-inspector-mcp/client/dist/inspector.iife.js'),
+    path.resolve(process.cwd(), "packages/unplugin-dev-inspector/client/dist/inspector.iife.js"),
+    path.resolve(__dirname, "../../client/dist/inspector.iife.js"),
+    path.resolve(__dirname, "../client/dist/inspector.iife.js"),
+    path.resolve(
+      process.cwd(),
+      "node_modules/@mcpc-tech/unplugin-dev-inspector-mcp/client/dist/inspector.iife.js",
+    ),
   ];
 
   for (const scriptPath of possiblePaths) {
     try {
       if (fs.existsSync(scriptPath)) {
-        return fs.readFileSync(scriptPath, 'utf-8');
+        return fs.readFileSync(scriptPath, "utf-8");
       }
     } catch (error) {
       continue;
     }
   }
 
-  console.warn('⚠️  Inspector script not found. Run `pnpm build:client` first.');
+  console.warn("⚠️  Inspector script not found. Run `pnpm build:client` first.");
   return null;
 }
 
 function getInspectorCSS(): string | null {
   const possiblePaths = [
-    path.resolve(process.cwd(), 'packages/unplugin-dev-inspector/client/dist/inspector.css'),
-    path.resolve(__dirname, '../../client/dist/inspector.css'),
-    path.resolve(__dirname, '../client/dist/inspector.css'),
-    path.resolve(process.cwd(), 'node_modules/@mcpc-tech/unplugin-dev-inspector-mcp/client/dist/inspector.css'),
+    path.resolve(process.cwd(), "packages/unplugin-dev-inspector/client/dist/inspector.css"),
+    path.resolve(__dirname, "../../client/dist/inspector.css"),
+    path.resolve(__dirname, "../client/dist/inspector.css"),
+    path.resolve(
+      process.cwd(),
+      "node_modules/@mcpc-tech/unplugin-dev-inspector-mcp/client/dist/inspector.css",
+    ),
   ];
 
   for (const cssPath of possiblePaths) {
     try {
       if (fs.existsSync(cssPath)) {
-        return fs.readFileSync(cssPath, 'utf-8');
+        return fs.readFileSync(cssPath, "utf-8");
       }
     } catch (error) {
       continue;
     }
   }
 
-  console.warn('⚠️  Inspector CSS not found. Run `pnpm build:client` first.');
+  console.warn("⚠️  Inspector CSS not found. Run `pnpm build:client` first.");
   return null;
 }
 
@@ -83,7 +89,7 @@ export function setupInspectorMiddleware(middlewares: Connect.Server, config?: I
 
   middlewares.use((req: IncomingMessage, res: ServerResponse, next: () => void) => {
     // Handle CORS for inspector endpoints
-    if (req.url?.startsWith('/__inspector__')) {
+    if (req.url?.startsWith("/__inspector__")) {
       if (handleCors(res, req.method)) return;
     }
 
@@ -93,36 +99,36 @@ export function setupInspectorMiddleware(middlewares: Connect.Server, config?: I
       filesChecked = true;
     }
 
-    if (req.url === '/__inspector__/inspector.iife.js') {
+    if (req.url === "/__inspector__/inspector.iife.js") {
       if (cachedScript) {
         res.statusCode = 200;
-        res.setHeader('Content-Type', 'application/javascript');
-        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader("Content-Type", "application/javascript");
+        res.setHeader("Cache-Control", "no-cache");
         res.end(cachedScript);
         return;
       }
       res.statusCode = 404;
-      res.end('Inspector script not found');
+      res.end("Inspector script not found");
       return;
     }
 
-    if (req.url === '/__inspector__/inspector.css') {
+    if (req.url === "/__inspector__/inspector.css") {
       if (cachedCSS) {
         res.statusCode = 200;
-        res.setHeader('Content-Type', 'text/css');
-        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader("Content-Type", "text/css");
+        res.setHeader("Cache-Control", "no-cache");
         res.end(cachedCSS);
         return;
       }
       res.statusCode = 404;
-      res.end('Inspector CSS not found');
+      res.end("Inspector CSS not found");
       return;
     }
 
-    if (req.url === '/__inspector__/config.json') {
+    if (req.url === "/__inspector__/config.json") {
       res.statusCode = 200;
-      res.setHeader('Content-Type', 'application/json');
-      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader("Content-Type", "application/json");
+      res.setHeader("Cache-Control", "no-cache");
       res.end(JSON.stringify(config || {}));
       return;
     }

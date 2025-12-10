@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react';
+import { createContext, useContext } from "react";
 
 /**
  * Context for Portal components to access the Shadow DOM root or container element

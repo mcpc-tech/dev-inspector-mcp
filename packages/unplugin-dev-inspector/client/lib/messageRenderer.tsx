@@ -11,36 +11,35 @@ import {
   ToolInput,
   ToolOutput,
 } from "../../src/components/ai-elements/tool";
-import {
-  Plan,
-  PlanHeader,
-  PlanContent,
-  PlanTrigger,
-} from "../../src/components/ai-elements/plan";
+import { Plan, PlanHeader, PlanContent, PlanTrigger } from "../../src/components/ai-elements/plan";
 import { CodeBlock } from "../../src/components/ai-elements/code-block";
 import type { ProviderAgentDynamicToolInput } from "@mcpc-tech/acp-ai-provider";
 
 type UITool = { name?: string };
-type UIMessagePart<
-  TMeta = Record<string, unknown>,
-  TToolMap = Record<string, UITool>
-> =
-  | { type: "text"; text: string; state?: string; providerMetadata?: TMeta }
+type UIMessagePart<TMeta = Record<string, unknown>, TToolMap = Record<string, UITool>> =
+  | {
+      type: "text";
+      text: string;
+      state?: string;
+      providerMetadata?: TMeta;
+    }
   | {
       type: "reasoning";
       text: string;
       state?: string;
       providerMetadata?: TMeta;
     }
-  | (Record<string, unknown> & { type: string; state?: string });
+  | (Record<string, unknown> & {
+      type: string;
+      state?: string;
+    });
 
-function isToolPart(
-  part: unknown
-): part is Record<string, unknown> & { type: string; state: string } {
+function isToolPart(part: unknown): part is Record<string, unknown> & {
+  type: string;
+  state: string;
+} {
   const p = part as Record<string, unknown>;
-  return (
-    typeof p.type === "string" && p.type.startsWith("tool-") && "state" in p
-  );
+  return typeof p.type === "string" && p.type.startsWith("tool-") && "state" in p;
 }
 
 export function renderMessagePart(
@@ -48,15 +47,12 @@ export function renderMessagePart(
   messageId: string,
   index: number,
   isStreaming: boolean,
-  metadata?: Record<string, unknown>
+  metadata?: Record<string, unknown>,
 ) {
   // Render text content
   if (part.type === "text" && part.text) {
     return (
-      <MessageResponse
-        key={`${messageId}-${index}`}
-        className="whitespace-pre-wrap"
-      >
+      <MessageResponse key={`${messageId}-${index}`} className="whitespace-pre-wrap">
         {part.text as string}
       </MessageResponse>
     );
@@ -65,11 +61,7 @@ export function renderMessagePart(
   // Render reasoning/thinking process
   if (part.type === "reasoning") {
     return (
-      <Reasoning
-        key={`${messageId}-${index}`}
-        className="w-full"
-        isStreaming={isStreaming}
-      >
+      <Reasoning key={`${messageId}-${index}`} className="w-full" isStreaming={isStreaming}>
         <ReasoningTrigger />
         <ReasoningContent>{part.text}</ReasoningContent>
       </Reasoning>
@@ -91,16 +83,12 @@ export function renderMessagePart(
           <PlanContent>
             <ul className="space-y-2">
               {plan.map((item, i) => {
-                const content =
-                  (item.content as string) || JSON.stringify(item);
+                const content = (item.content as string) || JSON.stringify(item);
                 const priority = item.priority as string | undefined;
                 const status = item.status as string | undefined;
 
                 return (
-                  <li
-                    key={`plan-${i}`}
-                    className="flex items-start justify-between gap-3"
-                  >
+                  <li key={`plan-${i}`} className="flex items-start justify-between gap-3">
                     <div className="flex-1">
                       <div
                         className={`text-sm ${
@@ -146,39 +134,29 @@ export function renderMessagePart(
       return title;
     };
     const toolInput = part.input as ProviderAgentDynamicToolInput;
-    const toolType = removeBrand(toolInput.toolName)  as `tool-${string}`;
+    const toolType = removeBrand(toolInput.toolName) as `tool-${string}`;
     const toolState = part.state as
       | "input-streaming"
       | "input-available"
       | "output-available"
       | "output-error";
-    const hasOutput =
-      toolState === "output-available" || toolState === "output-error";
+    const hasOutput = toolState === "output-available" || toolState === "output-error";
 
     // Truncate tool title if too long
     const maxTitleLength = 20;
     const displayTitle =
-      toolType.length > maxTitleLength
-        ? `${toolType.slice(0, maxTitleLength)}...`
-        : toolType;
+      toolType.length > maxTitleLength ? `${toolType.slice(0, maxTitleLength)}...` : toolType;
 
     return (
       <Tool key={`${messageId}-${index}`} defaultOpen={hasOutput}>
-        <ToolHeader
-          title={removeBrand(displayTitle)}
-          type={toolType}
-          state={toolState}
-        />
+        <ToolHeader title={removeBrand(displayTitle)} type={toolType} state={toolState} />
         <ToolContent>
           {part.input !== undefined && <ToolInput input={toolInput} />}
           {hasOutput && (
             <ToolOutput
               output={
                 part.output ? (
-                  <CodeBlock
-                    code={JSON.stringify(part.output, null, 2)}
-                    language="json"
-                  />
+                  <CodeBlock code={JSON.stringify(part.output, null, 2)} language="json" />
                 ) : null
               }
               errorText={part.errorText as string | undefined}
