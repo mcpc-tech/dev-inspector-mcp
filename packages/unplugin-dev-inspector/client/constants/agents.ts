@@ -65,7 +65,7 @@ export const AVAILABLE_AGENTS: Agent[] = [
   {
     name: "Cursor Agent",
     command: "npx",
-    args: ["cursor-agent-acp"],
+    args: ["@blowmage/cursor-agent-acp"],
     env: [],
     meta: {
       icon: svgToDataUri(AGENT_ICONS.cursor),
