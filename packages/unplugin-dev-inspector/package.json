@@ -1,6 +1,6 @@
 {
   "name": "@mcpc-tech/unplugin-dev-inspector-mcp",
-  "version": "0.0.20",
+  "version": "0.0.21",
   "description": "Universal dev inspector plugin for React/Vue - inspect component sources and API calls in any bundler",
   "type": "module",
   "license": "MIT",
@@ -85,7 +85,7 @@
     "lint:fix": "oxlint --fix .",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
-    "prepublishOnly": "cp ../../README.md . && pnpm build"
+    "prepublishOnly": "cp ./README.md ../../ && pnpm build"
   },
   "peerDependencies": {
     "esbuild": ">=0.17.0",
