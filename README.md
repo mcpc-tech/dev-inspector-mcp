@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./assets/logo.svg" alt="DevInspector Logo" width="200" height="200" />
+  <img src="./assets/logo.svg" alt="DevInspector Logo" width="50" height="50" />
 </p>
 
 # @mcpc-tech/unplugin-dev-inspector-mcp
@@ -190,11 +190,14 @@ module.exports = {
 
 ### Next.js
 
+Next.js supports **both Webpack and Turbopack** modes:
+
 ```diff
 // next.config.ts
-+import DevInspector from '@mcpc-tech/unplugin-dev-inspector-mcp';
++import DevInspector, { turbopackDevInspector } from '@mcpc-tech/unplugin-dev-inspector-mcp';
 
 const nextConfig: NextConfig = {
++  // Webpack configuration (default mode: `next dev`)
 +  webpack: (config) => {
 +    config.plugins.push(
 +      DevInspector.webpack({
@@ -202,6 +205,13 @@ const nextConfig: NextConfig = {
 +      })
 +    );
 +    return config;
++  },
++
++  // Turbopack configuration (`next dev --turbopack`)
++  turbopack: {
++    rules: turbopackDevInspector({
++      enabled: true,
++    }),
 +  },
 };
 
@@ -226,7 +236,9 @@ export default function RootLayout({ children }) {
 }
 ```
 
-> 💡 **Note:** Webpack and Next.js use a standalone server on port 8888. Run `next dev --webpack` for Webpack mode (Next.js 16+ defaults to Turbopack).
+**Running modes:**
+- **Webpack mode:** `next dev` (uses webpack configuration)
+- **Turbopack mode:** `next dev --turbopack` (uses turbopack configuration, Next.js 16+ default)
 
 ## Framework Support
 
@@ -237,7 +249,7 @@ export default function RootLayout({ children }) {
 - **Svelte** - `.svelte` components (Vite, Webpack)
 - **SolidJS** - `.jsx` and `.tsx` files (Vite, Webpack)
 - **Preact** - `.jsx` and `.tsx` files (Vite, Webpack)
-- **Next.js** - React with Webpack mode
+- **Next.js** - React with Webpack and Turbopack modes
 
 ### 🚧 In Progress
 
