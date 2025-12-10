@@ -27,26 +27,12 @@ Works with any MCP-compatible AI client. Supports ACP agents: **Claude Code**, *
 
 ## 🎬 Demo Video
 
-[![Demo Video](https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExbnVvb2Y4MmJqbGJyMGJkendvZjkzZHN5MG4zY21mMXhjemF6dWk4aSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/67nUJwE7Fb2TMhBjhy/giphy.gif)](https://www.youtube.com/shorts/TCt2oOtPS_k)
-
 👉 **Watch the demo:** [https://www.youtube.com/shorts/TCt2oOtPS_k](https://www.youtube.com/shorts/TCt2oOtPS_k)
 
 ## 📢 Social Media
 
 🐦 **Twittter/X Post:** [https://x.com/yaoandyan/status/1995082020431753600](https://x.com/yaoandyan/status/1995082020431753600?s=20)
 
-## 👥 Team
-
-- [yaonyan](https://huggingface.co/zpharnoex) - Project Creator
-
-## 🤝 Sponsors & Integrations
-
-This project uses the following sponsor APIs and platforms:
-
-- **Anthropic** - Claude API for MCP integration testing and AI-powered debugging capabilities
-- **Gradio** - `@gradio/client` for connecting to Gradio-powered APIs in the demo app
-
----
 
 ![Demo: MCP-powered visual debugging in action](https://media.giphy.com/media/sGCk7b783GiGm5vZGl/giphy.gif)
 

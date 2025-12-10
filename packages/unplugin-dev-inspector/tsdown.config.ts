@@ -8,7 +8,7 @@ export default defineConfig({
   hash: false,
   shims: true, // Add shims for import.meta.url in CJS
   // Bundle ESM-only packages for CJS compatibility
-  noExternal: ["@mcpc-tech/cmcp", "@mcpc-tech/core", "@mcpc-tech/acp-ai-provider"],
+  // noExternal: ["@mcpc-tech/cmcp", "@mcpc-tech/core", "@mcpc-tech/acp-ai-provider"],
   external: [
     // Bundler integrations - provided by user's project
     "vite",
