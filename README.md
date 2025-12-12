@@ -33,7 +33,6 @@ Works with any MCP-compatible AI client. Supports ACP agents: **Claude Code**, *
 
 🐦 **Twittter/X Post:** [https://x.com/yaoandyan/status/1995082020431753600](https://x.com/yaoandyan/status/1995082020431753600?s=20)
 
-
 ![Demo: MCP-powered visual debugging in action](https://media.giphy.com/media/sGCk7b783GiGm5vZGl/giphy.gif)
 
 ## Key Features
@@ -392,6 +391,44 @@ Executes JavaScript in browser context. Access to window, document, React/Vue in
 ### `chrome_devtools`
 
 Agentic tool for Chrome DevTools access. Provides network inspection, console logs, performance metrics, element interaction, and more.
+
+## Custom Inspector Tools
+
+You can register your own custom tools to be used by the AI agent. These tools run directly in the browser context, giving the AI access to your application's state, logic, or any browser APIs.
+
+### `registerInspectorTool`
+
+Use this function to register a tool. It handles the MCP schema definition and implementation in one place.
+
+```typescript
+// main.ts or any entry file
+import { registerInspectorTool } from 'virtual:dev-inspector-mcp';
+
+registerInspectorTool({
+  name: "get_user_state",
+  description: "Get current user session and preferences",
+  inputSchema: {
+    type: "object",
+    properties: {
+      includeToken: {
+        type: "boolean",
+        description: "Whether to include the auth token"
+      }
+    }
+  },
+  implementation: (args) => {
+    // This runs in the browser!
+    const user = window.useUserStore?.getState();
+    
+    if (args.includeToken) {
+      return { user, token: localStorage.getItem('token') };
+    }
+    return { user };
+  }
+});
+```
+
+These custom tools are automatically discovered and made available to the connected AI agent along with the built-in inspector tools.
 
 ## MCP Prompts
 
