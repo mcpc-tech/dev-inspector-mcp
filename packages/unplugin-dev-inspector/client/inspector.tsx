@@ -165,8 +165,6 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
     btnRef,
   });
 
-
-
   const handleInspectionSubmit = (description: string) => {
     if (!sourceInfo) return;
 

@@ -9,8 +9,8 @@ const STORAGE_KEY = "inspector-inspection-items";
 const INSPECTION_ID_KEY = "inspector-current-inspection-id";
 const TIMEOUT_MS = 600_000;
 
-let pendingResolve: ((value: any) => void) | null = null;
-let pendingReject: ((reason: any) => void) | null = null;
+let pendingResolve: ((value: unknown) => void) | null = null;
+let pendingReject: ((reason: unknown) => void) | null = null;
 
 function clearPendingRequest() {
   pendingResolve = null;
@@ -373,8 +373,8 @@ export function useMcp() {
       window.addEventListener(event, handler as EventListener);
     });
 
-    // Register all tools
-    client.registerTools([
+    // Built-in tools
+    const builtInTools = [
       {
         ...TOOL_SCHEMAS.list_inspections,
         implementation: getAllFeedbacks,
@@ -391,7 +391,64 @@ export function useMcp() {
         ...TOOL_SCHEMAS.execute_page_script,
         implementation: patchContext,
       },
-    ]);
+    ];
+
+    // Get custom tools from the global registry
+    const getCustomTools = () => {
+      // Access the global function exposed by the virtual module
+      const getTools = (window as any).__getInspectorTools;
+      if (!getTools) return [];
+
+      const customTools = getTools();
+      return customTools.map((tool: any) => ({
+        name: tool.name,
+        description: tool.description,
+        inputSchema: tool.inputSchema,
+        implementation: async (args: Record<string, unknown>) => {
+          try {
+            const result = await tool.implementation(args);
+
+            // Format result for MCP
+            if (result === undefined || result === null) {
+              return createTextContent("(no result)");
+            }
+
+            if (typeof result === "object") {
+              // Check if already in MCP format
+              if (
+                "content" in result &&
+                Array.isArray((result as { content: unknown[] }).content)
+              ) {
+                return result;
+              }
+              return createTextContent(JSON.stringify(result, null, 2));
+            }
+
+            return createTextContent(String(result));
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            const errorStack = error instanceof Error ? error.stack : "";
+            return createTextContent(
+              `# Error executing ${tool.name}\n\n\`\`\`\n${errorMessage}\n\`\`\`\n\n${errorStack ? `## Stack Trace\n\`\`\`\n${errorStack}\n\`\`\`\n` : ""}`,
+            );
+          }
+        },
+      }));
+    };
+
+    // Combine built-in and custom tools, then register all at once
+    // (registerTools is a full override, so we must register everything together)
+    const customTools = getCustomTools();
+    const allTools = [...builtInTools, ...customTools];
+
+    client.registerTools(allTools);
+
+    if (customTools.length > 0) {
+      console.log(
+        `[dev-inspector] Registered ${customTools.length} custom tool(s):`,
+        customTools.map((t: any) => t.name).join(", "),
+      );
+    }
 
     const transport = new SSEClientTransport(
       new URL(`/__mcp__/sse?clientId=inspector`, getDevServerBaseUrl()),

@@ -134,6 +134,25 @@ export const createDevInspectorPlugin = (
           // Uses typeof check to avoid SSR issues and works with both bundlers
           return `
 // Development-only code - removed in production builds
+
+// Global tools registry
+if (typeof window !== 'undefined') {
+  if (!window.__INSPECTOR_TOOLS__) {
+    window.__INSPECTOR_TOOLS__ = [];
+  }
+  // Exposed for the inspector client to retrieve tools
+  window.__getInspectorTools = () => window.__INSPECTOR_TOOLS__;
+}
+
+/**
+ * Register a custom tool for the inspector
+ */
+export function registerInspectorTool(tool) {
+  if (typeof window === 'undefined') return;
+  window.__INSPECTOR_TOOLS__ = window.__INSPECTOR_TOOLS__ || [];
+  window.__INSPECTOR_TOOLS__.push(tool);
+}
+
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   // Create inspector element
   const inspector = document.createElement('dev-inspector-mcp');

@@ -33,7 +33,6 @@ Works with any MCP-compatible AI client. Supports ACP agents: **Claude Code**, *
 
 🐦 **Twittter/X Post:** [https://x.com/yaoandyan/status/1995082020431753600](https://x.com/yaoandyan/status/1995082020431753600?s=20)
 
-
 ![Demo: MCP-powered visual debugging in action](https://media.giphy.com/media/sGCk7b783GiGm5vZGl/giphy.gif)
 
 ## Key Features
