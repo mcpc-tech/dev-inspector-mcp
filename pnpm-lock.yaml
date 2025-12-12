@@ -553,8 +553,8 @@ importers:
         specifier: ^1.3.0
         version: 1.3.0
       '@mcpc-tech/acp-ai-provider':
-        specifier: ^0.1.36
-        version: 0.1.36
+        specifier: ^0.1.37
+        version: 0.1.37
       '@mcpc-tech/cmcp':
         specifier: ^0.0.15
         version: 0.0.15
@@ -1874,8 +1874,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@mcpc-tech/acp-ai-provider@0.1.36':
-    resolution: {integrity: sha512-ubePXHRGtg5lz1BmzFS020v1yj5Rcu7dozRfl8iWKcXtJK73MxXCwaDY2SKKSRQNJFURi0VSYEkxCLhw2p8TZg==}
+  '@mcpc-tech/acp-ai-provider@0.1.37':
+    resolution: {integrity: sha512-6MMm2kNZUmAE7FatK/Y3MTXuMGZZxlToOZezgnaQRuVx0jd91+I9xFjOAnQvxnaDhzAAZ+58pdDn4/YPpQJ7pA==}
 
   '@mcpc-tech/cmcp@0.0.15':
     resolution: {integrity: sha512-o03iDZpacozvQTn5F0e2UvwPMinJSUZKzoGIQ1HzXnfkYdBvvrKCsU+xN3coMZ7NKMKt3iU+OMXio7u1Pud3YQ==}
@@ -9583,7 +9583,7 @@ snapshots:
   '@lmdb/lmdb-win32-x64@3.4.3':
     optional: true
 
-  '@mcpc-tech/acp-ai-provider@0.1.36':
+  '@mcpc-tech/acp-ai-provider@0.1.37':
     dependencies:
       '@agentclientprotocol/sdk': 0.4.9
       '@ai-sdk/provider': 2.0.0
