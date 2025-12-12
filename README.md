@@ -50,12 +50,6 @@ AI can access Chrome DevTools to analyze network requests, console logs, and per
 
 Switch between agents (Claude Code, Goose) and track their debugging progress visually with step-by-step status updates.
 
-### ⌨️ Keyboard Shortcuts
-
-**`Option + I`** (macOS) / **`Alt + I`** (Windows/Linux) - Toggle inspector mode
-
-Quickly activate or deactivate element inspection without clicking the UI. Press the shortcut to enter inspection mode, click any element to capture its context, or press again to exit.
-
 ## Quick Start
 
 ### Installation

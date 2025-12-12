@@ -18,21 +18,21 @@ import type { ProviderAgentDynamicToolInput } from "@mcpc-tech/acp-ai-provider";
 type UITool = { name?: string };
 type UIMessagePart<TMeta = Record<string, unknown>, TToolMap = Record<string, UITool>> =
   | {
-      type: "text";
-      text: string;
-      state?: string;
-      providerMetadata?: TMeta;
-    }
+    type: "text";
+    text: string;
+    state?: string;
+    providerMetadata?: TMeta;
+  }
   | {
-      type: "reasoning";
-      text: string;
-      state?: string;
-      providerMetadata?: TMeta;
-    }
+    type: "reasoning";
+    text: string;
+    state?: string;
+    providerMetadata?: TMeta;
+  }
   | (Record<string, unknown> & {
-      type: string;
-      state?: string;
-    });
+    type: string;
+    state?: string;
+  });
 
 function isToolPart(part: unknown): part is Record<string, unknown> & {
   type: string;
@@ -91,11 +91,10 @@ export function renderMessagePart(
                   <li key={`plan-${i}`} className="flex items-start justify-between gap-3">
                     <div className="flex-1">
                       <div
-                        className={`text-sm ${
-                          status === "done"
+                        className={`text-sm ${status === "done"
                             ? "line-through text-muted-foreground"
                             : "text-foreground"
-                        }`}
+                          }`}
                       >
                         {content}
                       </div>
@@ -107,11 +106,10 @@ export function renderMessagePart(
                     </div>
                     <div className="shrink-0 text-xs">
                       <span
-                        className={`px-2 py-1 rounded-full font-medium text-[10px] uppercase tracking-wide ${
-                          status === "pending"
+                        className={`px-2 py-1 rounded-full font-medium text-[10px] uppercase tracking-wide ${status === "pending"
                             ? "bg-muted text-muted-foreground"
                             : "bg-primary/10 text-primary"
-                        }`}
+                          }`}
                       >
                         {status ?? "pending"}
                       </span>
@@ -133,7 +131,13 @@ export function renderMessagePart(
       title = title.replace("acp-ai-sdk-tools", "");
       return title;
     };
-    const toolInput = part.input as ProviderAgentDynamicToolInput;
+    const toolInput = part.input as ProviderAgentDynamicToolInput | undefined;
+
+    // Guard clause: skip rendering if input or toolName is missing
+    if (!toolInput || !toolInput.toolName) {
+      return null;
+    }
+
     const toolType = removeBrand(toolInput.toolName) as `tool-${string}`;
     const toolState = part.state as
       | "input-streaming"
