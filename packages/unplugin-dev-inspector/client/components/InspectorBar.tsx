@@ -43,7 +43,7 @@ export const InspectorBar = ({
   status,
   inspectionCount = 0,
   inspectionItems = [],
-  onRemoveInspection = () => {},
+  onRemoveInspection = () => { },
 }: InspectorBarProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [input, setInput] = useState("");
@@ -213,10 +213,10 @@ export const InspectorBar = ({
           status: "in-progress",
           currentStep: inProgressStep
             ? {
-                title: inProgressStep.title,
-                index: completedCount + 1,
-                total: plan.steps.length,
-              }
+              title: inProgressStep.title,
+              index: completedCount + 1,
+              total: plan.steps.length,
+            }
             : undefined,
         });
       }
@@ -301,7 +301,7 @@ export const InspectorBar = ({
       className={cn(
         "fixed bottom-8 left-1/2 z-[999999]", // Revert to CSS positioning
         "transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
-        isExpanded ? "w-[450px]" : showMessage ? "w-auto min-w-[200px] max-w-[450px]" : "w-[160px]",
+        isExpanded ? "w-[450px]" : showMessage ? "w-auto min-w-[200px] max-w-[450px]" : "w-[190px]",
         isDragging ? "cursor-grabbing" : "cursor-grab",
       )}
       onMouseDown={handleMouseDown}
@@ -349,7 +349,7 @@ export const InspectorBar = ({
               <div className="flex items-center justify-center w-6 h-6 rounded-full bg-accent flex-shrink-0">
                 <Sparkles className="w-3.5 h-3.5 text-foreground" />
               </div>
-              <span className="text-xs text-muted-foreground/70 ml-3">Hover to inspect</span>
+              <span className="text-xs text-muted-foreground/70 ml-3 whitespace-nowrap">⌥I or hover to inspect</span>
             </>
           )}
 
@@ -387,8 +387,8 @@ export const InspectorBar = ({
               <div className="flex-1 flex justify-center min-w-0 pl-2">
                 <div className="flex flex-col min-w-0 max-w-full pr-2 max-h-[24px] overflow-hidden">
                   {inspectionStatus &&
-                  inspectionStatus.status === "in-progress" &&
-                  inspectionStatus.currentStep ? (
+                    inspectionStatus.status === "in-progress" &&
+                    inspectionStatus.currentStep ? (
                     <div className="flex items-center gap-1.5 text-sm font-medium text-foreground min-w-0">
                       <Terminal className="w-4 h-4 flex-shrink-0" />
                       <span className="truncate min-w-0">
@@ -441,7 +441,7 @@ export const InspectorBar = ({
                 ? "bg-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]"
                 : "bg-accent text-muted-foreground hover:bg-accent/80 hover:text-foreground",
             )}
-            title="Toggle Inspector"
+            title="Toggle Inspector (⌥I)"
           >
             <Eye className="w-3.5 h-3.5" />
           </button>

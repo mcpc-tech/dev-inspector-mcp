@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import type { InspectedElement } from "./types";
 import { Notification } from "./components/Notification";
 import { FeedbackBubble } from "./components/FeedbackBubble";
@@ -74,16 +74,61 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
     }
   }, [inspections]);
 
+  // Toggle inspector mode - defined as useCallback to be used in keyboard shortcut effect
+  const toggleInspector = useCallback(() => {
+    const newActive = !isActive;
+    setIsActive(newActive);
+
+    document.body.style.cursor = newActive ? "crosshair" : "";
+
+    if (newActive) {
+      setBubbleMode(null);
+    } else {
+      if (overlayRef.current) overlayRef.current.style.display = "none";
+      if (tooltipRef.current) tooltipRef.current.style.display = "none";
+      setBubbleMode(null);
+    }
+
+    showNotif(newActive ? "🔍 Inspector ON - Click any element (⌥I)" : "✅ Inspector OFF");
+  }, [isActive, showNotif]);
+
+  // Stable handler ref to avoid re-binding listener on state changes
+  // This prevents the "gap" where keypress events can slip through during re-render
+  const handleKeyDownRef = useRef<(e: KeyboardEvent) => void>(undefined);
+
+  // Update the ref with the latest closure
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    handleKeyDownRef.current = (e: KeyboardEvent) => {
+      // Escape to close inspector
       if (e.key === "Escape" && isActive) {
         handleBubbleClose();
+        return;
+      }
+
+      // Keyboard shortcuts to toggle inspector:
+      // - Alt/Option + I (I for Inspector) - Use e.code to handle keyboard layouts and macOS Option key char transformations
+      const isToggleShortcut =
+        e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.code === "KeyI";
+
+      if (isToggleShortcut) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation(); // Ensure no other listeners see this
+        toggleInspector();
+      }
+    };
+  });
+
+  useEffect(() => {
+    const listener = (e: KeyboardEvent) => {
+      if (handleKeyDownRef.current) {
+        handleKeyDownRef.current(e);
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isActive]);
+    window.addEventListener("keydown", listener, true);
+    return () => window.removeEventListener("keydown", listener, true);
+  }, []); // Bind once, never remove
 
   useEffect(() => {
     const handleActivateInspector = () => {
@@ -120,22 +165,7 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
     btnRef,
   });
 
-  const toggleInspector = () => {
-    const newActive = !isActive;
-    setIsActive(newActive);
 
-    document.body.style.cursor = newActive ? "crosshair" : "";
-
-    if (newActive) {
-      setBubbleMode(null);
-    } else {
-      if (overlayRef.current) overlayRef.current.style.display = "none";
-      if (tooltipRef.current) tooltipRef.current.style.display = "none";
-      setBubbleMode(null);
-    }
-
-    showNotif(newActive ? "🔍 Inspector ON - Click any element" : "✅ Inspector OFF");
-  };
 
   const handleInspectionSubmit = (description: string) => {
     if (!sourceInfo) return;
