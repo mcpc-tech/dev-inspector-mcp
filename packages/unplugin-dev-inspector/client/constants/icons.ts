@@ -6,6 +6,7 @@ import moonshotIcon from "./icons/moonshot.svg?raw";
 import gooseIcon from "./icons/goose.svg?raw";
 import cursorIcon from "./icons/cursor.svg?raw";
 import codebuddyIcon from "./icons/codebuddy.svg?raw";
+import droidIcon from "./icons/droid.svg?raw";
 // PNG icons - imported as base64 data URI
 import opencodeIcon from "./icons/opencode.png?png";
 
@@ -16,6 +17,7 @@ export const AGENT_ICONS = {
   moonshot: moonshotIcon,
   goose: gooseIcon,
   cursor: cursorIcon,
+  droid: droidIcon,
   opencode: opencodeIcon, // Already a data URI
   codebuddy: codebuddyIcon,
 } as const;

@@ -72,6 +72,15 @@ export const AVAILABLE_AGENTS: Agent[] = [
     },
   },
   {
+    name: "Droid (Experimental)",
+    command: "npx",
+    args: ["-y", "@yaonyan/droid-acp"],
+    env: [{ key: "FACTORY_API_KEY", required: false }],
+    meta: {
+      icon: svgToDataUri(AGENT_ICONS.droid),
+    },
+  },
+  {
     name: "CodeBuddy Code",
     command: "npx",
     args: ["-y", "@tencent-ai/codebuddy-code", "--acp"],
