@@ -24,6 +24,44 @@ type TransportWithMethods = {
 };
 
 /**
+ * Session info for tracking initialized sessions
+ */
+interface SessionInfo {
+  sessionId: string;
+  createdAt: number;
+}
+
+/**
+ * Provider entry - one provider per agent config, multiple sessions
+ */
+interface ProviderEntry {
+  provider: ReturnType<typeof createACPProvider>;
+  agentKey: string;
+  sessions: Map<string, SessionInfo>;
+  createdAt: number;
+  initializationPromise?: Promise<string>; // Promise that resolves to sessionId
+}
+
+/**
+ * Provider manager - stores one provider per agent config
+ * Key: agentKey (command:args), Value: ProviderEntry
+ */
+const providerManager = new Map<string, ProviderEntry>();
+
+/**
+ * Session to provider mapping for quick lookup
+ * Key: sessionId, Value: agentKey
+ */
+const sessionToProvider = new Map<string, string>();
+
+/**
+ * Generate a unique key for an agent configuration
+ */
+function getAgentKey(command: string, args?: string[]): string {
+  return `${command}:${(args || []).join(",")}`;
+}
+
+/**
  * Call MCP method via transport and wait for response
  */
 function callMcpMethodViaTransport(
@@ -116,6 +154,219 @@ export function setupAcpMiddleware(
   serverContext?: ServerContext,
   acpOptions?: AcpOptions,
 ) {
+  /**
+   * Initialize a session for an agent
+   * POST /api/acp/init-session
+   * Body: { agent, envVars }
+   * Returns: { sessionId }
+   */
+  middlewares.use("/api/acp/init-session", async (req: IncomingMessage, res: ServerResponse) => {
+    if (handleCors(res, req.method)) return;
+
+    if (req.method !== "POST") {
+      res.statusCode = 405;
+      res.end("Method Not Allowed");
+      return;
+    }
+
+    try {
+      const body = await readBody(req);
+      const { agent, envVars } = JSON.parse(body);
+
+      const cwd = process.cwd();
+      const agentKey = getAgentKey(agent.command, agent.args);
+
+      console.log(
+        `[dev-inspector] [acp] Requesting session for agent: ${agent.name} (${agentKey})`,
+      );
+
+      let providerEntry = providerManager.get(agentKey);
+      let sessionId: string = "";
+
+      if (providerEntry) {
+        // 1. If we have active sessions, return the first one immediately (Reuse logic)
+        if (providerEntry.sessions.size > 0) {
+          const firstSession = providerEntry.sessions.values().next().value;
+          if (firstSession) {
+            sessionId = firstSession.sessionId;
+            console.log(
+              `[dev-inspector] [acp] Reusing existing session: ${sessionId} for ${agent.name}`,
+            );
+          }
+        }
+
+        // 2. If initialization is in progress (race condition), join the promise
+        if (!sessionId && providerEntry.initializationPromise) {
+          console.log(`[dev-inspector] [acp] Joining pending initialization for ${agent.name}`);
+          try {
+            sessionId = await providerEntry.initializationPromise;
+          } catch (e) {
+            // If pending failed, we will try to spawn new one below
+            console.warn("[dev-inspector] [acp] Pending init failed, retrying...", e);
+            providerEntry.initializationPromise = undefined;
+          }
+        }
+      }
+
+      // 3. If still no session, create new one
+      if (!sessionId) {
+        let provider: ReturnType<typeof createACPProvider>;
+
+        if (providerEntry) {
+          console.log(`[dev-inspector] [acp] Reusing existing provider for ${agent.name}`);
+          provider = providerEntry.provider;
+        } else {
+          console.log(`[dev-inspector] [acp] Creating new global provider for ${agent.name}`);
+          // Create ACP provider with persistSession enabled
+          provider = createACPProvider({
+            command: agent.command,
+            args: agent.args,
+            env: envVars,
+            session: {
+              cwd,
+              mcpServers: [],
+            },
+            authMethodId: agent.authMethodId,
+            persistSession: true,
+          });
+
+          providerEntry = {
+            provider,
+            agentKey,
+            sessions: new Map(),
+            createdAt: Date.now(),
+            initializationPromise: undefined,
+          };
+          providerManager.set(agentKey, providerEntry);
+        }
+
+        // Initialize the session ONLY if we don't have one
+        console.log(`[dev-inspector] [acp] Spawning new process/session for ${agent.name}`);
+
+        // Create a promise for this initialization
+        const initPromise = (async () => {
+          // Pre-load tools if transport is available
+          const transport = getActiveTransport();
+          let initialTools: Record<string, any> = {};
+          if (transport) {
+            try {
+              const rawTools = await loadMcpToolsV5(transport);
+              initialTools = acpTools(rawTools);
+              console.log(
+                `[dev-inspector] [acp] Pre-loading ${Object.keys(rawTools).length} tools for session init`,
+              );
+            } catch (e) {
+              console.warn("[dev-inspector] [acp] Failed to pre-load tools:", e);
+            }
+          }
+
+          // Pass tools to initSession if supported (assuming it accepts options with tools)
+          // or at least establishing the connection so subsequent updates work
+          // @ts-ignore
+          const session = await provider.initSession(initialTools);
+          const sid =
+            session.sessionId ||
+            `session-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+          if (providerEntry) {
+            providerEntry.sessions.set(sid, {
+              sessionId: sid,
+              createdAt: Date.now(),
+            });
+            providerEntry.initializationPromise = undefined;
+          }
+          sessionToProvider.set(sid, agentKey);
+          return sid;
+        })();
+
+        // Store the promise so others can join
+        if (providerEntry) {
+          providerEntry.initializationPromise = initPromise;
+        }
+
+        try {
+          sessionId = await initPromise;
+          console.log(`[dev-inspector] [acp] Session initialized: ${sessionId}`);
+        } catch (error) {
+          if (providerEntry) providerEntry.initializationPromise = undefined; // Clear if failed
+          throw error;
+        }
+      }
+
+      res.setHeader("Content-Type", "application/json");
+      res.end(JSON.stringify({ sessionId }));
+    } catch (error) {
+      console.error("ACP Init Session Error:", error);
+      if (!res.headersSent) {
+        res.statusCode = 500;
+        res.end(
+          JSON.stringify({
+            error: error instanceof Error ? error.message : "Internal Server Error",
+          }),
+        );
+      }
+    }
+  });
+
+  /**
+   * Cleanup a session
+   * POST /api/acp/cleanup-session
+   * Body: { sessionId }
+   */
+  middlewares.use("/api/acp/cleanup-session", async (req: IncomingMessage, res: ServerResponse) => {
+    if (handleCors(res, req.method)) return;
+
+    if (req.method !== "POST") {
+      res.statusCode = 405;
+      res.end("Method Not Allowed");
+      return;
+    }
+
+    try {
+      const body = await readBody(req);
+      const { sessionId } = JSON.parse(body);
+
+      const agentKey = sessionToProvider.get(sessionId);
+      if (agentKey) {
+        const providerEntry = providerManager.get(agentKey);
+        if (providerEntry) {
+          console.log(
+            `[dev-inspector] [acp] Cleaning up session: ${sessionId} (Provider sessions left: ${providerEntry.sessions.size - 1})`,
+          );
+          providerEntry.sessions.delete(sessionId);
+
+          // Cleanup provider if no sessions left to save memory and ensure stability (restarting unstable agents like Droid)
+          if (providerEntry.sessions.size === 0) {
+            console.log(
+              `[dev-inspector] [acp] No active sessions for ${agentKey}, cleaning up provider`,
+            );
+            try {
+              providerEntry.provider.cleanup();
+            } catch (e) {
+              console.error("Error cleaning up provider:", e);
+            }
+            providerManager.delete(agentKey);
+          }
+        }
+        sessionToProvider.delete(sessionId);
+      }
+
+      res.setHeader("Content-Type", "application/json");
+      res.end(JSON.stringify({ success: true }));
+    } catch (error) {
+      console.error("ACP Cleanup Session Error:", error);
+      if (!res.headersSent) {
+        res.statusCode = 500;
+        res.end(JSON.stringify({ error: "Internal Server Error" }));
+      }
+    }
+  });
+
+  /**
+   * Chat endpoint
+   * POST /api/acp/chat
+   * Body: { messages, agent, envVars, sessionId? }
+   */
   middlewares.use("/api/acp/chat", async (req: IncomingMessage, res: ServerResponse) => {
     if (handleCors(res, req.method)) return;
 
@@ -127,21 +378,46 @@ export function setupAcpMiddleware(
 
     try {
       const body = await readBody(req);
-      const { messages, agent, envVars } = JSON.parse(body);
+      const { messages, agent, envVars, sessionId } = JSON.parse(body);
 
       const cwd = process.cwd();
 
-      // Create ACP provider with empty mcpServers - we'll provide tools directly
-      const provider = createACPProvider({
-        command: agent.command,
-        args: agent.args,
-        env: envVars,
-        session: {
-          cwd,
-          mcpServers: [],
-        },
-        authMethodId: agent.authMethodId,
-      });
+      // Try to get existing session from session manager
+      let provider: ReturnType<typeof createACPProvider>;
+      let shouldCleanupProvider = true; // Track if we should cleanup on disconnect
+
+      // Lookup provider by sessionId or find global provider (if sessionId is just for tracking)
+      let existingProviderEntry: ProviderEntry | undefined;
+
+      if (sessionId) {
+        const agentKey = sessionToProvider.get(sessionId);
+        if (agentKey) {
+          existingProviderEntry = providerManager.get(agentKey);
+        }
+      }
+
+      if (existingProviderEntry) {
+        console.log(
+          `[dev-inspector] [acp] Using existing global provider for session: ${sessionId}`,
+        );
+        provider = existingProviderEntry.provider;
+        shouldCleanupProvider = false; // Don't cleanup managed global providers
+      } else {
+        // Fallback: Create new provider (backward compatibility or missing session)
+        console.log(`[dev-inspector] [acp] Creating new provider (no session found or provided)`);
+        provider = createACPProvider({
+          command: agent.command,
+          args: agent.args,
+          env: envVars,
+          session: {
+            cwd,
+            mcpServers: [],
+          },
+          authMethodId: agent.authMethodId,
+        });
+        // Initialize session if no existing session
+        await provider.initSession();
+      }
 
       // Get active transport from shared connection manager and load tools
       const transport = getActiveTransport();
@@ -171,7 +447,9 @@ export function setupAcpMiddleware(
       req.on("close", () => {
         console.log("[dev-inspector] [acp] Client disconnected, aborting stream");
         abortController.abort();
-        provider.cleanup();
+        if (shouldCleanupProvider) {
+          provider.cleanup();
+        }
       });
 
       const result = streamText({

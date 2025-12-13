@@ -113,7 +113,7 @@
     "@babel/parser": "^7.28.5",
     "@babel/traverse": "^7.28.5",
     "@code-inspector/core": "^1.3.0",
-    "@mcpc-tech/acp-ai-provider": "^0.1.38",
+    "@mcpc-tech/acp-ai-provider": "^0.1.40",
     "@mcpc-tech/cmcp": "^0.0.15",
     "@mcpc-tech/core": "^0.3.8",
     "@modelcontextprotocol/sdk": "^1.20.1",
@@ -141,6 +141,7 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@radix-ui/react-use-controllable-state": "^1.2.2",
     "@radix-ui/react-visually-hidden": "^1.2.4",
+    "@vue/compiler-sfc": "^3.5.25",
     "@xyflow/react": "^12.9.3",
     "ai": "^5.0.95",
     "aria-hidden": "^1.2.6",
@@ -160,13 +161,12 @@
     "shiki": "^3.15.0",
     "sonner": "^2.0.7",
     "streamdown": "^1.5.1",
+    "svelte": "^5.45.8",
     "tailwind-merge": "^3.3.1",
     "tokenlens": "^1.3.1",
     "unplugin": "^2.3.10",
     "use-stick-to-bottom": "^1.1.1",
-    "@vue/compiler-sfc": "^3.5.25",
-    "zod": "^3.24.1",
-    "svelte": "^5.45.8"
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@babel/types": "^7.28.5",
