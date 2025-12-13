@@ -113,7 +113,7 @@ async function loadMcpToolsV5(transport: TransportWithMethods): Promise<Record<s
     // Create tool with execute function that calls MCP via transport
     tools[toolName] = tool({
       description: toolInfo.description,
-      inputSchema: jsonSchema(toolInfo.inputSchema as any),
+      inputSchema: jsonSchema(toolInfo.inputSchema),
       execute: async (args: unknown) => {
         console.log(`[dev-inspector] [acp] Executing MCP tool: ${toolName}`);
         const result = await callMcpMethodViaTransport(transport, "tools/call", {
@@ -201,9 +201,8 @@ export function setupAcpMiddleware(
           try {
             sessionId = await providerEntry.initializationPromise;
           } catch (e) {
-            // If pending failed, we will try to spawn new one below
-            console.warn("[dev-inspector] [acp] Pending init failed, retrying...", e);
-            providerEntry.initializationPromise = undefined;
+            // If pending failed, throw the error
+            throw e;
           }
         }
       }
@@ -221,7 +220,7 @@ export function setupAcpMiddleware(
           provider = createACPProvider({
             command: agent.command,
             args: agent.args,
-            env: envVars,
+            env: { ...process.env, ...envVars },
             session: {
               cwd,
               mcpServers: [],
@@ -260,9 +259,6 @@ export function setupAcpMiddleware(
             }
           }
 
-          // Pass tools to initSession if supported (assuming it accepts options with tools)
-          // or at least establishing the connection so subsequent updates work
-          // @ts-ignore
           const session = await provider.initSession(initialTools);
           const sid =
             session.sessionId ||
@@ -408,7 +404,7 @@ export function setupAcpMiddleware(
         provider = createACPProvider({
           command: agent.command,
           args: agent.args,
-          env: envVars,
+          env: { ...process.env, ...envVars },
           session: {
             cwd,
             mcpServers: [],
