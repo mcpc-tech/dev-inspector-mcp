@@ -49,4 +49,8 @@ export interface Agent extends AcpOptions {
    * Link to configuration documentation or setup guide
    */
   configLink?: string;
+  /**
+   * Installation command for the agent (shown in error messages)
+   */
+  installCommand?: string;
 }

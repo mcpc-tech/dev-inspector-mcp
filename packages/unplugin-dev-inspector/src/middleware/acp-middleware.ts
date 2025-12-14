@@ -302,8 +302,26 @@ export function setupAcpMiddleware(
         try {
           sessionId = await initPromise;
           console.log(`[dev-inspector] [acp] Session initialized: ${sessionId}`);
-        } catch (error) {
+        } catch (error: any) {
           if (providerEntry) providerEntry.initializationPromise = undefined; // Clear if failed
+          
+          // Handle spawn errors (ENOENT = command not found)
+          if (error?.code === 'ENOENT' || error?.message?.includes('ENOENT')) {
+            const hints: string[] = [];
+            if (agent.installCommand) {
+              hints.push(`Install with: ${agent.installCommand}`);
+            }
+            if (agent.configHint) {
+              hints.push(agent.configHint);
+            }
+            if (agent.configLink) {
+              hints.push(`Documentation: ${agent.configLink}`);
+            }
+            const hintMessage = hints.length > 0 ? `\n\n${hints.join('\n')}` : '';
+            throw new Error(
+              `Agent "${agent.name}" command not found: "${agent.command}".${hintMessage}`
+            );
+          }
           throw error;
         }
       }

@@ -48,6 +48,7 @@ export const AVAILABLE_AGENTS: Agent[] = [
     env: [],
     configHint: "Moonshot AI's CLI with built-in ACP support",
     configLink: "https://github.com/MoonshotAI/kimi-cli",
+    installCommand: "uv tool install --python 3.13 kimi-cli",
     meta: {
       icon: svgToDataUri(AGENT_ICONS.moonshot),
     },
@@ -59,6 +60,7 @@ export const AVAILABLE_AGENTS: Agent[] = [
     env: [],
     configHint: "Block's open-source agent with ACP support",
     configLink: "https://block.github.io/goose/docs/guides/acp-clients",
+    installCommand: "pipx install goose-ai",
     meta: {
       icon: svgToDataUri(AGENT_ICONS.goose),
     },
