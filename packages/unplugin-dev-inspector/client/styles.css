@@ -8,6 +8,8 @@
 @source inline("py-1");
 @source inline("wrap-anywhere font-medium text-primary underline");
 @source inline("rounded-md bg-secondary px-1.5 py-0.5 font-mono text-secondary-foreground");
+/* Code block classes - used by code-block.tsx */
+@source inline("overflow-x-auto");
 
 @variant dark (&:where(.dark, .dark *));
 

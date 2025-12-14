@@ -55,6 +55,7 @@ export async function launchBrowserWithDevTools(options: BrowserLaunchOptions): 
     return false;
   } finally {
     // Cleanup to prevent Chrome zombie processes
+    // TODO: delay this after page cleanup
     await client?.close().catch(() => {});
   }
 }

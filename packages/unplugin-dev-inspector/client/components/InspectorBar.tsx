@@ -396,7 +396,7 @@ export const InspectorBar = ({
         className={cn(
           "fixed bottom-8 left-1/2 z-[999999]", // Revert to CSS positioning
           "transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
-          isExpanded ? "w-[450px]" : showMessage ? "w-auto min-w-[200px] max-w-[450px]" : "w-[190px]",
+          isExpanded ? "w-[480px]" : showMessage ? "w-auto min-w-[200px] max-w-[480px]" : "w-[190px]",
           isDragging ? "cursor-grabbing" : "cursor-grab",
         )}
         onMouseDown={handleMouseDown}
@@ -698,7 +698,7 @@ export const InspectorBar = ({
 
         {/* Expanded Panel - shows above the bar */}
         {activePanel !== "none" && (
-          <div className="absolute bottom-full left-0 right-0 pointer-events-auto max-w-[450px] mx-auto animate-panel-in">
+          <div className="absolute bottom-full left-0 right-0 pointer-events-auto max-w-[480px] mx-auto animate-panel-in">
             <div className="bg-muted/95 backdrop-blur-xl rounded-t-xl border border-border border-b-0 shadow-2xl overflow-hidden">
               {/* Inspection Queue Section */}
               {activePanel === "inspections" && inspectionItems.length > 0 && (
