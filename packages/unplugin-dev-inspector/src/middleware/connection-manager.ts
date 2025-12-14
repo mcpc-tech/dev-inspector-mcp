@@ -25,6 +25,7 @@ export class ConnectionManager {
   }
 
   removeTransport(sessionId: string) {
+    console.log(`[dev-inspector] [connection-manager] Removing transport: ${sessionId}`);
     delete this.transports[sessionId];
 
     // Clean up from all clientId sets
@@ -72,6 +73,10 @@ export class ConnectionManager {
       }
 
       sessionsToRemove.push(existingSessionId);
+    }
+
+    if (sessionsToRemove.length > 0) {
+      console.log(`[dev-inspector] [connection-manager] Cleaned up ${sessionsToRemove.length} previous sessions for clientId=${clientId} (new session=${newSessionId})`);
     }
 
     for (const sessionId of sessionsToRemove) {

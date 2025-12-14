@@ -131,12 +131,66 @@ async function loadMcpToolsV5(transport: TransportWithMethods): Promise<Record<s
 }
 
 /**
- * Get the Inspector transport from the connection manager
+ * Build session context with actionable guidance for the AI
+ * Returns minimal hints about current state without duplicating tool descriptions
+ */
+async function buildSessionContext(transport: TransportWithMethods | null): Promise<string | null> {
+  if (!transport) return null;
+
+  try {
+    // Check if there are any pending inspections
+    const result = (await callMcpMethodViaTransport(transport, "tools/call", {
+      name: "list_inspections",
+      arguments: {},
+    })) as { content: { text: string }[] };
+
+    const text = result?.content?.[0]?.text || "";
+
+    // If no inspections, no context needed
+    if (text.includes("No Inspection Items") || !text.includes("Status:")) {
+      return null;
+    }
+
+    // Count pending/in-progress items
+    const pendingCount = (text.match(/Status: (PENDING|IN-PROGRESS|LOADING)/gi) || []).length;
+
+    if (pendingCount === 0) return null;
+
+    // Return minimal, actionable hint
+    return `# Session Context
+
+There ${pendingCount === 1 ? "is 1 inspection" : `are ${pendingCount} inspections`} waiting in the queue.
+You may want to check them with \`list_inspections\` and ask the user if they need help fixing any issues.`;
+  } catch (e) {
+    console.log("[dev-inspector] [acp] Failed to build session context:", e);
+    return null;
+  }
+}
+
+/**
+ * Get an active transport from the connection manager
+ */
+/**
+ * Get an active transport from the connection manager
  */
 function getActiveTransport(): TransportWithMethods | null {
   const connectionManager = getConnectionManager();
-  if (!connectionManager) return null;
-  return connectionManager.getInspectorTransport() as TransportWithMethods | null;
+  if (!connectionManager) {
+    return null;
+  }
+  // Use inspector transport if available, otherwise fallback to any transport
+  return (
+    (connectionManager.getInspectorTransport() as TransportWithMethods) ||
+    (connectionManager.transports[Object.keys(connectionManager.transports)[0]] as TransportWithMethods)
+  );
+}
+
+/**
+ * Get specifically the inspector transport for context and tools
+ */
+function getInspectorTransport(): TransportWithMethods | null {
+  const connectionManager = getConnectionManager();
+  return connectionManager ? (connectionManager.getInspectorTransport() as TransportWithMethods) : null;
 }
 
 export function setupAcpMiddleware(
@@ -235,7 +289,7 @@ export function setupAcpMiddleware(
         // Create a promise for this initialization
         const initPromise = (async () => {
           // Pre-load tools if transport is available
-          const transport = getActiveTransport();
+          const transport = getInspectorTransport() || getActiveTransport();
           let initialTools: Record<string, any> = {};
           if (transport) {
             try {
@@ -406,7 +460,8 @@ export function setupAcpMiddleware(
       }
 
       // Get active transport from shared connection manager and load tools
-      const transport = getActiveTransport();
+      // Prefer inspector transport for tools
+      const transport = getInspectorTransport() || getActiveTransport();
       let mcpTools: Record<string, any> = {};
       if (transport) {
         mcpTools = await loadMcpToolsV5(transport);
@@ -438,11 +493,19 @@ export function setupAcpMiddleware(
         }
       });
 
+      // Build session context and prepend as system message if available
+      // ALWAYS use inspector transport for context to get actual DOM state
+      const sessionContext = await buildSessionContext(getInspectorTransport());
+      console.log(`[dev-inspector] [acp] sessionContext`, sessionContext)
+      const contextualMessages = sessionContext
+        ? [{ role: "system" as const, content: sessionContext }, ...messages]
+        : messages;
+
       const result = streamText({
         model: provider.languageModel(model, mode),
         // Ensure raw chunks like agent plan are included for streaming
         includeRawChunks: true,
-        messages: convertToModelMessages(messages),
+        messages: convertToModelMessages(contextualMessages),
         abortSignal: abortController.signal,
         // Use acpTools to wrap MCP tools with ACP provider dynamic tool
         tools: acpTools(mcpTools),
