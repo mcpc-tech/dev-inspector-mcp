@@ -20,6 +20,12 @@ export interface AcpOptions {
    * @default undefined (skipped if not specified)
    */
   acpDelay?: number;
+
+  /**
+   * Custom system instructions to prepend to user messages
+   * @default undefined (uses built-in DevInspector context)
+   */
+  acpSystemPrompt?: string;
 }
 
 // Agent type definition - shared between src and client

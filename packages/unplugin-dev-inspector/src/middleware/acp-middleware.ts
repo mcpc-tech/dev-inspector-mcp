@@ -131,45 +131,20 @@ async function loadMcpToolsV5(transport: TransportWithMethods): Promise<Record<s
 }
 
 /**
- * Build session context with actionable guidance for the AI
- * Returns minimal hints about current state without duplicating tool descriptions
+ * Default system instructions for DevInspector - provides AI guidance
  */
-async function buildSessionContext(transport: TransportWithMethods | null): Promise<string | null> {
-  if (!transport) return null;
+const DEFAULT_SYSTEM_INSTRUCTIONS = `# DevInspector Context
 
-  try {
-    // Check if there are any pending inspections
-    const result = (await callMcpMethodViaTransport(transport, "tools/call", {
-      name: "list_inspections",
-      arguments: {},
-    })) as { content: { text: string }[] };
+You are connected to a web app with DevInspector. Available tools:
 
-    const text = result?.content?.[0]?.text || "";
+- **list_inspections**: Check pending element inspections from user
+- **capture_element_context**: Activate visual selector to capture UI elements
+- **update_inspection_status**: Update inspection status with progress/results
+- **execute_page_script**: Run JavaScript in browser context
+- **chrome_devtools**: Access Chrome DevTools for network, console, performance
 
-    // If no inspections, no context needed
-    if (text.includes("No Inspection Items") || !text.includes("Status:")) {
-      return null;
-    }
+Workflow: Check \`list_inspections\` first. If there are pending items, help resolve them. Otherwise, assist with the user's request.`;
 
-    // Count pending/in-progress items
-    const pendingCount = (text.match(/Status: (PENDING|IN-PROGRESS|LOADING)/gi) || []).length;
-
-    if (pendingCount === 0) return null;
-
-    // Return minimal, actionable hint
-    return `# Session Context
-
-There ${pendingCount === 1 ? "is 1 inspection" : `are ${pendingCount} inspections`} waiting in the queue.
-You may want to check them with \`list_inspections\` and ask the user if they need help fixing any issues.`;
-  } catch (e) {
-    console.log("[dev-inspector] [acp] Failed to build session context:", e);
-    return null;
-  }
-}
-
-/**
- * Get an active transport from the connection manager
- */
 /**
  * Get an active transport from the connection manager
  */
@@ -493,19 +468,26 @@ export function setupAcpMiddleware(
         }
       });
 
-      // Build session context and prepend as system message if available
-      // ALWAYS use inspector transport for context to get actual DOM state
-      const sessionContext = await buildSessionContext(getInspectorTransport());
-      console.log(`[dev-inspector] [acp] sessionContext`, sessionContext)
-      const contextualMessages = sessionContext
-        ? [{ role: "system" as const, content: sessionContext }, ...messages]
-        : messages;
+      // Get system prompt: agent config > acpOptions > default
+      const systemPrompt = agent.acpSystemPrompt ?? acpOptions?.acpSystemPrompt ?? DEFAULT_SYSTEM_INSTRUCTIONS;
+
+      // Merge system prompt into the first user message
+      const modelMessages = convertToModelMessages(messages);
+      const enhancedMessages = modelMessages.map((msg: any, index: number) => {
+        if (index === 0 && msg.role === "user" && Array.isArray(msg.content)) {
+          return { 
+            ...msg, 
+            content: [{ type: "text", text: `<system_instructions>\n${systemPrompt}\n</system_instructions>\n\n` }, ...msg.content] 
+          };
+        }
+        return msg;
+      });
 
       const result = streamText({
         model: provider.languageModel(model, mode),
         // Ensure raw chunks like agent plan are included for streaming
         includeRawChunks: true,
-        messages: convertToModelMessages(contextualMessages),
+        messages: enhancedMessages,
         abortSignal: abortController.signal,
         // Use acpTools to wrap MCP tools with ACP provider dynamic tool
         tools: acpTools(mcpTools),
