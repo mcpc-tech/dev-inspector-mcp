@@ -45,10 +45,6 @@ export async function launchBrowserWithDevTools(options: BrowserLaunchOptions): 
         chrome_navigate_page: { url },
       },
     });
-
-    // Wait a bit for the response to be fully processed before closing
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
     return true;
   } catch (error) {
     console.error(
@@ -56,10 +52,5 @@ export async function launchBrowserWithDevTools(options: BrowserLaunchOptions): 
       error instanceof Error ? error.message : String(error),
     );
     return false;
-  } finally {
-    // Cleanup
-    if (client) {
-      await client.close().catch(() => {});
-    }
   }
 }

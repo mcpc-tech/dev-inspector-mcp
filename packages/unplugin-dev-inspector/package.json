@@ -145,7 +145,7 @@
     "@xyflow/react": "^12.9.3",
     "ai": "^5.0.95",
     "aria-hidden": "^1.2.6",
-    "chrome-devtools-mcp": "^0.10.1",
+    "chrome-devtools-mcp": "^0.12.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
