@@ -131,12 +131,41 @@ async function loadMcpToolsV5(transport: TransportWithMethods): Promise<Record<s
 }
 
 /**
- * Get the Inspector transport from the connection manager
+ * Default system instructions for DevInspector - provides AI guidance
+ */
+const DEFAULT_SYSTEM_INSTRUCTIONS = `# DevInspector Context
+
+You are connected to a web app with DevInspector. Available tools:
+
+- **list_inspections**: Check pending element inspections from user
+- **capture_element_context**: Activate visual selector to capture UI elements
+- **update_inspection_status**: Update inspection status with progress/results
+- **execute_page_script**: Run JavaScript in browser context
+- **chrome_devtools**: Access Chrome DevTools for network, console, performance
+
+Workflow: Check \`list_inspections\` first. If there are pending items, help resolve them. Otherwise, assist with the user's request.`;
+
+/**
+ * Get an active transport from the connection manager
  */
 function getActiveTransport(): TransportWithMethods | null {
   const connectionManager = getConnectionManager();
-  if (!connectionManager) return null;
-  return connectionManager.getInspectorTransport() as TransportWithMethods | null;
+  if (!connectionManager) {
+    return null;
+  }
+  // Use inspector transport if available, otherwise fallback to any transport
+  return (
+    (connectionManager.getInspectorTransport() as TransportWithMethods) ||
+    (connectionManager.transports[Object.keys(connectionManager.transports)[0]] as TransportWithMethods)
+  );
+}
+
+/**
+ * Get specifically the inspector transport for context and tools
+ */
+function getInspectorTransport(): TransportWithMethods | null {
+  const connectionManager = getConnectionManager();
+  return connectionManager ? (connectionManager.getInspectorTransport() as TransportWithMethods) : null;
 }
 
 export function setupAcpMiddleware(
@@ -235,7 +264,7 @@ export function setupAcpMiddleware(
         // Create a promise for this initialization
         const initPromise = (async () => {
           // Pre-load tools if transport is available
-          const transport = getActiveTransport();
+          const transport = getInspectorTransport() || getActiveTransport();
           let initialTools: Record<string, any> = {};
           if (transport) {
             try {
@@ -406,7 +435,8 @@ export function setupAcpMiddleware(
       }
 
       // Get active transport from shared connection manager and load tools
-      const transport = getActiveTransport();
+      // Prefer inspector transport for tools
+      const transport = getInspectorTransport() || getActiveTransport();
       let mcpTools: Record<string, any> = {};
       if (transport) {
         mcpTools = await loadMcpToolsV5(transport);
@@ -438,11 +468,26 @@ export function setupAcpMiddleware(
         }
       });
 
+      // Get system prompt: agent config > acpOptions > default
+      const systemPrompt = agent.acpSystemPrompt ?? acpOptions?.acpSystemPrompt ?? DEFAULT_SYSTEM_INSTRUCTIONS;
+
+      // Merge system prompt into the first user message
+      const modelMessages = convertToModelMessages(messages);
+      const enhancedMessages = modelMessages.map((msg: any, index: number) => {
+        if (index === 0 && msg.role === "user" && Array.isArray(msg.content)) {
+          return { 
+            ...msg, 
+            content: [{ type: "text", text: `<system_instructions>\n${systemPrompt}\n</system_instructions>\n\n` }, ...msg.content] 
+          };
+        }
+        return msg;
+      });
+
       const result = streamText({
         model: provider.languageModel(model, mode),
         // Ensure raw chunks like agent plan are included for streaming
         includeRawChunks: true,
-        messages: convertToModelMessages(messages),
+        messages: enhancedMessages,
         abortSignal: abortController.signal,
         // Use acpTools to wrap MCP tools with ACP provider dynamic tool
         tools: acpTools(mcpTools),
