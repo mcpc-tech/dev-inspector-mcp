@@ -10,6 +10,7 @@ import {
   ChevronUp,
   Inbox,
   Square,
+  Info,
 } from "lucide-react";
 import { Shimmer } from "../../src/components/ai-elements/shimmer";
 import type { UIMessage } from "ai";
@@ -21,6 +22,7 @@ import { AVAILABLE_AGENTS, DEFAULT_AGENT } from "../constants/agents";
 import { useDraggable } from "../hooks/useDraggable";
 import { useAgent } from "../hooks/useAgent";
 import { getDevServerBaseUrl } from "../utils/config-loader";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
 interface InspectorBarProps {
   isActive: boolean;
   onToggleInspector: () => void;
@@ -45,7 +47,7 @@ export const InspectorBar = ({
   status,
   inspectionCount = 0,
   inspectionItems = [],
-  onRemoveInspection = () => {},
+  onRemoveInspection = () => { },
   toolsReady = true, // Default to true if not provided (backward compatibility)
 }: InspectorBarProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -57,6 +59,7 @@ export const InspectorBar = ({
   const [allowHover, setAllowHover] = useState(true);
   const { agent: selectedAgent, setAgent: setSelectedAgent, isReady } = useAgent(DEFAULT_AGENT);
   const [isAgentSelectorOpen, setIsAgentSelectorOpen] = useState(false);
+  const [configInfoAgent, setConfigInfoAgent] = useState<string | null>(null);
 
   // Session State
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -292,10 +295,10 @@ export const InspectorBar = ({
           status: "in-progress",
           currentStep: inProgressStep
             ? {
-                title: inProgressStep.title,
-                index: completedCount + 1,
-                total: plan.steps.length,
-              }
+              title: inProgressStep.title,
+              index: completedCount + 1,
+              total: plan.steps.length,
+            }
             : undefined,
         });
       }
@@ -375,315 +378,378 @@ export const InspectorBar = ({
     (!isExpanded || hideInputDuringWork) && (isAgentWorking || hasMessage || inspectionStatus);
 
   return (
-    <div
-      ref={containerRef}
-      className={cn(
-        "fixed bottom-8 left-1/2 z-[999999]", // Revert to CSS positioning
-        "transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
-        isExpanded ? "w-[450px]" : showMessage ? "w-auto min-w-[200px] max-w-[450px]" : "w-[190px]",
-        isDragging ? "cursor-grabbing" : "cursor-grab",
+    <>
+      {/* Transparent overlay to prevent pointer events leaking to host page when expanded */}
+      {(isExpanded || activePanel !== "none") && (
+        <div
+          className="fixed inset-0 z-[999998] bg-transparent"
+          onClick={() => {
+            if (!isLocked && !isAgentWorking) {
+              setIsExpanded(false);
+              setActivePanel("none");
+            }
+          }}
+        />
       )}
-      onMouseDown={handleMouseDown}
-      onMouseEnter={() => {
-        if (!isDragging) {
-          if (isAgentWorking || isLocked) {
-            // When agent is working, show the chat panel on hover
-            setIsExpanded(true);
-            setActivePanel("chat");
-          } else if (allowHover) {
-            setIsExpanded(true);
-          }
-        }
-      }}
-      onMouseLeave={() => {
-        if (!input.trim() && !isLocked && !isDragging) {
-          setIsExpanded(false);
-          setActivePanel("none");
-        }
-        // Re-enable hover when mouse leaves
-        setAllowHover(true);
-      }}
-    >
       <div
+        ref={containerRef}
         className={cn(
-          "relative flex items-center backdrop-blur-xl shadow-2xl border border-border",
-          "transition-[width,height,padding,background-color,border-color] duration-200 ease-out",
-          isExpanded ? "h-12 p-2 pl-4" : "h-9 px-2 py-1",
-          activePanel !== "none"
-            ? "bg-muted/95 rounded-b-lg rounded-t-none border-t-0"
-            : "bg-muted/90 rounded-full",
-          isError && !isExpanded && "bg-destructive/10 border-destructive/20",
+          "fixed bottom-8 left-1/2 z-[999999]", // Revert to CSS positioning
+          "transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
+          isExpanded ? "w-[450px]" : showMessage ? "w-auto min-w-[200px] max-w-[450px]" : "w-[190px]",
+          isDragging ? "cursor-grabbing" : "cursor-grab",
         )}
+        onMouseDown={handleMouseDown}
+        onMouseEnter={() => {
+          if (!isDragging) {
+            if (isAgentWorking || isLocked) {
+              // When agent is working, show the chat panel on hover
+              setIsExpanded(true);
+              setActivePanel("chat");
+            } else if (allowHover) {
+              setIsExpanded(true);
+            }
+          }
+        }}
+        onMouseLeave={() => {
+          if (!input.trim() && !isLocked && !isDragging) {
+            setIsExpanded(false);
+            setActivePanel("none");
+          }
+          // Re-enable hover when mouse leaves
+          setAllowHover(true);
+        }}
       >
         <div
           className={cn(
-            "flex items-center transition-opacity duration-300 w-full relative",
-            shouldShowInput
-              ? "absolute left-3 opacity-0 pointer-events-none"
-              : "relative opacity-100",
+            "relative flex items-center backdrop-blur-xl shadow-2xl border border-border",
+            "transition-[width,height,padding,background-color,border-color] duration-200 ease-out",
+            isExpanded ? "h-12 p-2 pl-4" : "h-9 px-2 py-1",
+            activePanel !== "none"
+              ? "bg-muted/95 rounded-b-lg rounded-t-none border-t-0"
+              : "bg-muted/90 rounded-full",
+            isError && !isExpanded && "bg-destructive/10 border-destructive/20",
           )}
         >
-          {!showMessage && (
-            <>
-              <div className="flex items-center justify-center w-6 h-6 rounded-full bg-accent flex-shrink-0">
-                <Sparkles className="w-3.5 h-3.5 text-foreground" />
-              </div>
-              <span className="text-xs text-muted-foreground/70 ml-3 whitespace-nowrap">
-                ⌥I or hover to inspect
-              </span>
-            </>
-          )}
-
-          {showMessage && (
-            <>
-              {/* Fixed left icon group */}
-              <div className="flex items-center gap-3 flex-shrink-0">
-                <div className="relative flex items-center justify-center w-6 h-6 rounded-full bg-accent flex-shrink-0">
-                  {isAgentWorking ? (
-                    <>
-                      <div className="absolute inset-0 rounded-full border-2 border-current opacity-20 animate-ping text-foreground" />
-                      <Sparkles className="w-3.5 h-3.5 animate-pulse text-foreground" />
-                    </>
-                  ) : inspectionStatus ? (
-                    inspectionStatus.status === "in-progress" ? (
-                      <>
-                        <div className="absolute inset-0 rounded-full border-2 border-current opacity-20 animate-ping text-blue-500" />
-                        <Terminal className="w-3.5 h-3.5 animate-pulse text-blue-500" />
-                      </>
-                    ) : inspectionStatus.status === "completed" ? (
-                      <CheckCircle2 className="w-5 h-5 text-green-500" />
-                    ) : (
-                      <XCircle className="w-5 h-5 text-red-500" />
-                    )
-                  ) : isError ? (
-                    <XCircle className="w-5 h-5 text-red-500" />
-                  ) : (
-                    <CheckCircle2 className="w-5 h-5 text-green-500" />
-                  )}
-                </div>
-                <div className="w-px h-4 bg-border flex-shrink-0" />
-              </div>
-
-              {/* Centered text content */}
-              <div className="flex-1 flex justify-center min-w-0 pl-2">
-                <div className="flex flex-col min-w-0 max-w-full pr-2 max-h-[24px] overflow-hidden">
-                  {inspectionStatus &&
-                  inspectionStatus.status === "in-progress" &&
-                  inspectionStatus.currentStep ? (
-                    <div className="flex items-center gap-1.5 text-sm font-medium text-foreground min-w-0">
-                      <Terminal className="w-4 h-4 flex-shrink-0" />
-                      <span className="truncate min-w-0">
-                        Step {inspectionStatus.currentStep.index}/
-                        {inspectionStatus.currentStep.total}: {inspectionStatus.currentStep.title}
-                      </span>
-                    </div>
-                  ) : inspectionStatus?.message ? (
-                    <div className="text-sm font-medium leading-[1.4] text-foreground truncate min-w-0">
-                      {inspectionStatus.message}
-                    </div>
-                  ) : toolCall ? (
-                    <div className="flex items-center gap-1.5 text-sm font-medium text-foreground min-w-0">
-                      <Terminal className="w-4 h-4 flex-shrink-0" />
-                      <span className="truncate min-w-0">{toolCall}</span>
-                    </div>
-                  ) : (
-                    <div className="text-sm font-medium leading-[1.4] text-foreground truncate min-w-0">
-                      {isAgentWorking && !visibleFragment ? (
-                        <Shimmer duration={2} spread={2}>
-                          {status === "submitted" && currentAgent?.command === "npx"
-                            ? `Starting ${currentAgent.name}... This may take a moment.`
-                            : "Thinking..."}
-                        </Shimmer>
-                      ) : (
-                        visibleFragment || "Processing..."
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-
-        <div
-          className={cn(
-            "flex items-center w-full gap-3 transition-all duration-500 delay-75",
-            shouldShowInput
-              ? "opacity-100 translate-y-0 relative pointer-events-auto"
-              : "opacity-0 translate-y-4 pointer-events-none absolute top-2 left-4 right-2",
-          )}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <button
-            onClick={onToggleInspector}
+          <div
             className={cn(
-              "relative flex items-center justify-center w-7 h-7 rounded-full transition-colors flex-shrink-0",
-              isActive
-                ? "bg-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]"
-                : "bg-accent text-muted-foreground hover:bg-accent/80 hover:text-foreground",
+              "flex items-center transition-opacity duration-300 w-full relative",
+              shouldShowInput
+                ? "absolute left-3 opacity-0 pointer-events-none"
+                : "relative opacity-100",
             )}
-            title="Toggle Inspector (⌥I)"
           >
-            <Eye className="w-3.5 h-3.5" />
-          </button>
-
-          <div className="w-px h-4 bg-border flex-shrink-0" />
-
-          {/* Inspection Count Button */}
-          {inspectionCount > 0 && (
-            <>
-              <button
-                type="button"
-                onClick={() =>
-                  setActivePanel((current) => (current === "inspections" ? "none" : "inspections"))
-                }
-                className={cn(
-                  "relative flex items-center justify-center w-7 h-7 rounded-full transition-colors flex-shrink-0",
-                  "hover:bg-accent/50",
-                  activePanel === "inspections" && "bg-accent/50 text-foreground",
-                )}
-                title="View Inspections"
-              >
-                <Inbox className="w-3.5 h-3.5" />
-                <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[12px] h-[12px] px-0.5 text-[8px] font-bold text-white bg-red-500 rounded-full border border-background shadow-sm leading-none">
-                  {inspectionCount > 99 ? "99+" : inspectionCount}
+            {!showMessage && (
+              <>
+                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-accent flex-shrink-0">
+                  <Sparkles className="w-3.5 h-3.5 text-foreground" />
+                </div>
+                <span className="text-xs text-muted-foreground/70 ml-3 whitespace-nowrap">
+                  ⌥I or hover to inspect
                 </span>
-              </button>
-              <div className="w-px h-4 bg-border flex-shrink-0" />
-            </>
-          )}
+              </>
+            )}
 
-          <form
-            onSubmit={handleSubmit}
-            className="flex-1 flex items-center gap-2 min-w-0"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Agent Selector */}
-            <div className="relative flex-shrink-0">
-              <button
-                type="button"
-                onClick={() => setIsAgentSelectorOpen(!isAgentSelectorOpen)}
-                className="flex items-center justify-center w-7 h-7 rounded-full hover:bg-accent/50 transition-colors"
-                title="Select Agent"
-              >
-                <img
-                  src={AVAILABLE_AGENTS.find((a) => a.name === selectedAgent)?.meta?.icon}
-                  alt={selectedAgent}
-                  className="w-3.5 h-3.5"
-                />
-              </button>
-
-              {isAgentSelectorOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-[999998]"
-                    onClick={() => setIsAgentSelectorOpen(false)}
-                  />
-                  <div className="absolute bottom-full left-0 mb-2 w-48 bg-popover border border-border rounded-lg shadow-lg overflow-hidden z-[999999] animate-in fade-in zoom-in-95 duration-200">
-                    {AVAILABLE_AGENTS.map((agent) => (
-                      <button
-                        key={agent.name}
-                        onClick={() => {
-                          setSelectedAgent(agent.name);
-                          setIsAgentSelectorOpen(false);
-                        }}
-                        className={cn(
-                          "w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-accent transition-colors",
-                          selectedAgent === agent.name && "bg-accent/50 font-medium",
-                        )}
-                      >
-                        {agent.meta?.icon && (
-                          <img src={agent.meta.icon} alt="" className="w-4 h-4" />
-                        )}
-                        {agent.name}
-                      </button>
-                    ))}
+            {showMessage && (
+              <>
+                {/* Fixed left icon group */}
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <div className="relative flex items-center justify-center w-6 h-6 rounded-full bg-accent flex-shrink-0">
+                    {isAgentWorking ? (
+                      <>
+                        <div className="absolute inset-0 rounded-full border-2 border-current opacity-20 animate-ping text-foreground" />
+                        <Sparkles className="w-3.5 h-3.5 animate-pulse text-foreground" />
+                      </>
+                    ) : inspectionStatus ? (
+                      inspectionStatus.status === "in-progress" ? (
+                        <>
+                          <div className="absolute inset-0 rounded-full border-2 border-current opacity-20 animate-ping text-blue-500" />
+                          <Terminal className="w-3.5 h-3.5 animate-pulse text-blue-500" />
+                        </>
+                      ) : inspectionStatus.status === "completed" ? (
+                        <CheckCircle2 className="w-5 h-5 text-green-500" />
+                      ) : (
+                        <XCircle className="w-5 h-5 text-red-500" />
+                      )
+                    ) : isError ? (
+                      <XCircle className="w-5 h-5 text-red-500" />
+                    ) : (
+                      <CheckCircle2 className="w-5 h-5 text-green-500" />
+                    )}
                   </div>
-                </>
-              )}
-            </div>
+                  <div className="w-px h-4 bg-border flex-shrink-0" />
+                </div>
 
-            <input
-              ref={inputRef}
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={`Ask ${selectedAgent}...`}
-              className="w-full bg-transparent border-none outline-none text-foreground placeholder-muted-foreground text-sm h-7 disabled:opacity-50"
-              tabIndex={0}
-              disabled={isAgentWorking}
-            />
-
-            {/* Expand button - only show when AI is working or has messages */}
-            {(messages.length > 0 || isAgentWorking || isLocked) && (
-              <button
-                type="button"
-                onClick={() => setActivePanel((current) => (current === "chat" ? "none" : "chat"))}
-                className={cn(
-                  "flex items-center justify-center w-7 h-7 rounded-full transition-all flex-shrink-0",
-                  activePanel === "chat"
-                    ? "bg-foreground text-background"
-                    : "bg-accent text-muted-foreground hover:bg-accent/80 hover:text-foreground",
-                )}
-                title={activePanel === "chat" ? "Collapse" : "Expand messages"}
-              >
-                <ChevronUp
-                  className={cn(
-                    "w-3.5 h-3.5 transition-transform duration-300",
-                    activePanel === "chat" && "rotate-180",
-                  )}
-                />
-              </button>
-            )}
-
-            {isAgentWorking ? (
-              <button
-                type="button"
-                onClick={onCancel}
-                className="flex items-center justify-center w-7 h-7 rounded-full bg-destructive text-destructive-foreground transition-all flex-shrink-0 hover:bg-destructive/90"
-                title="Cancel request"
-              >
-                <Square className="w-3 h-3" />
-              </button>
-            ) : (
-              <button
-                type="submit"
-                disabled={!input.trim()}
-                className={cn(
-                  "flex items-center justify-center w-7 h-7 rounded-full transition-all flex-shrink-0",
-                  input.trim()
-                    ? "bg-foreground text-background scale-100"
-                    : "bg-accent text-muted-foreground/50 scale-90",
-                )}
-              >
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </form>
-        </div>
-      </div>
-
-      {/* Expanded Panel - shows above the bar */}
-      {activePanel !== "none" && (
-        <div className="absolute bottom-full left-0 right-0 pointer-events-auto max-w-[450px] mx-auto animate-panel-in">
-          <div className="bg-muted/95 backdrop-blur-xl rounded-t-xl border border-border border-b-0 shadow-2xl overflow-hidden">
-            {/* Inspection Queue Section */}
-            {activePanel === "inspections" && inspectionItems.length > 0 && (
-              <div className="border-b border-border">
-                <InspectionQueue items={inspectionItems} onRemove={onRemoveInspection} />
-              </div>
-            )}
-
-            {/* Message Detail Section - Show InspectorBar messages */}
-            {activePanel === "chat" && (
-              <div className="h-[500px]">
-                <MessageDetail messages={messages} status={status} selectedAgent={selectedAgent} />
-              </div>
+                {/* Centered text content */}
+                <div className="flex-1 flex justify-center min-w-0 pl-2">
+                  <div className="flex flex-col min-w-0 max-w-full pr-2 max-h-[24px] overflow-hidden">
+                    {inspectionStatus &&
+                      inspectionStatus.status === "in-progress" &&
+                      inspectionStatus.currentStep ? (
+                      <div className="flex items-center gap-1.5 text-sm font-medium text-foreground min-w-0">
+                        <Terminal className="w-4 h-4 flex-shrink-0" />
+                        <span className="truncate min-w-0">
+                          Step {inspectionStatus.currentStep.index}/
+                          {inspectionStatus.currentStep.total}: {inspectionStatus.currentStep.title}
+                        </span>
+                      </div>
+                    ) : inspectionStatus?.message ? (
+                      <div className="text-sm font-medium leading-[1.4] text-foreground truncate min-w-0">
+                        {inspectionStatus.message}
+                      </div>
+                    ) : toolCall ? (
+                      <div className="flex items-center gap-1.5 text-sm font-medium text-foreground min-w-0">
+                        <Terminal className="w-4 h-4 flex-shrink-0" />
+                        <span className="truncate min-w-0">{toolCall}</span>
+                      </div>
+                    ) : (
+                      <div className="text-sm font-medium leading-[1.4] text-foreground truncate min-w-0">
+                        {isAgentWorking && !visibleFragment ? (
+                          <Shimmer duration={2} spread={2}>
+                            {status === "submitted" && currentAgent?.command === "npx"
+                              ? `Starting ${currentAgent.name}... This may take a moment.`
+                              : "Thinking..."}
+                          </Shimmer>
+                        ) : (
+                          visibleFragment || "Processing..."
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
             )}
           </div>
+
+          <div
+            className={cn(
+              "flex items-center w-full gap-3 transition-all duration-500 delay-75",
+              shouldShowInput
+                ? "opacity-100 translate-y-0 relative pointer-events-auto"
+                : "opacity-0 translate-y-4 pointer-events-none absolute top-2 left-4 right-2",
+            )}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={onToggleInspector}
+              className={cn(
+                "relative flex items-center justify-center w-7 h-7 rounded-full transition-colors flex-shrink-0",
+                isActive
+                  ? "bg-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]"
+                  : "bg-accent text-muted-foreground hover:bg-accent/80 hover:text-foreground",
+              )}
+              title="Toggle Inspector (⌥I)"
+            >
+              <Eye className="w-3.5 h-3.5" />
+            </button>
+
+            <div className="w-px h-4 bg-border flex-shrink-0" />
+
+            {/* Inspection Count Button */}
+            {inspectionCount > 0 && (
+              <>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setActivePanel((current) => (current === "inspections" ? "none" : "inspections"))
+                  }
+                  className={cn(
+                    "relative flex items-center justify-center w-7 h-7 rounded-full transition-colors flex-shrink-0",
+                    "hover:bg-accent/50",
+                    activePanel === "inspections" && "bg-accent/50 text-foreground",
+                  )}
+                  title="View Inspections"
+                >
+                  <Inbox className="w-3.5 h-3.5" />
+                  <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[12px] h-[12px] px-0.5 text-[8px] font-bold text-white bg-red-500 rounded-full border border-background shadow-sm leading-none">
+                    {inspectionCount > 99 ? "99+" : inspectionCount}
+                  </span>
+                </button>
+                <div className="w-px h-4 bg-border flex-shrink-0" />
+              </>
+            )}
+
+            <form
+              onSubmit={handleSubmit}
+              className="flex-1 flex items-center gap-2 min-w-0"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Agent Selector */}
+              <div className="relative flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsAgentSelectorOpen(!isAgentSelectorOpen)}
+                  className="flex items-center justify-center w-7 h-7 rounded-full hover:bg-accent/50 transition-colors"
+                  title="Select Agent"
+                >
+                  <img
+                    src={AVAILABLE_AGENTS.find((a) => a.name === selectedAgent)?.meta?.icon}
+                    alt={selectedAgent}
+                    className="w-3.5 h-3.5"
+                  />
+                </button>
+
+                {isAgentSelectorOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-[999998]"
+                      onClick={() => setIsAgentSelectorOpen(false)}
+                    />
+                    <div className="absolute bottom-full left-0 mb-2 w-64 bg-popover border border-border rounded-lg shadow-lg overflow-hidden z-[999999] animate-in fade-in zoom-in-95 duration-200">
+                      {AVAILABLE_AGENTS.map((agent) => (
+                        <div
+                          key={agent.name}
+                          className={cn(
+                            "w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent transition-colors group",
+                            selectedAgent === agent.name && "bg-accent/50 font-medium",
+                          )}
+                        >
+                          <button
+                            onClick={() => {
+                              setSelectedAgent(agent.name);
+                              setIsAgentSelectorOpen(false);
+                            }}
+                            className="flex items-center gap-2 flex-1 text-left"
+                          >
+                            {agent.meta?.icon && (
+                              <img src={agent.meta.icon} alt="" className="w-4 h-4 flex-shrink-0" />
+                            )}
+                            <span className="flex-1">{agent.name}</span>
+                          </button>
+                          {(agent.configHint || agent.configLink) && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setConfigInfoAgent(agent.name);
+                              }}
+                              className="p-1 rounded hover:bg-accent-foreground/10 transition-colors"
+                              title="Configuration info"
+                            >
+                              <Info className="w-3.5 h-3.5 text-muted-foreground" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <input
+                ref={inputRef}
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={`Ask ${selectedAgent}...`}
+                className="w-full bg-transparent border-none outline-none text-foreground placeholder-muted-foreground text-sm h-7 disabled:opacity-50"
+                tabIndex={0}
+                disabled={isAgentWorking}
+              />
+
+              {/* Expand button - only show when AI is working or has messages */}
+              {(messages.length > 0 || isAgentWorking || isLocked) && (
+                <button
+                  type="button"
+                  onClick={() => setActivePanel((current) => (current === "chat" ? "none" : "chat"))}
+                  className={cn(
+                    "flex items-center justify-center w-7 h-7 rounded-full transition-all flex-shrink-0",
+                    activePanel === "chat"
+                      ? "bg-foreground text-background"
+                      : "bg-accent text-muted-foreground hover:bg-accent/80 hover:text-foreground",
+                  )}
+                  title={activePanel === "chat" ? "Collapse" : "Expand messages"}
+                >
+                  <ChevronUp
+                    className={cn(
+                      "w-3.5 h-3.5 transition-transform duration-300",
+                      activePanel === "chat" && "rotate-180",
+                    )}
+                  />
+                </button>
+              )}
+
+              {isAgentWorking ? (
+                <button
+                  type="button"
+                  onClick={onCancel}
+                  className="flex items-center justify-center w-7 h-7 rounded-full bg-destructive text-destructive-foreground transition-all flex-shrink-0 hover:bg-destructive/90"
+                  title="Cancel request"
+                >
+                  <Square className="w-3 h-3" />
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={!input.trim()}
+                  className={cn(
+                    "flex items-center justify-center w-7 h-7 rounded-full transition-all flex-shrink-0",
+                    input.trim()
+                      ? "bg-foreground text-background scale-100"
+                      : "bg-accent text-muted-foreground/50 scale-90",
+                  )}
+                >
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </form>
+          </div>
         </div>
-      )}
-    </div>
+
+        {/* Expanded Panel - shows above the bar */}
+        {activePanel !== "none" && (
+          <div className="absolute bottom-full left-0 right-0 pointer-events-auto max-w-[450px] mx-auto animate-panel-in">
+            <div className="bg-muted/95 backdrop-blur-xl rounded-t-xl border border-border border-b-0 shadow-2xl overflow-hidden">
+              {/* Inspection Queue Section */}
+              {activePanel === "inspections" && inspectionItems.length > 0 && (
+                <div className="border-b border-border">
+                  <InspectionQueue items={inspectionItems} onRemove={onRemoveInspection} />
+                </div>
+              )}
+
+              {/* Message Detail Section - Show InspectorBar messages */}
+              {activePanel === "chat" && (
+                <div className="h-[500px]">
+                  <MessageDetail messages={messages} status={status} selectedAgent={selectedAgent} />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Config Info Modal - using Dialog component */}
+      {configInfoAgent && (() => {
+        const agent = AVAILABLE_AGENTS.find(a => a.name === configInfoAgent);
+        if (!agent) return null;
+        return (
+          <Dialog open={!!configInfoAgent} onOpenChange={() => setConfigInfoAgent(null)}>
+            <DialogContent onClose={() => setConfigInfoAgent(null)} className="w-80">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-3">
+                  {agent.meta?.icon && (
+                    <img src={agent.meta.icon} alt="" className="w-6 h-6" />
+                  )}
+                  {agent.name}
+                </DialogTitle>
+                {agent.configHint && (
+                  <DialogDescription>{agent.configHint}</DialogDescription>
+                )}
+              </DialogHeader>
+              {agent.configLink && (
+                <a
+                  href={agent.configLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-sm text-blue-500 hover:text-blue-600 underline"
+                >
+                  View ACP Documentation →
+                </a>
+              )}
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
+    </>
   );
 };

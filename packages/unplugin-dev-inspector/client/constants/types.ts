@@ -41,4 +41,12 @@ export interface Agent extends AcpOptions {
   meta?: {
     icon?: string;
   };
+  /**
+   * Configuration hint text to help users set up the agent
+   */
+  configHint?: string;
+  /**
+   * Link to configuration documentation or setup guide
+   */
+  configLink?: string;
 }

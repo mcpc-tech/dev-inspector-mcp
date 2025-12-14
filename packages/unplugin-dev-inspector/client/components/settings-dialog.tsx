@@ -8,7 +8,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -76,52 +75,53 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
     (requiredKeyNames.length === 1 && apiKey.trim().length > 0);
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button
-          variant={hasAllRequiredKeys ? "outline" : "destructive"}
-          size="sm"
-          className={!hasAllRequiredKeys ? "animate-pulse" : ""}
-        >
-          <Settings className="h-4 w-4" />
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader className="space-y-3">
-          <DialogTitle>Settings - {selectedAgentName}</DialogTitle>
-          <DialogDescription className="text-sm text-muted-foreground leading-relaxed">
-            Configure your keys to use the {selectedAgentName} functionality.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-4 py-4">
-          {requiredKeyNames.map((keyName) => (
-            <div key={keyName} className="space-y-2">
-              <label htmlFor={keyName} className="text-sm font-medium">
-                {keyName}
-              </label>
-              <Input
-                id={keyName}
-                type="password"
-                value={tempKeys[keyName] ?? ""}
-                onChange={(e) =>
-                  setTempKeys((s) => ({
-                    ...s,
-                    [keyName]: e.target.value,
-                  }))
-                }
-                className="w-full"
-                placeholder={`Enter your ${keyName}`}
-              />
-            </div>
-          ))}
-        </div>
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={handleCancel}>
-            Cancel
-          </Button>
-          <Button onClick={handleSave}>Save</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <>
+      <Button
+        variant={hasAllRequiredKeys ? "outline" : "destructive"}
+        size="sm"
+        className={!hasAllRequiredKeys ? "animate-pulse" : ""}
+        onClick={() => setIsOpen(true)}
+      >
+        <Settings className="h-4 w-4" />
+      </Button>
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogContent onClose={handleCancel} className="sm:max-w-[425px]">
+          <DialogHeader className="space-y-3">
+            <DialogTitle>Settings - {selectedAgentName}</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground leading-relaxed">
+              Configure your keys to use the {selectedAgentName} functionality.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            {requiredKeyNames.map((keyName) => (
+              <div key={keyName} className="space-y-2">
+                <label htmlFor={keyName} className="text-sm font-medium">
+                  {keyName}
+                </label>
+                <Input
+                  id={keyName}
+                  type="password"
+                  value={tempKeys[keyName] ?? ""}
+                  onChange={(e) =>
+                    setTempKeys((s) => ({
+                      ...s,
+                      [keyName]: e.target.value,
+                    }))
+                  }
+                  className="w-full"
+                  placeholder={`Enter your ${keyName}`}
+                />
+              </div>
+            ))}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={handleCancel}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };

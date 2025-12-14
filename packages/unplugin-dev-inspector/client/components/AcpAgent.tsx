@@ -121,7 +121,7 @@ const ACPAgent = ({ sourceInfo, onClose }: ACPAgentProps = {}) => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sessionId: sessionIdRef.current }),
-        }).catch(() => {});
+        }).catch(() => { });
       }
     };
   }, []);

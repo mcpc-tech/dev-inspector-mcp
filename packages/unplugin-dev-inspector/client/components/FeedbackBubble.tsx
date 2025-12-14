@@ -13,7 +13,6 @@ import { Button } from "./ui/button";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { PlanProgress } from "./PlanProgress";
 import { usePlanProgress } from "../hooks/usePlanProgress";
-import { useShadowRoot } from "../inspector";
 
 interface FeedbackBubbleProps {
   sourceInfo: InspectedElement;
@@ -33,10 +32,6 @@ export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
   const plan = usePlanProgress();
   const [feedback, setFeedback] = useState("");
   const [open, setOpen] = useState(true);
-  const shadowRoot = useShadowRoot();
-  const container =
-    shadowRoot ||
-    (typeof document !== "undefined" ? document.getElementById("source-inspector-root") : null);
 
   useEffect(() => {
     if (!open) {
@@ -75,9 +70,11 @@ export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
     return null;
   };
 
+  const handleClose = () => setOpen(false);
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent container={container as HTMLElement} onClick={(e) => e.stopPropagation()}>
+      <DialogContent onClose={handleClose} onClick={(e) => e.stopPropagation()}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {getIcon()}
