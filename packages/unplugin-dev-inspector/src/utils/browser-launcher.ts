@@ -21,7 +21,7 @@ export async function launchBrowserWithDevTools(options: BrowserLaunchOptions): 
   const { url, serverContext } = options;
   const host = serverContext.host === "0.0.0.0" ? "localhost" : serverContext.host || "localhost";
   const port = serverContext.port || 5173;
-  const sseUrl = `http://${host}:${port}/__mcp__/sse?clientId=auto-browser`;
+  const sseUrl = `http://${host}:${port}/__mcp__/sse?clientId=temp-browser-launcher`;
 
   let client: Client | null = null;
 
@@ -52,5 +52,8 @@ export async function launchBrowserWithDevTools(options: BrowserLaunchOptions): 
       error instanceof Error ? error.message : String(error),
     );
     return false;
+  } finally {
+    // Cleanup to prevent Chrome zombie processes
+    await client?.close().catch(() => {});
   }
 }

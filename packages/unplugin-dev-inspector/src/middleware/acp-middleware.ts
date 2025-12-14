@@ -131,22 +131,12 @@ async function loadMcpToolsV5(transport: TransportWithMethods): Promise<Record<s
 }
 
 /**
- * Get an active transport from the connection manager
+ * Get the Inspector transport from the connection manager
  */
 function getActiveTransport(): TransportWithMethods | null {
   const connectionManager = getConnectionManager();
-  if (!connectionManager) {
-    return null;
-  }
-
-  // Get any available transport from the connection manager
-  const sessionIds = Object.keys(connectionManager.transports);
-  if (sessionIds.length === 0) {
-    return null;
-  }
-
-  // Return the first available transport
-  return connectionManager.transports[sessionIds[0]] as TransportWithMethods;
+  if (!connectionManager) return null;
+  return connectionManager.getInspectorTransport() as TransportWithMethods | null;
 }
 
 export function setupAcpMiddleware(

@@ -108,11 +108,15 @@ export class ConnectionManager {
   }
 
   /**
-   * Handle watcher connection.
-   * @param sessionId - unique session ID
-   * @param clientId - who is connecting (vscode, acp, cursor, etc.)
-   * @param puppetId - who to control (inspector)
-   * @param transport - the transport instance
+   * Get the currently active Inspector (browser) transport
+   */
+  getInspectorTransport(): Transport | null {
+    if (!this.latestInspectorSessionId) return null;
+    return this.transports[this.latestInspectorSessionId] || null;
+  }
+
+  /**
+   * Bind watcher (e.g. VS Code/ACP) to Inspector (browser)
    */
   handleWatcherConnection(
     sessionId: string,
