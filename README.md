@@ -20,6 +20,7 @@ Works with any MCP-compatible AI client. Supports ACP agents: **Claude Code**, *
 - [Quick Start](#-quick-start)
 - [Framework Support](#framework-support)
 - [Configuration](#-configuration)
+- [Agent Installation](#agent-installation)
 - [How It Works](#-what-it-does)
 - [Workflow Modes](#-two-workflow-modes)
 - [MCP Tools](#-mcp-tools)
@@ -54,17 +55,22 @@ Switch between agents (Claude Code, Goose) and track their debugging progress vi
 ### Installation
 
 ```bash
-# npm
+# npm - basic installation
 npm i -D @mcpc-tech/unplugin-dev-inspector-mcp
 
-# pnpm
+# pnpm - basic installation
 pnpm add -D @mcpc-tech/unplugin-dev-inspector-mcp
 
-# yarn
+# yarn - basic installation
 yarn add -D @mcpc-tech/unplugin-dev-inspector-mcp
 ```
 
-Add DevInspector to your project:
+> **Note:** If you don't need the ACP agents (Inspector Bar mode), add `--no-optional` to skip installing agent packages:
+> ```bash
+> npm i -D @mcpc-tech/unplugin-dev-inspector-mcp --no-optional
+> pnpm add -D @mcpc-tech/unplugin-dev-inspector-mcp --no-optional
+> yarn add -D @mcpc-tech/unplugin-dev-inspector-mcp --no-optional
+> ```
 
 ### ⚡ Automated Setup (Recommended)
 
@@ -289,6 +295,90 @@ DevInspector.vite({
 })
 ```
 
+### Agent Installation
+
+DevInspector supports multiple AI agents via [ACP](https://agentclientprotocol.com). 
+
+**For npm-based agents** (Claude Code, Codex CLI, Cursor Agent, Droid), you can pre-install them as dev dependencies for faster loading.
+
+**For system-level agents**, install globally:
+
+#### Gemini CLI
+
+```bash
+npm install -g @google/gemini-cli
+```
+
+[Documentation →](https://github.com/google-gemini/gemini-cli)
+
+#### Kimi CLI
+
+```bash
+uv tool install --python 3.13 kimi-cli
+```
+
+[Documentation →](https://github.com/MoonshotAI/kimi-cli)
+
+#### Goose
+
+```bash
+pipx install goose-ai
+```
+
+[Documentation →](https://block.github.io/goose/docs/guides/acp-clients)
+
+#### Opencode
+
+```bash
+curl -fsSL https://opencode.ai/install | bash
+```
+
+[Documentation →](https://github.com/sst/opencode)
+
+#### CodeBuddy Code
+
+```bash
+npm install -g @tencent-ai/codebuddy-code
+```
+
+[Documentation →](https://copilot.tencent.com/docs/cli/acp)
+
+> **Note:** If you don't pre-install npm-based agents, they will be launched via `npx` on first use (slower startup).
+
+#### Pre-installing npm-based Agents (Recommended)
+
+The recommended way is to install agents during initial setup (see [Installation](#installation) above).
+
+Alternatively, install them later as dev dependencies:
+
+```bash
+# npm
+npm i -D @zed-industries/claude-code-acp
+
+# pnpm  
+pnpm add -D @zed-industries/claude-code-acp
+
+# Or add directly to package.json
+```
+
+```json
+{
+  "devDependencies": {
+    "@zed-industries/claude-code-acp": "^0.12.4",
+    "@zed-industries/codex-acp": "^0.7.1",
+    "@blowmage/cursor-agent-acp": "^0.1.0",
+    "@yaonyan/droid-acp": "^0.0.8"
+  }
+}
+```
+
+> **About optionalDependencies:** Agent packages are installed by default. If you don't need them, use `--no-optional` when installing.
+
+**Why install as `devDependencies`?**
+- Ensures faster startup (uses local package via `require.resolve` instead of `npx`)
+- Won't affect production bundle (tree-shaken out unless imported)
+- Standard practice for development tools
+
 ### Custom Agents
 
 This plugin uses the [Agent Client Protocol (ACP)](https://agentclientprotocol.com) to connect with AI agents.
@@ -297,7 +387,7 @@ This plugin uses the [Agent Client Protocol (ACP)](https://agentclientprotocol.c
 
 Default agents: [View configuration →](https://github.com/mcpc-tech/dev-inspector-mcp/blob/main/packages/unplugin-dev-inspector/client/constants/agents.ts)
 
-You can customize available AI agents and set a default agent:
+You can customize available AI agents, filter visible agents, and set a default agent:
 
 ```typescript
 // vite.config.ts
@@ -305,7 +395,11 @@ export default {
   plugins: [
     DevInspector.vite({
       enabled: true,
-      // Custom agents (will be merged with default properties)
+      
+      // Option 1: Only show specific agents (filters merged agents)
+      visibleAgents: ['Claude Code', 'Gemini CLI', 'Goose'],
+      
+      // Option 2: Add custom agents (merges with defaults)
       agents: [
         {
           name: "Claude Code", // Matches default - auto-fills icon and env
@@ -320,6 +414,19 @@ export default {
           meta: { icon: "https://example.com/icon.svg" }
         }
       ],
+      
+      // Option 3: Combine both - add custom agents and filter visibility
+      agents: [
+        {
+          name: "My Custom Agent",
+          command: "my-agent-cli",
+          args: ["--mode", "acp"],
+          env: [{ key: "MY_API_KEY", required: true }],
+          meta: { icon: "https://example.com/icon.svg" }
+        }
+      ],
+      visibleAgents: ['Claude Code', 'My Custom Agent'], // Only show these
+      
       // Set default agent to show on startup
       defaultAgent: "Claude Code"
     }),
@@ -329,9 +436,10 @@ export default {
 
 **Key Features:**
 
-- Custom agents with the **same name** as [default agents](https://agentclientprotocol.com/overview/agents) automatically inherit missing properties (icons, env)
-- You can override just the command/args while keeping default icons
-- If no custom agents provided, defaults are: Claude Code, Codex CLI, Gemini CLI, Kimi CLI, Goose, OpenCode
+- **`agents`**: Merges your custom agents with defaults. Agents with the **same name** as [default agents](https://agentclientprotocol.com/overview/agents) automatically inherit missing properties (icons, env)
+- **`visibleAgents`**: Filters which agents appear in the UI (applies after merging). Great for limiting options to only what your team uses
+- **`defaultAgent`**: Sets which agent is selected on startup
+- If no custom agents provided, defaults are: Claude Code, Codex CLI, Gemini CLI, Kimi CLI, Goose, Opencode, Cursor Agent, Droid, CodeBuddy Code
 
 ## What It Does
 
