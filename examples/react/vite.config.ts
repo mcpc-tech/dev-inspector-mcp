@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     DevInspector.vite({
       enabled: true,
-      autoOpenBrowser: true
+      autoOpenBrowser: true,
     }),
   ],
 });
