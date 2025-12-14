@@ -45,6 +45,7 @@ export async function launchBrowserWithDevTools(options: BrowserLaunchOptions): 
         chrome_navigate_page: { url },
       },
     });
+    await new Promise(r => setTimeout(r, 1000))
     return true;
   } catch (error) {
     console.error(

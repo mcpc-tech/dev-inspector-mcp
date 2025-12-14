@@ -9,6 +9,7 @@ export default defineConfig({
     DevInspector.vite({
       enabled: true,
       autoOpenBrowser: true,
+      visibleAgents: ['Claude Code']
     }),
   ],
 });

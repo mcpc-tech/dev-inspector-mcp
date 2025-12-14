@@ -71,6 +71,11 @@ export interface InspectorConfig {
    */
   agents?: Agent[];
   /**
+   * Filter which agents are visible (applies after merging custom agents)
+   * @example ['Claude Code', 'Gemini CLI']
+   */
+  visibleAgents?: string[];
+  /**
    * @default "Claude Code"
    * @see AVAILABLE_AGENTS https://github.com/mcpc-tech/dev-inspector-mcp/blob/main/packages/unplugin-dev-inspector/client/constants/agents.ts
    */

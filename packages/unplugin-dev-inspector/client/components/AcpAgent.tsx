@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useChat } from "@ai-sdk/react";
-import { getDevServerBaseUrl } from "../utils/config-loader";
+import { getDevServerBaseUrl, getAvailableAgents } from "../utils/config-loader";
 import {
   Conversation,
   ConversationContent,
@@ -24,7 +24,7 @@ import { SettingsDialog } from "./settings-dialog";
 import { useAgent } from "../hooks/useAgent";
 import { useAgentEnv } from "../hooks/useAgentEnv";
 import { renderMessagePart } from "../lib/messageRenderer";
-import { AVAILABLE_AGENTS, DEFAULT_AGENT } from "../constants/agents";
+import { DEFAULT_AGENT } from "../constants/agents";
 import type { Agent } from "../constants/agents";
 import type { InspectedElement } from "../types";
 import { DefaultChatTransport } from "ai";
@@ -39,11 +39,17 @@ const ACPAgent = ({ sourceInfo, onClose }: ACPAgentProps = {}) => {
   const { agent: selectedAgent, setAgent: setSelectedAgent } = useAgent(DEFAULT_AGENT);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [availableAgents, setAvailableAgents] = useState<Agent[]>([]);
+
+  // Load available agents from config (respects visibleAgents filtering)
+  useEffect(() => {
+    getAvailableAgents().then(setAvailableAgents);
+  }, []);
 
   const currentAgent =
-    AVAILABLE_AGENTS.find((agent) => agent.name === selectedAgent) || AVAILABLE_AGENTS[0];
-  const requiredKeys = currentAgent.env.filter((e) => e.key && e.required).map((e) => e.key);
-  const { envVars, setEnvVar } = useAgentEnv(currentAgent.command, requiredKeys);
+    availableAgents.find((agent) => agent.name === selectedAgent) || availableAgents[0];
+  const requiredKeys = currentAgent?.env.filter((e) => e.key && e.required).map((e) => e.key) || [];
+  const { envVars, setEnvVar } = useAgentEnv(currentAgent?.command || "", requiredKeys);
 
   const selectedAgentRef = useRef(selectedAgent);
   const sessionIdRef = useRef<string | null>(null);
@@ -54,6 +60,9 @@ const ACPAgent = ({ sourceInfo, onClose }: ACPAgentProps = {}) => {
 
   // Initialize session when agent changes or on mount
   useEffect(() => {
+    // Don't initialize if no agents loaded yet
+    if (!currentAgent) return;
+
     let cancelled = false;
 
     const initSession = async () => {
@@ -111,7 +120,7 @@ const ACPAgent = ({ sourceInfo, onClose }: ACPAgentProps = {}) => {
     return () => {
       cancelled = true;
     };
-  }, [selectedAgent, currentAgent.name]); // Re-init when agent changes
+  }, [selectedAgent, currentAgent?.name]); // Re-init when agent changes
 
   // Cleanup session on unmount
   useEffect(() => {
@@ -217,24 +226,28 @@ const ACPAgent = ({ sourceInfo, onClose }: ACPAgentProps = {}) => {
           />
           <PromptInputToolbar>
             <PromptInputTools>
-              <PromptInputModelSelect onValueChange={setSelectedAgent} value={selectedAgent}>
-                <PromptInputModelSelectTrigger>
-                  <PromptInputModelSelectValue />
-                </PromptInputModelSelectTrigger>
-                <PromptInputModelSelectContent>
-                  {AVAILABLE_AGENTS.map((agentOption: Agent) => (
-                    <PromptInputModelSelectItem key={agentOption.name} value={agentOption.name}>
-                      {agentOption.name}
-                    </PromptInputModelSelectItem>
-                  ))}
-                </PromptInputModelSelectContent>
-              </PromptInputModelSelect>
-              <SettingsDialog
-                selectedAgentName={currentAgent.name}
-                requiredKeyNames={requiredKeys}
-                values={envVars}
-                onChange={(k: string, v: string) => setEnvVar(k, v)}
-              />
+              {availableAgents.length > 1 && (
+                <PromptInputModelSelect onValueChange={setSelectedAgent} value={selectedAgent}>
+                  <PromptInputModelSelectTrigger>
+                    <PromptInputModelSelectValue />
+                  </PromptInputModelSelectTrigger>
+                  <PromptInputModelSelectContent>
+                    {availableAgents.map((agentOption: Agent) => (
+                      <PromptInputModelSelectItem key={agentOption.name} value={agentOption.name}>
+                        {agentOption.name}
+                      </PromptInputModelSelectItem>
+                    ))}
+                  </PromptInputModelSelectContent>
+                </PromptInputModelSelect>
+              )}
+              {currentAgent && (
+                <SettingsDialog
+                  selectedAgentName={currentAgent.name}
+                  requiredKeyNames={requiredKeys}
+                  values={envVars}
+                  onChange={(k: string, v: string) => setEnvVar(k, v)}
+                />
+              )}
             </PromptInputTools>
             <PromptInputSubmit
               onAbort={stop}

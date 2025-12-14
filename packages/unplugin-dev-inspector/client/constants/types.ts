@@ -53,4 +53,12 @@ export interface Agent extends AcpOptions {
    * Installation command for the agent (shown in error messages)
    */
   installCommand?: string;
+  /**
+   * NPM package name for agents that use npm packages (for faster loading via require.resolve)
+   */
+  npmPackage?: string;
+  /**
+   * Arguments to pass when using npm package resolution (separate from npx args)
+   */
+  npmArgs?: string[];
 }

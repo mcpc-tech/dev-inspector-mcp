@@ -38,6 +38,14 @@ export interface DevInspectorOptions extends McpConfigOptions, AcpOptions {
   agents?: Agent[];
 
   /**
+   * Filter which agents are visible in the UI
+   * Only agents with names in this list will be shown (applies after merging custom agents)
+   * If not specified or empty array, all agents are visible
+   * @example ['Claude Code', 'Gemini CLI', 'My Custom Agent']
+   */
+  visibleAgents?: string[];
+
+  /**
    * Default agent name to use
    * @default "Claude Code"
    * @see https://github.com/mcpc-tech/dev-inspector-mcp/blob/main/packages/unplugin-dev-inspector/client/constants/agents.ts
@@ -326,6 +334,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
           }
           setupInspectorMiddleware(server.middlewares, {
             agents: options.agents,
+            visibleAgents: options.visibleAgents,
             defaultAgent: options.defaultAgent,
             showInspectorBar: options.showInspectorBar,
           });
@@ -413,6 +422,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
 
             setupInspectorMiddleware(server as unknown as Connect.Server, {
               agents: options.agents,
+              visibleAgents: options.visibleAgents,
               defaultAgent: options.defaultAgent,
             });
 

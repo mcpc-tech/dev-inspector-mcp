@@ -6,6 +6,7 @@ import {
 
 interface InspectorConfig {
   agents?: Agent[];
+  visibleAgents?: string[];
   defaultAgent?: string;
   showInspectorBar?: boolean;
 }
@@ -100,18 +101,27 @@ async function loadConfig(): Promise<InspectorConfig> {
 }
 
 /**
- * Get available agents (merged with custom configuration)
+ * Get available agents (merged with custom configuration and filtered by visibleAgents)
  */
 export async function getAvailableAgents(): Promise<Agent[]> {
   const config = await loadConfig();
 
+  let agents: Agent[];
+
   if (config.agents && config.agents.length > 0) {
     // Merge custom agents with defaults to fill in missing properties (like icons)
-    return config.agents.map(mergeAgentWithDefaults);
+    agents = config.agents.map(mergeAgentWithDefaults);
+  } else {
+    // Otherwise use default agents
+    agents = DEFAULT_AGENTS;
   }
 
-  // Otherwise return default agents
-  return DEFAULT_AGENTS;
+  // Filter by visibleAgents if specified
+  if (config.visibleAgents && config.visibleAgents.length > 0) {
+    agents = agents.filter(agent => config.visibleAgents!.includes(agent.name));
+  }
+
+  return agents;
 }
 
 /**
@@ -132,10 +142,20 @@ export async function getDefaultAgent(): Promise<string> {
  * Use this for initial render, then update with async version
  */
 export function getAvailableAgentsSync(): Agent[] {
+  let agents: Agent[];
+
   if (configCache?.agents && configCache.agents.length > 0) {
-    return configCache.agents.map(mergeAgentWithDefaults);
+    agents = configCache.agents.map(mergeAgentWithDefaults);
+  } else {
+    agents = DEFAULT_AGENTS;
   }
-  return DEFAULT_AGENTS;
+
+  // Filter by visibleAgents if specified
+  if (configCache?.visibleAgents && configCache.visibleAgents.length > 0) {
+    agents = agents.filter(agent => configCache!.visibleAgents!.includes(agent.name));
+  }
+
+  return agents;
 }
 
 export function getDefaultAgentSync(): string {

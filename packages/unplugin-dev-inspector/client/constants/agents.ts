@@ -14,6 +14,8 @@ export const AVAILABLE_AGENTS: Agent[] = [
     ],
     configHint: "Anthropic's official CLI agent via Zed adapter",
     configLink: "https://github.com/zed-industries/claude-code-acp",
+    npmPackage: "@zed-industries/claude-code-acp",
+    npmArgs: [],
     meta: {
       icon: svgToDataUri(AGENT_ICONS.claude),
     },
@@ -25,14 +27,16 @@ export const AVAILABLE_AGENTS: Agent[] = [
     env: [{ key: "OPENAI_API_KEY", required: false }],
     configHint: "OpenAI Codex CLI via Zed adapter",
     configLink: "https://github.com/zed-industries/codex-acp",
+    npmPackage: "@zed-industries/codex-acp",
+    npmArgs: [],
     meta: {
       icon: svgToDataUri(AGENT_ICONS.openai),
     },
   },
   {
     name: "Gemini CLI",
-    command: "npx",
-    args: ["@google/gemini-cli", "--experimental-acp"],
+    command: "gemini",
+    args: ["--experimental-acp"],
     env: [{ key: "GEMINI_API_KEY", required: false }],
     authMethodId: "gemini-api-key",
     configHint: "Official Google Gemini CLI with ACP support",
@@ -67,8 +71,8 @@ export const AVAILABLE_AGENTS: Agent[] = [
   },
   {
     name: "Opencode",
-    command: "npx",
-    args: ["-y", "opencode-ai", "acp"],
+    command: "opencode",
+    args: ["acp"],
     env: [],
     configHint: "SST's open source agent with ACP support",
     configLink: "https://github.com/sst/opencode",
@@ -83,6 +87,8 @@ export const AVAILABLE_AGENTS: Agent[] = [
     env: [],
     configHint: "Unofficial ACP adapter for Cursor's agent",
     configLink: "https://github.com/blowmage/cursor-agent-acp",
+    npmPackage: "@blowmage/cursor-agent-acp",
+    npmArgs: [],
     meta: {
       icon: svgToDataUri(AGENT_ICONS.cursor),
     },
@@ -94,14 +100,16 @@ export const AVAILABLE_AGENTS: Agent[] = [
     env: [{ key: "FACTORY_API_KEY", required: false }],
     configHint: "Unofficial ACP adapter for Droid CLI",
     configLink: "https://github.com/yaonyan/droid-acp",
+    npmPackage: "@yaonyan/droid-acp",
+    npmArgs: [],
     meta: {
       icon: svgToDataUri(AGENT_ICONS.droid),
     },
   },
   {
     name: "CodeBuddy Code",
-    command: "npx",
-    args: ["-y", "@tencent-ai/codebuddy-code", "--acp"],
+    command: "codebuddy",
+    args: ["--acp"],
     env: [
       { key: "CODEBUDDY_API_KEY", required: false },
       {

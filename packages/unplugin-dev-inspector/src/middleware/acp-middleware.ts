@@ -8,10 +8,12 @@ import { z } from "zod";
 import { handleCors } from "../utils/cors";
 import type { ServerContext } from "../mcp";
 import type { AcpOptions } from "../../client/constants/types";
-import type { JSONRPCMessage } from "@modelcontextprotocol/sdk/types.js";
+import { CallToolResultSchema, type JSONRPCMessage } from "@modelcontextprotocol/sdk/types.js";
 import { getConnectionManager } from "./mcproute-middleware";
+import { resolveNpmPackageBin } from "../utils/npm-package";
 
 export type { AcpOptions };
+
 
 /**
  * Check if a command exists in the system PATH
@@ -137,7 +139,12 @@ async function loadMcpToolsV5(transport: TransportWithMethods): Promise<Record<s
           name: toolName,
           arguments: args,
         });
-        return result;
+        const parsedResult = CallToolResultSchema.safeParse(result);
+        if (!parsedResult.success) {
+          return result
+        }
+        // TODO: handle more than text content
+        return parsedResult.data?.content?.map((item) => item?.text).join("\n");
       },
     });
   }
@@ -269,10 +276,25 @@ export function setupAcpMiddleware(
           }
           
           console.log(`[dev-inspector] [acp] Creating new global provider for ${agent.name}`);
+          
+          // Try to resolve npm package bin if npmPackage is specified
+          let command = agent.command;
+          let args = agent.args;
+          if (agent.npmPackage) {
+            const binPath = resolveNpmPackageBin(agent.npmPackage);
+            if (binPath) {
+              command = binPath;
+              args = agent.npmArgs || [];
+              console.log(`[dev-inspector] [acp] Using resolved npm package: ${agent.npmPackage}`);
+            } else {
+              console.log(`[dev-inspector] [acp] Failed to resolve npm package, falling back to: ${agent.command}`);
+            }
+          }
+          
           // Create ACP provider with persistSession enabled
           provider = createACPProvider({
-            command: agent.command,
-            args: agent.args,
+            command,
+            args,
             env: { ...process.env, ...envVars },
             session: {
               cwd,
@@ -459,9 +481,22 @@ export function setupAcpMiddleware(
       } else {
         // Fallback: Create new provider (backward compatibility or missing session)
         console.log(`[dev-inspector] [acp] Creating new provider (no session found or provided)`);
+        
+        // Try to resolve npm package bin if npmPackage is specified
+        let command = agent.command;
+        let args = agent.args;
+        if (agent.npmPackage) {
+          const binPath = resolveNpmPackageBin(agent.npmPackage);
+          if (binPath) {
+            command = binPath;
+            args = agent.npmArgs || [];
+            console.log(`[dev-inspector] [acp] Using resolved npm package: ${agent.npmPackage}`);
+          }
+        }
+        
         provider = createACPProvider({
-          command: agent.command,
-          args: agent.args,
+          command,
+          args,
           env: { ...process.env, ...envVars },
           session: {
             cwd,
