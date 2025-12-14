@@ -553,8 +553,8 @@ importers:
         specifier: ^1.3.0
         version: 1.3.0
       '@mcpc-tech/acp-ai-provider':
-        specifier: ^0.1.38
-        version: 0.1.38
+        specifier: ^0.1.41
+        version: 0.1.41
       '@mcpc-tech/cmcp':
         specifier: ^0.0.15
         version: 0.0.15
@@ -649,8 +649,8 @@ importers:
         specifier: ^1.2.6
         version: 1.2.6
       chrome-devtools-mcp:
-        specifier: ^0.10.1
-        version: 0.10.1
+        specifier: ^0.12.1
+        version: 0.12.1
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -1874,8 +1874,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@mcpc-tech/acp-ai-provider@0.1.38':
-    resolution: {integrity: sha512-B3J0Yx3hr6yaJUMqAMyMAXW0u/CObX1CD0fpqg+5d5il204wiyXclH3AKVbcvLmRdovZRqr688YYOxf+YE+qyw==}
+  '@mcpc-tech/acp-ai-provider@0.1.41':
+    resolution: {integrity: sha512-O9BDeqGU9OPK1xS15U4k+pvPV8dLbc7rgIh0riyPc/o06NxpNrZ4mhQDj4fRXk6Jq7zksNnuMkhyEz1peP8K7A==}
 
   '@mcpc-tech/cmcp@0.0.15':
     resolution: {integrity: sha512-o03iDZpacozvQTn5F0e2UvwPMinJSUZKzoGIQ1HzXnfkYdBvvrKCsU+xN3coMZ7NKMKt3iU+OMXio7u1Pud3YQ==}
@@ -4587,8 +4587,8 @@ packages:
     resolution: {integrity: sha512-+IxzY9BZOQd/XuYPRmrvEVjF/nqj5kgT4kEq7VofrDoM1MxoRjEWkrCC3EtLi59TVawxTAn+orJwFQcrqEN1+g==}
     engines: {node: '>=18'}
 
-  chrome-devtools-mcp@0.10.1:
-    resolution: {integrity: sha512-jyDAbaf2zyl4HVa8vfRqwkCCqT+QpuiRgrEQ6iodqOb5BaqATQb9zZARqYGIDNlwEpmAhKvhkQ0w+0R9dvCc2A==}
+  chrome-devtools-mcp@0.12.1:
+    resolution: {integrity: sha512-QREfGxJVVlBrjKdyis9px6UHyXix+Rre9nCkqX7CY7GsU8c6azOwwV8inQB8E3h2/QGqi4sCSF8fmjfAvmE07Q==}
     engines: {node: ^20.19.0 || ^22.12.0 || >=23}
     hasBin: true
 
@@ -9583,7 +9583,7 @@ snapshots:
   '@lmdb/lmdb-win32-x64@3.4.3':
     optional: true
 
-  '@mcpc-tech/acp-ai-provider@0.1.38':
+  '@mcpc-tech/acp-ai-provider@0.1.41':
     dependencies:
       '@agentclientprotocol/sdk': 0.4.9
       '@ai-sdk/provider': 2.0.0
@@ -12372,7 +12372,7 @@ snapshots:
 
   chownr@3.0.0: {}
 
-  chrome-devtools-mcp@0.10.1: {}
+  chrome-devtools-mcp@0.12.1: {}
 
   chrome-trace-event@1.0.4: {}
 
@@ -13121,7 +13121,7 @@ snapshots:
       eslint: 9.39.1(jiti@2.6.1)
       eslint-import-resolver-node: 0.3.9
       eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.1(jiti@2.6.1)))(eslint@9.39.1(jiti@2.6.1))
-      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.1(jiti@2.6.1)))(eslint@9.39.1(jiti@2.6.1)))(eslint@9.39.1(jiti@2.6.1))
+      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.1(jiti@2.6.1))
       eslint-plugin-jsx-a11y: 6.10.2(eslint@9.39.1(jiti@2.6.1))
       eslint-plugin-react: 7.37.5(eslint@9.39.1(jiti@2.6.1))
       eslint-plugin-react-hooks: 7.0.1(eslint@9.39.1(jiti@2.6.1))
@@ -13154,7 +13154,7 @@ snapshots:
       tinyglobby: 0.2.15
       unrs-resolver: 1.11.1
     optionalDependencies:
-      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.1(jiti@2.6.1)))(eslint@9.39.1(jiti@2.6.1)))(eslint@9.39.1(jiti@2.6.1))
+      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.1(jiti@2.6.1))
     transitivePeerDependencies:
       - supports-color
 
@@ -13168,7 +13168,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-plugin-import@2.32.0(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.1(jiti@2.6.1)))(eslint@9.39.1(jiti@2.6.1)))(eslint@9.39.1(jiti@2.6.1)):
+  eslint-plugin-import@2.32.0(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.1(jiti@2.6.1)):
     dependencies:
       '@rtsao/scc': 1.1.0
       array-includes: 3.1.9

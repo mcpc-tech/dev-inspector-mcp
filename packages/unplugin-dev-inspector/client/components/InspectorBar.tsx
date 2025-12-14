@@ -20,10 +20,11 @@ import { useTextBuffer } from "../hooks/useTextBuffer";
 import { AVAILABLE_AGENTS, DEFAULT_AGENT } from "../constants/agents";
 import { useDraggable } from "../hooks/useDraggable";
 import { useAgent } from "../hooks/useAgent";
+import { getDevServerBaseUrl } from "../utils/config-loader";
 interface InspectorBarProps {
   isActive: boolean;
   onToggleInspector: () => void;
-  onSubmitAgent: (query: string, agentName: string) => void;
+  onSubmitAgent: (query: string, agentName: string, sessionId?: string) => void;
   onCancel?: () => void;
   isAgentWorking: boolean;
   messages: UIMessage[];
@@ -31,6 +32,7 @@ interface InspectorBarProps {
   inspectionCount?: number;
   inspectionItems?: InspectionItem[];
   onRemoveInspection?: (id: string) => void;
+  toolsReady?: boolean;
 }
 
 export const InspectorBar = ({
@@ -44,6 +46,7 @@ export const InspectorBar = ({
   inspectionCount = 0,
   inspectionItems = [],
   onRemoveInspection = () => {},
+  toolsReady = true, // Default to true if not provided (backward compatibility)
 }: InspectorBarProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [input, setInput] = useState("");
@@ -52,8 +55,84 @@ export const InspectorBar = ({
   const [hideInputDuringWork, setHideInputDuringWork] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [allowHover, setAllowHover] = useState(true);
-  const { agent: selectedAgent, setAgent: setSelectedAgent } = useAgent(DEFAULT_AGENT);
+  const { agent: selectedAgent, setAgent: setSelectedAgent, isReady } = useAgent(DEFAULT_AGENT);
   const [isAgentSelectorOpen, setIsAgentSelectorOpen] = useState(false);
+
+  // Session State
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const sessionIdRef = useRef<string | null>(null);
+
+  // Init session on mount or agent change
+  useEffect(() => {
+    // Wait for Config (isReady) AND Client Tools (toolsReady)
+    if (!isReady || !toolsReady) return;
+
+    let mounted = true;
+    const currentAgent =
+      AVAILABLE_AGENTS.find((a) => a.name === selectedAgent) || AVAILABLE_AGENTS[0];
+
+    const initSession = async () => {
+      // Cleanup previous session if existence
+      if (sessionIdRef.current) {
+        try {
+          await fetch(`${getDevServerBaseUrl()}/api/acp/cleanup-session`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sessionId: sessionIdRef.current }),
+          });
+        } catch (e) {
+          console.warn("[InspectorBar] Failed to cleanup previous session:", e);
+        }
+        sessionIdRef.current = null;
+        if (mounted) setSessionId(null);
+      }
+
+      console.log(`[InspectorBar] Initializing session for ${currentAgent.name}...`);
+
+      try {
+        const response = await fetch(`${getDevServerBaseUrl()}/api/acp/init-session`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            agent: currentAgent,
+            envVars: {}, // TODO: Add env var support if needed in InspectorBar
+          }),
+        });
+
+        if (!response.ok) throw new Error("Failed to init session");
+
+        const data = await response.json();
+        if (mounted && data.sessionId) {
+          console.log(`[InspectorBar] Session initialized: ${data.sessionId}`);
+          setSessionId(data.sessionId);
+          sessionIdRef.current = data.sessionId;
+        }
+      } catch (error) {
+        console.error("[InspectorBar] Failed to initialize session:", error);
+      }
+    };
+
+    initSession();
+
+    return () => {
+      mounted = false;
+    };
+  }, [selectedAgent, isReady, toolsReady]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (sessionIdRef.current) {
+        console.log(`[InspectorBar] Cleaning up session on unmount: ${sessionIdRef.current}`);
+        fetch(`${getDevServerBaseUrl()}/api/acp/cleanup-session`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId: sessionIdRef.current }),
+          keepalive: true,
+        }).catch((e) => console.warn("[InspectorBar] Failed to cleanup session:", e));
+      }
+    };
+  }, []);
 
   // Get current agent info
   const currentAgent =
@@ -270,7 +349,7 @@ export const InspectorBar = ({
     setHideInputDuringWork(true);
     setIsLocked(true);
 
-    onSubmitAgent(input, selectedAgent);
+    onSubmitAgent(input, selectedAgent, sessionId || undefined);
     setInput("");
 
     // Auto-expand chat panel to show message detail

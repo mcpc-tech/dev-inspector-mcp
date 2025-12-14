@@ -154,28 +154,35 @@ export function registerInspectorTool(tool) {
 }
 
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
-  // Create inspector element
-  const inspector = document.createElement('dev-inspector-mcp');
-  document.body.appendChild(inspector);
+  // Skip if already loaded (e.g., by HTML injection)
+  if (window.__DEV_INSPECTOR_LOADED__) {
+    // Already initialized, skip
+  } else {
+    window.__DEV_INSPECTOR_LOADED__ = true;
+    
+    // Create inspector element
+    const inspector = document.createElement('dev-inspector-mcp');
+    document.body.appendChild(inspector);
 
-  // Store dev server config globally
-  window.__DEV_INSPECTOR_CONFIG__ = {
-    host: '${host}',
-    port: '${port}',
-    base: '/',
-    showInspectorBar: ${showInspectorBar}
-  };
+    // Store dev server config globally
+    window.__DEV_INSPECTOR_CONFIG__ = {
+      host: '${host}',
+      port: '${port}',
+      base: '/',
+      showInspectorBar: ${showInspectorBar}
+    };
 
-  // Dynamically load inspector script
-  const script = document.createElement('script');
-  const config = window.__DEV_INSPECTOR_CONFIG__;
-  let baseUrl = 'http://' + config.host + ':' + config.port + config.base;
-  if (baseUrl.endsWith('/')) {
-    baseUrl = baseUrl.slice(0, -1);
+    // Dynamically load inspector script
+    const script = document.createElement('script');
+    const config = window.__DEV_INSPECTOR_CONFIG__;
+    let baseUrl = 'http://' + config.host + ':' + config.port + config.base;
+    if (baseUrl.endsWith('/')) {
+      baseUrl = baseUrl.slice(0, -1);
+    }
+    script.src = baseUrl + '/__inspector__/inspector.iife.js';
+    script.type = 'module';
+    document.head.appendChild(script);
   }
-  script.src = baseUrl + '/__inspector__/inspector.iife.js';
-  script.type = 'module';
-  document.head.appendChild(script);
 }
 `;
         }

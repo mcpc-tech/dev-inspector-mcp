@@ -37,6 +37,8 @@ interface ACPAgentProps {
 const ACPAgent = ({ sourceInfo, onClose }: ACPAgentProps = {}) => {
   const [input, setInput] = useState("");
   const { agent: selectedAgent, setAgent: setSelectedAgent } = useAgent(DEFAULT_AGENT);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [isInitializing, setIsInitializing] = useState(false);
 
   const currentAgent =
     AVAILABLE_AGENTS.find((agent) => agent.name === selectedAgent) || AVAILABLE_AGENTS[0];
@@ -44,10 +46,85 @@ const ACPAgent = ({ sourceInfo, onClose }: ACPAgentProps = {}) => {
   const { envVars, setEnvVar } = useAgentEnv(currentAgent.command, requiredKeys);
 
   const selectedAgentRef = useRef(selectedAgent);
+  const sessionIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     selectedAgentRef.current = selectedAgent;
   }, [selectedAgent]);
+
+  // Initialize session when agent changes or on mount
+  useEffect(() => {
+    let cancelled = false;
+
+    const initSession = async () => {
+      // Clean up previous session if exists
+      if (sessionIdRef.current) {
+        try {
+          await fetch(`${getDevServerBaseUrl()}/api/acp/cleanup-session`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sessionId: sessionIdRef.current }),
+          });
+        } catch (e) {
+          console.warn("[AcpAgent] Failed to cleanup previous session:", e);
+        }
+      }
+
+      setIsInitializing(true);
+      setSessionId(null);
+      sessionIdRef.current = null;
+
+      // Prepare env vars
+      const preparedEnv: Record<string, string> = {};
+      currentAgent.env.forEach((envConfig) => {
+        preparedEnv[envConfig.key] = envVars[envConfig.key] ?? "";
+      });
+
+      try {
+        console.log(`[AcpAgent] Initializing session for ${currentAgent.name}...`);
+        const response = await fetch(`${getDevServerBaseUrl()}/api/acp/init-session`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            agent: currentAgent,
+            envVars: preparedEnv,
+          }),
+        });
+
+        if (!cancelled && response.ok) {
+          const data = await response.json();
+          console.log(`[AcpAgent] Session initialized: ${data.sessionId}`);
+          setSessionId(data.sessionId);
+          sessionIdRef.current = data.sessionId;
+        }
+      } catch (error) {
+        console.error("[AcpAgent] Failed to initialize session:", error);
+      } finally {
+        if (!cancelled) {
+          setIsInitializing(false);
+        }
+      }
+    };
+
+    initSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedAgent, currentAgent.name]); // Re-init when agent changes
+
+  // Cleanup session on unmount
+  useEffect(() => {
+    return () => {
+      if (sessionIdRef.current) {
+        fetch(`${getDevServerBaseUrl()}/api/acp/cleanup-session`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId: sessionIdRef.current }),
+        }).catch(() => {});
+      }
+    };
+  }, []);
 
   const { messages, sendMessage, status, stop } = useChat({
     transport: new DefaultChatTransport({
@@ -76,6 +153,7 @@ const ACPAgent = ({ sourceInfo, onClose }: ACPAgentProps = {}) => {
         body: {
           agent: currentAgent,
           envVars: preparedEnv,
+          sessionId: sessionId, // Pass sessionId to use pre-initialized session
         },
       },
     );
@@ -109,14 +187,17 @@ const ACPAgent = ({ sourceInfo, onClose }: ACPAgentProps = {}) => {
                 )}
               </Message>
             ))}
+            {isInitializing && messages.length === 0 && (
+              <div className="flex flex-col items-center gap-2 py-4">
+                <Loader />
+                <span className="text-xs text-muted-foreground animate-pulse">
+                  Initializing {currentAgent.name}...
+                </span>
+              </div>
+            )}
             {status === "submitted" && (
               <div className="flex flex-col items-center gap-2 py-4">
                 <Loader />
-                {currentAgent.command === "npx" && (
-                  <span className="text-xs text-muted-foreground animate-pulse">
-                    Starting {currentAgent.name}... This may take a moment on first run.
-                  </span>
-                )}
               </div>
             )}
           </ConversationContent>
@@ -129,7 +210,10 @@ const ACPAgent = ({ sourceInfo, onClose }: ACPAgentProps = {}) => {
           <PromptInputTextarea
             onChange={(e) => setInput(e.target.value)}
             value={input}
-            placeholder="What would you like to know?"
+            placeholder={
+              isInitializing ? `Preparing ${currentAgent.name}...` : "What would you like to know?"
+            }
+            disabled={isInitializing}
           />
           <PromptInputToolbar>
             <PromptInputTools>
@@ -154,7 +238,9 @@ const ACPAgent = ({ sourceInfo, onClose }: ACPAgentProps = {}) => {
             </PromptInputTools>
             <PromptInputSubmit
               onAbort={stop}
-              disabled={!input || requiredKeys.some((k) => !(envVars[k] ?? "").trim())}
+              disabled={
+                isInitializing || !input || requiredKeys.some((k) => !(envVars[k] ?? "").trim())
+              }
               status={status}
             />
           </PromptInputToolbar>

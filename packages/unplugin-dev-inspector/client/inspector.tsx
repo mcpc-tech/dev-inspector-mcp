@@ -28,7 +28,7 @@ interface InspectorContainerProps {
 }
 
 const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mountPoint }) => {
-  useMcp();
+  const { isClientReady } = useMcp();
   const { resolvedTheme } = useInspectorTheme();
   const showInspectorBar = getShowInspectorBar();
 
@@ -212,7 +212,7 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
     if (tooltipRef.current) tooltipRef.current.style.display = "none";
   };
 
-  const handleAgentSubmit = (query: string, agentName: string) => {
+  const handleAgentSubmit = (query: string, agentName: string, sessionId?: string) => {
     const currentAgent = AVAILABLE_AGENTS.find((a) => a.name === agentName) || AVAILABLE_AGENTS[0];
     sendMessage(
       { text: query },
@@ -220,6 +220,7 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
         body: {
           agent: currentAgent,
           envVars: {},
+          sessionId,
         },
       },
     );
@@ -240,6 +241,7 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
         <div className="pointer-events-auto">
           {showInspectorBar && (
             <InspectorBar
+              toolsReady={isClientReady} // Wait for client tools
               isActive={isActive}
               onToggleInspector={toggleInspector}
               onSubmitAgent={handleAgentSubmit}

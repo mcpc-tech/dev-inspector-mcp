@@ -1,6 +1,6 @@
 import { Client } from "@modelcontextprotocol/sdk/client";
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClientExecClient } from "@mcpc-tech/cmcp";
 import { TOOL_SCHEMAS } from "../../src/tool-schemas.js";
 import { getDevServerBaseUrl } from "../utils/config-loader";
@@ -314,6 +314,7 @@ function updateInspectionStatus(args: any) {
 
 export function useMcp() {
   const clientRef = useRef<Client | null>(null);
+  const [isClientReady, setIsClientReady] = useState(false);
 
   useEffect(() => {
     if (clientRef.current) return;
@@ -458,6 +459,7 @@ export function useMcp() {
       .connect(transport)
       .then(() => {
         clientRef.current = client;
+        setIsClientReady(true);
       })
       .catch((err) => {
         console.error("MCP connection error:", err);
@@ -471,5 +473,5 @@ export function useMcp() {
     };
   }, []);
 
-  return clientRef.current;
+  return { client: clientRef.current, isClientReady };
 }

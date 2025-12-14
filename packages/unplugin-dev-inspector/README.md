@@ -419,7 +419,7 @@ registerInspectorTool({
   implementation: (args) => {
     // This runs in the browser!
     const user = window.useUserStore?.getState();
-    
+
     if (args.includeToken) {
       return { user, token: localStorage.getItem('token') };
     }
