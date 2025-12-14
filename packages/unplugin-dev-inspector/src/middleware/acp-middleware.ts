@@ -1,5 +1,6 @@
 import type { Connect } from "vite";
 import type { IncomingMessage, ServerResponse } from "http";
+import { execSync } from "child_process";
 import { streamText, convertToModelMessages, tool, jsonSchema } from "ai";
 import { createACPProvider, acpTools } from "@mcpc-tech/acp-ai-provider";
 import { planEntrySchema } from "@agentclientprotocol/sdk";
@@ -11,6 +12,22 @@ import type { JSONRPCMessage } from "@modelcontextprotocol/sdk/types.js";
 import { getConnectionManager } from "./mcproute-middleware";
 
 export type { AcpOptions };
+
+/**
+ * Check if a command exists in the system PATH
+ * Skips check for npx since it always exists
+ */
+function checkCommandExists(command: string): boolean {
+  if (command === "npx" || command === "node") {
+    return true; // npx and node are always available
+  }
+  try {
+    execSync(`which ${command}`, { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 interface ToolInfo {
   name: string;
@@ -234,6 +251,23 @@ export function setupAcpMiddleware(
           console.log(`[dev-inspector] [acp] Reusing existing provider for ${agent.name}`);
           provider = providerEntry.provider;
         } else {
+          // Check if command exists before attempting to spawn
+          if (!checkCommandExists(agent.command)) {
+            const hints: string[] = [`Agent "${agent.name}" command not found: "${agent.command}"`];
+            if (agent.installCommand) {
+              hints.push(`Install with: ${agent.installCommand}`);
+            }
+            if (agent.configHint) {
+              hints.push(agent.configHint);
+            }
+            if (agent.configLink) {
+              hints.push(`Documentation: ${agent.configLink}`);
+            }
+            // Log error and return - do not throw to avoid crashing the server
+            console.error(`\n${hints.join('\n')}\n`);
+            return;
+          }
+          
           console.log(`[dev-inspector] [acp] Creating new global provider for ${agent.name}`);
           // Create ACP provider with persistSession enabled
           provider = createACPProvider({
@@ -302,26 +336,8 @@ export function setupAcpMiddleware(
         try {
           sessionId = await initPromise;
           console.log(`[dev-inspector] [acp] Session initialized: ${sessionId}`);
-        } catch (error: any) {
-          if (providerEntry) providerEntry.initializationPromise = undefined; // Clear if failed
-          
-          // Handle spawn errors (ENOENT = command not found)
-          if (error?.code === 'ENOENT' || error?.message?.includes('ENOENT')) {
-            const hints: string[] = [];
-            if (agent.installCommand) {
-              hints.push(`Install with: ${agent.installCommand}`);
-            }
-            if (agent.configHint) {
-              hints.push(agent.configHint);
-            }
-            if (agent.configLink) {
-              hints.push(`Documentation: ${agent.configLink}`);
-            }
-            const hintMessage = hints.length > 0 ? `\n\n${hints.join('\n')}` : '';
-            throw new Error(
-              `Agent "${agent.name}" command not found: "${agent.command}".${hintMessage}`
-            );
-          }
+        } catch (error) {
+          if (providerEntry) providerEntry.initializationPromise = undefined;
           throw error;
         }
       }
@@ -329,6 +345,11 @@ export function setupAcpMiddleware(
       res.setHeader("Content-Type", "application/json");
       res.end(JSON.stringify({ sessionId }));
     } catch (error) {
+      // Re-throw command not found errors to exit the server
+      if (error instanceof Error && error.message.includes('command not found')) {
+        throw error;
+      }
+      
       console.error("ACP Init Session Error:", error);
       if (!res.headersSent) {
         res.statusCode = 500;
