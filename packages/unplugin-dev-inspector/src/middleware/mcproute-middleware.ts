@@ -32,7 +32,7 @@ export async function setupMcpMiddleware(
 
     // Handle CORS for MCP endpoints
     if (url.startsWith("/__mcp__")) {
-      if (handleCors(res, req.method)) return;
+      if (handleCors(req, res)) return;
     }
 
     // Streamable HTTP endpoint

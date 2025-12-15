@@ -95,7 +95,7 @@ export function setupInspectorMiddleware(middlewares: Connect.Server, config?: I
   middlewares.use((req: IncomingMessage, res: ServerResponse, next: () => void) => {
     // Handle CORS for inspector endpoints
     if (req.url?.startsWith("/__inspector__")) {
-      if (handleCors(res, req.method)) return;
+      if (handleCors(req, res)) return;
     }
 
     if (!filesChecked) {

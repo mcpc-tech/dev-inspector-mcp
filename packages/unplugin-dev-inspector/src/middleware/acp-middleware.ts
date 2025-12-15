@@ -204,7 +204,7 @@ export function setupAcpMiddleware(
    * Returns: { sessionId }
    */
   middlewares.use("/api/acp/init-session", async (req: IncomingMessage, res: ServerResponse) => {
-    if (handleCors(res, req.method)) return;
+    if (handleCors(req, res)) return;
 
     if (req.method !== "POST") {
       res.statusCode = 405;
@@ -390,7 +390,7 @@ export function setupAcpMiddleware(
    * Body: { sessionId }
    */
   middlewares.use("/api/acp/cleanup-session", async (req: IncomingMessage, res: ServerResponse) => {
-    if (handleCors(res, req.method)) return;
+    if (handleCors(req, res)) return;
 
     if (req.method !== "POST") {
       res.statusCode = 405;
@@ -444,7 +444,7 @@ export function setupAcpMiddleware(
    * Body: { messages, agent, envVars, sessionId? }
    */
   middlewares.use("/api/acp/chat", async (req: IncomingMessage, res: ServerResponse) => {
-    if (handleCors(res, req.method)) return;
+    if (handleCors(req, res)) return;
 
     if (req.method !== "POST") {
       res.statusCode = 405;
