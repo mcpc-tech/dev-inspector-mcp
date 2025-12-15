@@ -108,17 +108,30 @@ export const createDevInspectorPlugin = (
     // Alternative module name for Webpack (doesn't support virtual: scheme)
     const webpackModuleName = virtualModuleName.replace("virtual:", "");
 
+    // Populated by Vite's apply() hook.
+    let viteCommand: "serve" | "build" | undefined;
+
     // Resolved server config (populated by Vite's configResolved hook)
     let resolvedHost = options.host || "localhost";
     let resolvedPort = options.port || 5173;
 
-    if (!enabled) {
-      return {
-        name,
-      };
-    }
+    const transformImpl = transformFactory(options);
+    const transform: TransformFunction = (code, id) => {
+      // Never transform production builds.
+      if (!enabled) return null;
+      if (viteCommand && viteCommand !== "serve") return null;
+      return transformImpl(code, id);
+    };
 
-    const transform = transformFactory(options);
+    const createNoopVirtualModule = () => {
+      // Keep this file side-effect free so a bare import can be tree-shaken.
+      return `
+// Production build - no-op
+export function registerInspectorTool(_tool) {
+  // No-op in production
+}
+`;
+    };
 
     return {
       name,
@@ -133,6 +146,12 @@ export const createDevInspectorPlugin = (
 
       load(id) {
         if (id === "\0" + virtualModuleName) {
+          // During production builds (or when disabled), provide a no-op module so
+          // builds never fail even if user code still imports the virtual module.
+          if (!enabled || viteCommand === "build") {
+            return createNoopVirtualModule();
+          }
+
           // Use resolved host/port from Vite config
           const host = resolvedHost;
           const port = resolvedPort;
@@ -154,9 +173,13 @@ if (typeof window !== 'undefined') {
 
 /**
  * Register a custom tool for the inspector
+ * Only registers in development mode
  */
 export function registerInspectorTool(tool) {
+  // Skip in production (when bundler replaces import.meta.env.DEV with false)
+  if (!import.meta.env.DEV) return;
   if (typeof window === 'undefined') return;
+  
   window.__INSPECTOR_TOOLS__ = window.__INSPECTOR_TOOLS__ || [];
   window.__INSPECTOR_TOOLS__.push(tool);
 }
@@ -200,7 +223,10 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
 
       // Vite-specific hooks
       vite: {
-        apply: "serve",
+        apply(_config, env) {
+          viteCommand = env.command;
+          return true;
+        },
 
         configResolved(config) {
           // Capture resolved Vite config for virtual module
@@ -218,6 +244,8 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
         transformIndexHtml: {
           order: "pre",
           handler(html, ctx) {
+            if (!enabled) return html;
+            if (viteCommand !== "serve") return html;
             const autoInject = options.autoInject ?? true;
             if (!autoInject) return html;
 
@@ -271,6 +299,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
         },
 
         async configureServer(server) {
+          if (!enabled) return;
           const viteHost = server.config.server.host;
           const serverContext = {
             // Priority: user option > Vite config > fallback to 'localhost'
@@ -441,7 +470,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
 
       // esbuild-specific hooks
       esbuild: {
-        setup(build) {
+        setup(_build) {
           // esbuild implementation
         },
       },

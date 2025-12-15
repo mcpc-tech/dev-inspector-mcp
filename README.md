@@ -150,7 +150,7 @@ DevInspector.vite({
 import 'virtual:dev-inspector-mcp';  // ← Add this import
 ```
 
-**✅ Zero Production Impact:** This import is automatically removed in production builds via tree-shaking. The entire dev-inspector code is wrapped in `if (import.meta.env.DEV)` guards, which bundlers statically replace with `false` during production builds.
+**✅ Zero Production Impact:** In production builds, `virtual:dev-inspector-mcp` becomes a no-op module. The inspector runtime is guarded by `if (import.meta.env.DEV)`, which bundlers statically replace with `false` during production builds.
 
 ##### Custom Virtual Module Name
 
