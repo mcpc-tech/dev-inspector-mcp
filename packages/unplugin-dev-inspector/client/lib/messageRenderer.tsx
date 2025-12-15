@@ -16,7 +16,7 @@ import { CodeBlock } from "../../src/components/ai-elements/code-block";
 import type { ProviderAgentDynamicToolInput } from "@mcpc-tech/acp-ai-provider";
 
 type UITool = { name?: string };
-type UIMessagePart<TMeta = Record<string, unknown>, TToolMap = Record<string, UITool>> =
+type UIMessagePart<TMeta = Record<string, unknown>, _TToolMap = Record<string, UITool>> =
   | {
     type: "text";
     text: string;
@@ -126,10 +126,24 @@ export function renderMessagePart(
 
   // Handle tool calls with type starting with "tool-"
   if (isToolPart(part)) {
-    const removeBrand = (title: string) => {
-      // ai sdk tools
-      title = title.replace("acp-ai-sdk-tools", "");
-      return title;
+    const normalizeToolName = (rawName: string) => {
+      let name = rawName;
+
+      // Some providers include prefixes/namespaces that we don't want to show in UI.
+      name = name.replace(/^tool-/, "");
+      name = name.replace(/^mcp__/, "");
+
+      // Strip ACP AI SDK tools branding across common separators.
+      // Examples:
+      // - mcp__acp_ai_sdk_tools__show_alert
+      // - acp-ai-sdk-tools/show_alert
+      name = name.replace(/(^|__|\/)(acp[-_]?ai[-_]?sdk[-_]?tools)(?=__|\/|$)/g, "$1");
+
+      // Normalize repeated separators.
+      name = name.replace(/^__+/, "").replace(/__+$/, "");
+      name = name.replace(/__{3,}/g, "__");
+
+      return name || rawName;
     };
     const toolInput = part.input as ProviderAgentDynamicToolInput | undefined;
 
@@ -138,7 +152,8 @@ export function renderMessagePart(
       return null;
     }
 
-    const toolType = removeBrand(toolInput.toolName) as `tool-${string}`;
+    const normalizedToolName = normalizeToolName(toolInput.toolName);
+    const toolType = `tool-${normalizedToolName}` as `tool-${string}`;
     const toolState = part.state as
       | "input-streaming"
       | "input-available"
@@ -149,11 +164,13 @@ export function renderMessagePart(
     // Truncate tool title if too long
     const maxTitleLength = 20;
     const displayTitle =
-      toolType.length > maxTitleLength ? `${toolType.slice(0, maxTitleLength)}...` : toolType;
+      normalizedToolName.length > maxTitleLength
+        ? `${normalizedToolName.slice(0, maxTitleLength)}...`
+        : normalizedToolName;
 
     return (
       <Tool key={`${messageId}-${index}`} defaultOpen={hasOutput}>
-        <ToolHeader title={removeBrand(displayTitle)} type={toolType} state={toolState} />
+        <ToolHeader title={displayTitle} type={toolType} state={toolState} />
         <ToolContent>
           {part.input !== undefined && <ToolInput input={toolInput.args} />}
           {hasOutput && (
