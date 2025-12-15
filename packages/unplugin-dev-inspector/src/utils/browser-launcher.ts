@@ -1,5 +1,6 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
+import { isChromeDisabled } from "./helpers";
 import type { ServerContext } from "../mcp";
 
 let sharedClient: Client | null = null;
@@ -92,6 +93,15 @@ export interface BrowserLaunchOptions {
  */
 export async function launchBrowserWithDevTools(options: BrowserLaunchOptions): Promise<boolean> {
   const { url, serverContext } = options;
+  const chromeDisabled = isChromeDisabled(serverContext.disableChrome);
+
+  if (chromeDisabled) {
+    console.log(
+      `[dev-inspector] 📴 Skipping browser launch: Chrome integration disabled (DEV_INSPECTOR_DISABLE_CHROME=1 or disableChrome: true)`,
+    );
+    return false;
+  }
+
   const host = serverContext.host === "0.0.0.0" ? "localhost" : serverContext.host || "localhost";
   const port = serverContext.port || 5173;
   const sseUrl = `http://${host}:${port}/__mcp__/sse?clientId=browser-launcher-${process.pid}`;

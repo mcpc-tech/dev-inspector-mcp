@@ -13,6 +13,7 @@ import { setupMcpMiddleware } from "./middleware/mcproute-middleware";
 import { setupInspectorMiddleware } from "./middleware/inspector-middleware";
 import { setupAcpMiddleware } from "./middleware/acp-middleware";
 import { updateMcpConfigs } from "./utils/config-updater";
+import { isEnvTruthy, getPublicBaseUrl } from "./utils/helpers";
 import {
   detectConfigs,
   detectConfig,
@@ -237,11 +238,14 @@ Example:
     const serverContext = {
       host: actualHost,
       port: actualPort,
+      disableChrome: isEnvTruthy(process.env.DEV_INSPECTOR_DISABLE_CHROME),
     };
     const displayHost = actualHost === "0.0.0.0" ? "localhost" : actualHost;
-    const publicBase = process.env.DEV_INSPECTOR_PUBLIC_BASE_URL
-      ? process.env.DEV_INSPECTOR_PUBLIC_BASE_URL.replace(/\/+$/, "")
-      : `http://${displayHost}:${actualPort}`;
+    const publicBase = getPublicBaseUrl({
+      publicBaseUrl: process.env.DEV_INSPECTOR_PUBLIC_BASE_URL,
+      host: displayHost,
+      port: actualPort
+    });
     const baseUrl = `${publicBase}/__mcp__/sse`;
 
     console.log(`[dev-inspector] 📡 MCP (Standalone): ${baseUrl}\n`);

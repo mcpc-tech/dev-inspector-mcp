@@ -5,6 +5,7 @@ import { setupInspectorMiddleware } from "../middleware/inspector-middleware";
 import { setupAcpMiddleware } from "../middleware/acp-middleware";
 import { updateMcpConfigs, type McpConfigOptions } from "./config-updater";
 import { launchBrowserWithDevTools } from "./browser-launcher";
+import { stripTrailingSlash, isChromeDisabled, getPublicBaseUrl } from "./helpers";
 import type { Agent, AcpOptions } from "../../client/constants/types";
 
 export interface DevInspectorOptions extends McpConfigOptions, AcpOptions {
@@ -87,6 +88,13 @@ export interface DevInspectorOptions extends McpConfigOptions, AcpOptions {
   autoOpenBrowser?: boolean;
 
   /**
+   * Disable Chrome DevTools integration entirely (chrome_devtools tool + related prompts).
+   * Can also be controlled via DEV_INSPECTOR_DISABLE_CHROME=1
+   * @default false
+   */
+  disableChrome?: boolean;
+
+  /**
    * Custom browser launch URL
    * If not specified, uses the dev server URL (e.g., http://localhost:5173)
    * @example "http://localhost:5173/dashboard"
@@ -129,11 +137,7 @@ export const createDevInspectorPlugin = (
 
     const transformImpl = transformFactory(options);
 
-    const stripTrailingSlash = (url: string) => url.replace(/\/+$/, "");
-    const getPublicBaseUrl = (fallbackHttpHostPort: string) => {
-      const fromOptions = options.publicBaseUrl || process.env.DEV_INSPECTOR_PUBLIC_BASE_URL;
-      return fromOptions ? stripTrailingSlash(fromOptions) : fallbackHttpHostPort;
-    };
+    const chromeDisabled = isChromeDisabled(options.disableChrome);
 
     const transform: TransformFunction = (code, id) => {
       // Never transform production builds.
@@ -327,8 +331,6 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
           if (!enabled) return;
           const viteHost = server.config.server.host;
           const serverContext = {
-            // Priority: user option > Vite config > fallback to 'localhost'
-            // Normalize Vite host: if true, use '0.0.0.0', otherwise use the string value or 'localhost'
             host:
               options.host ??
               (typeof viteHost === "string"
@@ -337,11 +339,15 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
                   ? "0.0.0.0"
                   : "localhost"),
             port: options.port ?? server.config.server.port ?? 5173,
+            disableChrome: chromeDisabled,
           };
 
-          // Display MCP connection instructions (base URL, clientId added per editor)
           const displayHost = serverContext.host === "0.0.0.0" ? "localhost" : serverContext.host;
-          const publicBase = getPublicBaseUrl(`http://${displayHost}:${serverContext.port}`);
+          const publicBase = getPublicBaseUrl({
+            publicBaseUrl: options.publicBaseUrl,
+            host: displayHost,
+            port: serverContext.port
+          });
           const baseUrl = `${publicBase}/__mcp__/sse`;
           console.log(`[dev-inspector] 📡 MCP: ${baseUrl}\n`);
 
@@ -363,7 +369,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
 
           // Auto-open browser with Chrome DevTools
           const autoOpenBrowser = options.autoOpenBrowser ?? false;
-          if (autoOpenBrowser) {
+          if (autoOpenBrowser && !chromeDisabled) {
             const targetUrl = options.browserUrl ?? publicBase;
             // Delay browser launch to ensure server is ready
             setTimeout(async () => {
@@ -379,6 +385,10 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
                 );
               }
             }, 1000);
+          } else if (chromeDisabled) {
+            console.log(
+              `[dev-inspector] 📴 Chrome integration disabled (DEV_INSPECTOR_DISABLE_CHROME=1 or disableChrome: true)`,
+            );
           } else {
             console.log(
               `[dev-inspector] ⚠️  autoOpenBrowser: false - Console/Network context unavailable`,
@@ -422,10 +432,14 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
               return;
             }
 
-            const serverContext = { host, port };
+            const serverContext = { host, port, disableChrome: chromeDisabled };
 
             const displayHost = host === "0.0.0.0" ? "localhost" : host;
-            const publicBase = getPublicBaseUrl(`http://${displayHost}:${port}`);
+            const publicBase = getPublicBaseUrl({
+              publicBaseUrl: options.publicBaseUrl,
+              host: displayHost,
+              port
+            });
             const baseUrl = `${publicBase}/__mcp__/sse`;
             console.log(`[dev-inspector] 📡 MCP (Standalone): ${baseUrl}\n`);
 
@@ -448,7 +462,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
 
             // Auto-open browser with Chrome DevTools
             const autoOpenBrowser = options.autoOpenBrowser ?? false;
-            if (autoOpenBrowser) {
+            if (autoOpenBrowser && !chromeDisabled) {
               const targetUrl = options.browserUrl ?? publicBase;
               // Delay browser launch to ensure server is ready
               console.log(`[dev-inspector] 🔄 Auto-opening browser in 1s...`);
@@ -469,6 +483,10 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
                   console.error(`[dev-inspector] ❌ Browser launch error:`, err);
                 }
               }, 1000);
+            } else if (chromeDisabled) {
+              console.log(
+                `[dev-inspector] 📴 Chrome integration disabled (DEV_INSPECTOR_DISABLE_CHROME=1 or disableChrome: true)`,
+              );
             } else {
               console.log(
                 `[dev-inspector] ⚠️  autoOpenBrowser: false - Console/Network context unavailable`,

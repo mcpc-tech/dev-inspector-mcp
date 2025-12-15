@@ -232,6 +232,25 @@ async function handleSseConnection(
   connectionManager: ConnectionManager,
 ) {
   try {
+    // Many cloud reverse proxies buffer streaming responses by default.
+    // Set proxy-friendly SSE headers *before* the SDK transport starts.
+    // IMPORTANT: do not flush or write anything yet, because SSEServerTransport.start()
+    // will call res.writeHead(). If we send headers/body early, it will throw ERR_HTTP_HEADERS_SENT.
+    if (!res.headersSent) {
+      res.statusCode = 200;
+      res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+      res.setHeader("Cache-Control", "no-cache, no-transform");
+      res.setHeader("Connection", "keep-alive");
+      // Nginx: disable response buffering for SSE
+      res.setHeader("X-Accel-Buffering", "no");
+      // Avoid proxy/content encoders buffering the stream
+      res.setHeader("Content-Encoding", "identity");
+    }
+
+    // Keep the underlying socket alive as long as possible
+    res.socket?.setKeepAlive?.(true);
+    res.socket?.setTimeout?.(0);
+
     // Create MCP server for this SSE connection
     const mcpServer = await createInspectorMcpServer(serverContext);
     // Use injected serverContext for local dev server address
@@ -258,6 +277,14 @@ async function handleSseConnection(
     }
 
     await mcpServer.connect(transport);
+
+    // After the SDK has started the transport (and written headers), send a tiny SSE comment
+    // to encourage proxies to begin streaming.
+    try {
+      res.write(`: mcp-sse-connected\n\n`);
+    } catch {
+      // Best-effort only
+    }
   } catch (error) {
     console.error("Error establishing SSE connection:", error);
     if (!res.headersSent) {
