@@ -346,10 +346,36 @@ export function useMcp() {
     function handleElementInspected(event: CustomEvent) {
       if (!pendingResolve) return;
 
-      const { sourceInfo, description, inspectionId } = event.detail;
-      sessionStorage.setItem(INSPECTION_ID_KEY, inspectionId);
+      const { inspections } = event.detail;
+      
+      // Always expect an array of inspections
+      if (!inspections || !Array.isArray(inspections) || inspections.length === 0) {
+        pendingReject?.(new Error("No inspections received"));
+        clearPendingRequest();
+        return;
+      }
 
-      pendingResolve(formatResult(sourceInfo, description));
+      // Store the last inspection ID
+      const lastInspection = inspections[inspections.length - 1];
+      sessionStorage.setItem(INSPECTION_ID_KEY, lastInspection.id);
+
+      // Format all inspections
+      const results = inspections.map((item: any) => 
+        formatResult(item.sourceInfo, item.description)
+      );
+      
+      // Return single result if only one, otherwise combine them
+      if (results.length === 1) {
+        pendingResolve(results[0]);
+      } else {
+        const combinedText = inspections.map((item: any, index: number) => {
+          const { sourceInfo, description } = item;
+          return `## Inspection ${index + 1}\n\n**File**: ${sourceInfo.file}:${sourceInfo.line}:${sourceInfo.column}\n**Component**: ${sourceInfo.component}\n\n**User Request**:\n${description}\n\n${formatElementInfo(sourceInfo.elementInfo)}`;
+        }).join("\n\n---\n\n");
+        
+        pendingResolve(createTextContent(`# ${inspections.length} Elements Inspected\n\n${combinedText}`));
+      }
+      
       clearPendingRequest();
     }
 

@@ -8,7 +8,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "./ui/dialog";
-import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { PlanProgress } from "./PlanProgress";
@@ -18,7 +17,7 @@ interface FeedbackBubbleProps {
   sourceInfo: InspectedElement;
   onClose: () => void;
   mode: "input" | "loading" | "success" | "error";
-  onSubmit?: (feedback: string) => void;
+  onSubmit?: (feedback: string, continueInspecting?: boolean) => void;
   resultMessage?: string;
 }
 
@@ -34,92 +33,92 @@ export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
   const [open, setOpen] = useState(true);
 
   useEffect(() => {
-    if (!open) {
-      onClose();
-    }
+    if (!open) onClose();
   }, [open, onClose]);
 
-  const handleSubmit = () => {
+  const handleSubmit = (continueInspecting: boolean) => {
     if (feedback.trim() && onSubmit) {
-      onSubmit(feedback);
+      onSubmit(feedback, continueInspecting);
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && mode === "input" && feedback.trim() && onSubmit) {
-      onSubmit(feedback);
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && feedback.trim() && onSubmit) {
+      e.preventDefault();
+      onSubmit(feedback, e.shiftKey);
     }
   };
 
-  const isAllPlanCompleted = plan?.steps.every((s) => s.status === "completed");
+  const allStepsCompleted = plan?.steps.every((s) => s.status === "completed");
 
-  const getTitle = () => {
-    if (mode === "success") return "Processing Successful";
-    if (mode === "error") return "Processing Failed";
-    if (mode === "loading") return isAllPlanCompleted ? "Processing Successful" : "Processing...";
-    return "Feedback to AI";
-  };
+  const title = mode === "success" 
+    ? "Success" 
+    : mode === "error" 
+    ? "Error" 
+    : mode === "loading" && allStepsCompleted 
+    ? "Success" 
+    : mode === "loading" 
+    ? "Processing..." 
+    : "Describe the issue";
 
-  const getIcon = () => {
-    if (mode === "success" || (mode === "loading" && isAllPlanCompleted)) {
-      return <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-500" />;
-    }
-    if (mode === "error") return <XCircle className="h-5 w-5 text-red-600 dark:text-red-500" />;
-    if (mode === "loading")
-      return <Loader2 className="h-5 w-5 animate-spin text-blue-600 dark:text-blue-500" />;
-    return null;
-  };
-
-  const handleClose = () => setOpen(false);
+  const icon = (mode === "success" || (mode === "loading" && allStepsCompleted))
+    ? <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-500" />
+    : mode === "error"
+    ? <XCircle className="h-5 w-5 text-red-600 dark:text-red-500" />
+    : mode === "loading"
+    ? <Loader2 className="h-5 w-5 animate-spin text-blue-600 dark:text-blue-500" />
+    : null;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent onClose={handleClose} onClick={(e) => e.stopPropagation()}>
+      <DialogContent onClose={() => setOpen(false)}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            {getIcon()}
-            {getTitle()}
+            {icon}
+            {title}
           </DialogTitle>
-          <DialogDescription className="text-xs">
+          <DialogDescription className="text-xs text-muted-foreground">
             {sourceInfo.component} • {sourceInfo.file}:{sourceInfo.line}:{sourceInfo.column}
           </DialogDescription>
         </DialogHeader>
 
         {mode === "input" && (
-          <div className="grid gap-4 py-4">
-            <Input
+          <div className="py-4">
+            <textarea
               autoFocus
               value={feedback}
               onChange={(e) => setFeedback(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Enter your feedback..."
+              onKeyDown={handleKeyDown}
+              placeholder="Describe the issue - will be queued for AI analysis (Shift+Enter to continue)"
+              className="w-full min-h-[120px] px-3 py-2 rounded-md border border-input bg-background text-sm resize-y focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
         )}
 
-        {mode === "loading" && (
-          <div className="space-y-4">{plan && <PlanProgress plan={plan} />}</div>
+        {mode === "loading" && plan && (
+          <div className="space-y-4">
+            <PlanProgress plan={plan} />
+          </div>
         )}
 
         {(mode === "success" || mode === "error") && (
           <div className="space-y-4">
-            <div className="py-4 text-sm text-gray-700 dark:text-gray-300">{resultMessage}</div>
+            <p className="text-sm text-foreground">{resultMessage}</p>
             {plan && <PlanProgress plan={plan} />}
           </div>
         )}
 
-        <DialogFooter>
-          {mode === "input" && (
+        <DialogFooter className="gap-2 sm:gap-2">
+          {mode === "input" ? (
             <>
-              <Button variant="outline" onClick={() => setOpen(false)}>
-                Cancel
+              <Button variant="outline" onClick={() => handleSubmit(true)} disabled={!feedback.trim()}>
+                Submit & Continue
               </Button>
-              <Button onClick={handleSubmit} disabled={!feedback.trim()}>
+              <Button onClick={() => handleSubmit(false)} disabled={!feedback.trim()}>
                 Submit
               </Button>
             </>
-          )}
-          {(mode === "success" || mode === "error") && (
+          ) : (
             <Button onClick={() => setOpen(false)} className="w-full">
               Close
             </Button>

@@ -36,6 +36,7 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
   const [sourceInfo, setSourceInfo] = useState<InspectedElement | null>(null);
   const [bubbleMode, setBubbleMode] = useState<"input" | null>(null);
   const { inspections, setInspections } = useInspectionProgress();
+  const [currentSessionInspections, setCurrentSessionInspections] = useState<InspectionItem[]>([]);
 
   // Agent State
   const { messages, sendMessage, status, stop } = useChat({
@@ -89,7 +90,7 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
       setBubbleMode(null);
     }
 
-    showNotif(newActive ? "🔍 Inspector ON - Click any element (⌥I)" : "✅ Inspector OFF");
+    showNotif(newActive ? "🔍 Inspector ON - Click any element" : "Inspector OFF");
   }, [isActive, showNotif]);
 
   // Stable handler ref to avoid re-binding listener on state changes
@@ -136,7 +137,7 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
         setIsActive(true);
         document.body.style.cursor = "crosshair";
         setBubbleMode(null);
-        showNotif("🔍 Inspector ON - Click any element");
+        showNotif("🔍 Inspector ON");
       }
     };
 
@@ -165,7 +166,7 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
     btnRef,
   });
 
-  const handleInspectionSubmit = (description: string) => {
+  const handleInspectionSubmit = (description: string, continueInspecting = false) => {
     if (!sourceInfo) return;
 
     const inspectionId = `inspection-${Date.now()}`;
@@ -184,23 +185,35 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
     };
 
     setInspections((prev) => [...prev, newItem]);
-
-    // Dispatch the element-inspected event to resolve the MCP tool promise
-    window.dispatchEvent(
-      new CustomEvent("element-inspected", {
-        detail: {
-          sourceInfo: newItem.sourceInfo,
-          description,
-          inspectionId,
-        },
-      }),
-    );
+    
+    // Add to current session inspections
+    const updatedSessionInspections = [...currentSessionInspections, newItem];
+    setCurrentSessionInspections(updatedSessionInspections);
 
     setBubbleMode(null);
-    setIsActive(false);
-    document.body.style.cursor = "";
-
-    showNotif("✅ Inspection saved");
+    
+    if (continueInspecting) {
+      // Keep inspector active for continued inspection
+      // Don't dispatch event yet - wait for final submit
+      setIsActive(true);
+      document.body.style.cursor = "crosshair";
+      showNotif(`✅ Saved (${updatedSessionInspections.length}) - Click next element`);
+    } else {
+      // Final submit - dispatch all inspections from this session as an array
+      window.dispatchEvent(
+        new CustomEvent("element-inspected", {
+          detail: {
+            inspections: updatedSessionInspections,
+          },
+        }),
+      );
+      
+      // Clear session inspections
+      setCurrentSessionInspections([]);
+      setIsActive(false);
+      document.body.style.cursor = "";
+      showNotif(`✅ ${updatedSessionInspections.length} inspection${updatedSessionInspections.length > 1 ? 's' : ''} saved`);
+    }
   };
 
   const handleBubbleClose = () => {
