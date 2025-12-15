@@ -239,7 +239,10 @@ Example:
       port: actualPort,
     };
     const displayHost = actualHost === "0.0.0.0" ? "localhost" : actualHost;
-    const baseUrl = `http://${displayHost}:${actualPort}/__mcp__/sse`;
+    const publicBase = process.env.DEV_INSPECTOR_PUBLIC_BASE_URL
+      ? process.env.DEV_INSPECTOR_PUBLIC_BASE_URL.replace(/\/+$/, "")
+      : `http://${displayHost}:${actualPort}`;
+    const baseUrl = `${publicBase}/__mcp__/sse`;
 
     console.log(`[dev-inspector] 📡 MCP (Standalone): ${baseUrl}\n`);
 

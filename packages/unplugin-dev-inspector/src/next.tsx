@@ -5,9 +5,15 @@ import { useEffect } from "react";
 interface DevInspectorProps {
   host?: string;
   port?: string | number;
+  /**
+   * Full public reachable base URL including protocol.
+   * If provided, it overrides host/port and will be used for loading inspector assets and API calls.
+   * @example "https://your-domain.com"
+   */
+  baseUrl?: string;
 }
 
-export function DevInspector({ host = "localhost", port = "8888" }: DevInspectorProps) {
+export function DevInspector({ host = "localhost", port = "8888", baseUrl }: DevInspectorProps) {
   useEffect(() => {
     if (typeof window === "undefined") return;
     if ((window as any).__DEV_INSPECTOR_LOADED__) return;
@@ -20,13 +26,16 @@ export function DevInspector({ host = "localhost", port = "8888" }: DevInspector
       host,
       port: String(port),
       base: "/",
+      baseUrl: baseUrl,
     };
 
+    const resolvedBaseUrl = (baseUrl || `http://${host}:${port}`).replace(/\/$/, "");
+
     const script = document.createElement("script");
-    script.src = `http://${host}:${port}/__inspector__/inspector.iife.js`;
+    script.src = `${resolvedBaseUrl}/__inspector__/inspector.iife.js`;
     script.type = "module";
     document.head.appendChild(script);
-  }, [host, port]);
+  }, [host, port, baseUrl]);
 
   return null;
 }

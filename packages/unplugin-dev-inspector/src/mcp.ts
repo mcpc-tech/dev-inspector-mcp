@@ -8,7 +8,6 @@ import {
   type JSONRPCMessage,
 } from "@modelcontextprotocol/sdk/types.js";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import { PROMPT_SCHEMAS } from "./prompt-schemas.js";
 import { TOOL_SCHEMAS } from "./tool-schemas.js";
@@ -104,7 +103,7 @@ export async function createInspectorMcpServer(serverContext?: ServerContext) {
 Provides tools for inspecting network requests, console logs, and performance metrics.
 
 If Chrome is already open, this tool can connect to it directly. Otherwise, call chrome_navigate_page first to launch Chrome.
-Default dev server URL: http://${serverContext?.host || "localhost"}:${serverContext?.port || 5173}
+Default dev server URL: ${process.env.DEV_INSPECTOR_PUBLIC_BASE_URL || `http://${serverContext?.host || "localhost"}:${serverContext?.port || 5173}`}
 
 You MUST ask the user for confirmation before navigating to any URL.`,
         options: {
@@ -175,8 +174,10 @@ You MUST ask the user for confirmation before navigating to any URL.`,
   ]);
 
   // Prompts
-  mcpServer.setRequestHandler(ListPromptsRequestSchema, async (request) => {
-    const defaultUrl = `http://${serverContext?.host || "localhost"}:${serverContext?.port || 5173}`;
+  mcpServer.setRequestHandler(ListPromptsRequestSchema, async (_request) => {
+    const defaultUrl = process.env.DEV_INSPECTOR_PUBLIC_BASE_URL
+      ? process.env.DEV_INSPECTOR_PUBLIC_BASE_URL.replace(/\/+$/, "")
+      : `http://${serverContext?.host || "localhost"}:${serverContext?.port || 5173}`;
 
     return {
       prompts: [
@@ -258,7 +259,7 @@ You MUST ask the user for confirmation before navigating to any URL.`,
       .join("\n");
 
     // Dynamically update the prompts arguments
-    mcpServer.setRequestHandler(ListPromptsRequestSchema, async (request) => {
+    mcpServer.setRequestHandler(ListPromptsRequestSchema, async (_request) => {
       return {
         prompts: [
           {
@@ -344,12 +345,14 @@ You MUST ask the user for confirmation before navigating to any URL.`,
       }
 
       case "launch_chrome_devtools": {
-        const defaultUrl = `http://${serverContext?.host || "localhost"}:${serverContext?.port || 5173}`;
+        const defaultUrl = process.env.DEV_INSPECTOR_PUBLIC_BASE_URL
+          ? process.env.DEV_INSPECTOR_PUBLIC_BASE_URL.replace(/\/+$/, "")
+          : `http://${serverContext?.host || "localhost"}:${serverContext?.port || 5173}`;
         const url = (request.params.arguments?.url as string | undefined) || defaultUrl;
 
         try {
           new URL(url);
-        } catch (error) {
+        } catch {
           return {
             messages: [
               {
@@ -379,12 +382,10 @@ You MUST ask the user for confirmation before navigating to any URL.`,
           await refreshChromeState();
 
           return {
-            messages: [
-              ...(result?.content || []).map((item) => ({
-                role: "user" as const,
-                content: item,
-              })),
-            ],
+            messages: (result?.content || []).map((item) => ({
+              role: "user" as const,
+              content: item,
+            })),
           } as GetPromptResult;
         } catch (error) {
           return {
@@ -426,12 +427,10 @@ You MUST ask the user for confirmation before navigating to any URL.`,
           })) as CallToolResult;
 
           return {
-            messages: [
-              ...(result?.content || []).map((item) => ({
-                role: "user" as const,
-                content: item,
-              })),
-            ],
+            messages: (result?.content || []).map((item) => ({
+              role: "user" as const,
+              content: item,
+            })),
           } as GetPromptResult;
         } catch (error) {
           return {
@@ -473,12 +472,10 @@ You MUST ask the user for confirmation before navigating to any URL.`,
           })) as CallToolResult;
 
           return {
-            messages: [
-              ...(result?.content || []).map((item) => ({
-                role: "user" as const,
-                content: item,
-              })),
-            ],
+            messages: (result?.content || []).map((item) => ({
+              role: "user" as const,
+              content: item,
+            })),
           } as GetPromptResult;
         } catch (error) {
           return {

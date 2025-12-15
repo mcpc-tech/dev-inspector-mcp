@@ -24,13 +24,21 @@ export function getDevServerBaseUrl(): string {
         host: string;
         port: string;
         base: string;
+        baseUrl?: string;
         showInspectorBar?: boolean;
       }
     | undefined;
 
+  const base = injectedConfig?.base || "/";
+
+  // Explicit override (useful when behind proxies or when host/port are not externally reachable)
+  if (injectedConfig?.baseUrl && typeof injectedConfig.baseUrl === "string") {
+    return injectedConfig.baseUrl.replace(/\/$/, "");
+  }
+
+  // Default: dev-style host/port
   const host = injectedConfig?.host || "localhost";
   const port = injectedConfig?.port || "5173";
-  const base = injectedConfig?.base || "/";
   return `http://${host}:${port}${base}`.replace(/\/$/, "");
 }
 
