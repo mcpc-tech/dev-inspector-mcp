@@ -125,11 +125,15 @@ If you prefer to configure it manually:
 +      enabled: true,
        showInspectorBar: true, // Default: true. Set to false to hide the UI.
 +      autoOpenBrowser: false, // Default: false. Automatically open browser when server starts.
++      // Disable Chrome DevTools integration (useful in CI/headless/cloud environments)
++      // disableChrome: true,
      }),
      react(), // or vue(), svelte(), solid(), preact()
    ],
  };
 ```
+
+> 📴 **Disable Chrome DevTools integration:** set `disableChrome: true` in plugin options or export `DEV_INSPECTOR_DISABLE_CHROME=1`.
 
 > ⚠️ **Plugin order matters:** Place `DevInspector.vite()` **before** `react()`, `vue()`, `svelte()`, `solid()`, or `preact()`. Otherwise source locations may show `unknown:0:0`.
 

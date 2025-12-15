@@ -8,10 +8,10 @@ import {
   type JSONRPCMessage,
 } from "@modelcontextprotocol/sdk/types.js";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import { PROMPT_SCHEMAS } from "./prompt-schemas.js";
 import { TOOL_SCHEMAS } from "./tool-schemas.js";
+import { isChromeDisabled, stripTrailingSlash } from "./utils/helpers.js";
 
 /**
  * Get Chrome DevTools binary path from npm package, then use node to run it, faster/stabler than npx
@@ -71,12 +71,80 @@ function callMcpMethod(
 export interface ServerContext {
   host?: string;
   port?: number;
+  /**
+   * Disable Chrome DevTools integration (chrome-devtools-mcp tool + related prompts).
+   * Useful for CI/headless/cloud environments.
+   */
+  disableChrome?: boolean;
 }
 
 /**
  * Create and configure the MCP server for source inspection
  */
 export async function createInspectorMcpServer(serverContext?: ServerContext) {
+  const chromeDisabled = isChromeDisabled(serverContext?.disableChrome);
+
+  const chromeDevToolsServers = chromeDisabled
+    ? []
+    : [
+        {
+          name: "chrome_devtools",
+          description: `Access Chrome DevTools for browser diagnostics.
+
+Provides tools for inspecting network requests, console logs, and performance metrics.
+
+If Chrome is already open, this tool can connect to it directly. Otherwise, call chrome_navigate_page first to launch Chrome.
+Default dev server URL: ${process.env.DEV_INSPECTOR_PUBLIC_BASE_URL || `http://${serverContext?.host || "localhost"}:${serverContext?.port || 5173}`}
+
+You MUST ask the user for confirmation before navigating to any URL.`,
+          options: {
+            refs: [
+              // Page navigation and management
+              '<tool name="chrome.navigate_page"/>',
+              '<tool name="chrome.list_pages"/>',
+              '<tool name="chrome.select_page"/>',
+              '<tool name="chrome.close_page"/>',
+              '<tool name="chrome.new_page"/>',
+              // Element interaction
+              '<tool name="chrome.click"/>',
+              '<tool name="chrome.hover"/>',
+              '<tool name="chrome.fill"/>',
+              '<tool name="chrome.fill_form"/>',
+              '<tool name="chrome.press_key"/>',
+              '<tool name="chrome.drag"/>',
+              '<tool name="chrome.wait_for"/>',
+              // Debugging and inspection
+              '<tool name="chrome.evaluate_script"/>',
+              '<tool name="chrome.take_screenshot"/>',
+              '<tool name="chrome.take_snapshot"/>',
+              // Network inspection
+              '<tool name="chrome.list_network_requests"/>',
+              '<tool name="chrome.get_network_request"/>',
+              // Console inspection
+              '<tool name="chrome.list_console_messages"/>',
+              '<tool name="chrome.get_console_message"/>',
+              // Performance analysis
+              '<tool name="chrome.performance_start_trace"/>',
+              '<tool name="chrome.performance_stop_trace"/>',
+              '<tool name="chrome.performance_analyze_insight"/>',
+              // Dialogs and page settings
+              '<tool name="chrome.handle_dialog"/>',
+              '<tool name="chrome.resize_page"/>',
+              '<tool name="chrome.emulate"/>',
+            ] as unknown as any,
+          },
+          deps: {
+            mcpServers: {
+              chrome: {
+                transportType: "stdio" as const,
+                command: "node",
+                args: [getChromeDevToolsBinPath()],
+              },
+            },
+          },
+        },
+      ];
+
   const mcpServer = await mcpc(
     [
       {
@@ -96,64 +164,7 @@ export async function createInspectorMcpServer(serverContext?: ServerContext) {
         },
       },
     ],
-    [
-      {
-        name: "chrome_devtools",
-        description: `Access Chrome DevTools for browser diagnostics.
-
-Provides tools for inspecting network requests, console logs, and performance metrics.
-
-If Chrome is already open, this tool can connect to it directly. Otherwise, call chrome_navigate_page first to launch Chrome.
-Default dev server URL: http://${serverContext?.host || "localhost"}:${serverContext?.port || 5173}
-
-You MUST ask the user for confirmation before navigating to any URL.`,
-        options: {
-          refs: [
-            // Page navigation and management
-            '<tool name="chrome.navigate_page"/>',
-            '<tool name="chrome.list_pages"/>',
-            '<tool name="chrome.select_page"/>',
-            '<tool name="chrome.close_page"/>',
-            '<tool name="chrome.new_page"/>',
-            // Element interaction
-            '<tool name="chrome.click"/>',
-            '<tool name="chrome.hover"/>',
-            '<tool name="chrome.fill"/>',
-            '<tool name="chrome.fill_form"/>',
-            '<tool name="chrome.press_key"/>',
-            '<tool name="chrome.drag"/>',
-            '<tool name="chrome.wait_for"/>',
-            // Debugging and inspection
-            '<tool name="chrome.evaluate_script"/>',
-            '<tool name="chrome.take_screenshot"/>',
-            '<tool name="chrome.take_snapshot"/>',
-            // Network inspection
-            '<tool name="chrome.list_network_requests"/>',
-            '<tool name="chrome.get_network_request"/>',
-            // Console inspection
-            '<tool name="chrome.list_console_messages"/>',
-            '<tool name="chrome.get_console_message"/>',
-            // Performance analysis
-            '<tool name="chrome.performance_start_trace"/>',
-            '<tool name="chrome.performance_stop_trace"/>',
-            '<tool name="chrome.performance_analyze_insight"/>',
-            // Dialogs and page settings
-            '<tool name="chrome.handle_dialog"/>',
-            '<tool name="chrome.resize_page"/>',
-            '<tool name="chrome.emulate"/>',
-          ],
-        },
-        deps: {
-          mcpServers: {
-            chrome: {
-              transportType: "stdio",
-              command: "node",
-              args: [getChromeDevToolsBinPath()],
-            },
-          },
-        },
-      },
-    ],
+    chromeDevToolsServers,
   );
 
   const mcpClientExecServer = createClientExecServer(mcpServer, "inspector");
@@ -175,8 +186,10 @@ You MUST ask the user for confirmation before navigating to any URL.`,
   ]);
 
   // Prompts
-  mcpServer.setRequestHandler(ListPromptsRequestSchema, async (request) => {
-    const defaultUrl = `http://${serverContext?.host || "localhost"}:${serverContext?.port || 5173}`;
+  mcpServer.setRequestHandler(ListPromptsRequestSchema, async (_request) => {
+    const defaultUrl = process.env.DEV_INSPECTOR_PUBLIC_BASE_URL
+      ? stripTrailingSlash(process.env.DEV_INSPECTOR_PUBLIC_BASE_URL)
+      : `http://${serverContext?.host || "localhost"}:${serverContext?.port || 5173}`;
 
     return {
       prompts: [
@@ -186,29 +199,46 @@ You MUST ask the user for confirmation before navigating to any URL.`,
         {
           ...PROMPT_SCHEMAS.view_inspections,
         },
-        {
-          ...PROMPT_SCHEMAS.launch_chrome_devtools,
-          description: `Launch Chrome DevTools and navigate to the dev server for debugging and inspection. Default URL: ${defaultUrl}. You can use this default URL or provide a custom one.`,
-          arguments: [
-            {
-              name: "url",
-              description: `The URL to navigate to. Press Enter to use default: ${defaultUrl}`,
-              required: false,
-            },
-          ],
-        },
-        {
-          ...PROMPT_SCHEMAS.get_network_requests,
-        },
-        {
-          ...PROMPT_SCHEMAS.get_console_messages,
-        },
+        ...(!chromeDisabled
+          ? [
+              {
+                ...PROMPT_SCHEMAS.launch_chrome_devtools,
+                description: `Launch Chrome DevTools and navigate to the dev server for debugging and inspection. Default URL: ${defaultUrl}. You can use this default URL or provide a custom one.`,
+                arguments: [
+                  {
+                    name: "url",
+                    description: `The URL to navigate to. Press Enter to use default: ${defaultUrl}`,
+                    required: false,
+                  },
+                ],
+              },
+              {
+                ...PROMPT_SCHEMAS.get_network_requests,
+              },
+              {
+                ...PROMPT_SCHEMAS.get_console_messages,
+              },
+            ]
+          : []),
       ],
     };
   });
 
   // Helper function to refresh chrome state (network requests and console messages)
   async function refreshChromeState(): Promise<GetPromptResult> {
+    if (chromeDisabled) {
+      return {
+        messages: [
+          {
+            role: "user" as const,
+            content: {
+              type: "text",
+              text: "Chrome integration is disabled (set DEV_INSPECTOR_DISABLE_CHROME=0 to enable).",
+            },
+          },
+        ],
+      } as GetPromptResult;
+    }
     // Get network requests
     const networkResult = (await callMcpMethod(mcpServer, "tools/call", {
       name: "chrome_devtools",
@@ -258,7 +288,7 @@ You MUST ask the user for confirmation before navigating to any URL.`,
       .join("\n");
 
     // Dynamically update the prompts arguments
-    mcpServer.setRequestHandler(ListPromptsRequestSchema, async (request) => {
+    mcpServer.setRequestHandler(ListPromptsRequestSchema, async (_request) => {
       return {
         prompts: [
           {
@@ -267,31 +297,35 @@ You MUST ask the user for confirmation before navigating to any URL.`,
           {
             ...PROMPT_SCHEMAS.view_inspections,
           },
-          {
-            ...PROMPT_SCHEMAS.launch_chrome_devtools,
-          },
-          {
-            ...PROMPT_SCHEMAS.get_network_requests,
-            // TODO: currently, MCP prompt arguments are not typed, and can only be strings,
-            // see https://github.com/modelcontextprotocol/modelcontextprotocol/issues/136
-            arguments: [
-              {
-                name: "reqid",
-                description: `Optional. The request ID to get details for. If omitted, only refreshes and lists requests.\n\nAvailable requests:\n${requestOptions || "No requests available"}`,
-                required: false,
-              },
-            ],
-          },
-          {
-            ...PROMPT_SCHEMAS.get_console_messages,
-            arguments: [
-              {
-                name: "msgid",
-                description: `Optional. The message ID to get details for. If omitted, only refreshes and lists messages.\n\nAvailable messages:\n${messageOptions || "No messages available"}`,
-                required: false,
-              },
-            ],
-          },
+          ...(!chromeDisabled
+            ? [
+                {
+                  ...PROMPT_SCHEMAS.launch_chrome_devtools,
+                },
+                {
+                  ...PROMPT_SCHEMAS.get_network_requests,
+                  // TODO: currently, MCP prompt arguments are not typed, and can only be strings,
+                  // see https://github.com/modelcontextprotocol/modelcontextprotocol/issues/136
+                  arguments: [
+                    {
+                      name: "reqid",
+                      description: `Optional. The request ID to get details for. If omitted, only refreshes and lists requests.\n\nAvailable requests:\n${requestOptions || "No requests available"}`,
+                      required: false,
+                    },
+                  ],
+                },
+                {
+                  ...PROMPT_SCHEMAS.get_console_messages,
+                  arguments: [
+                    {
+                      name: "msgid",
+                      description: `Optional. The message ID to get details for. If omitted, only refreshes and lists messages.\n\nAvailable messages:\n${messageOptions || "No messages available"}`,
+                      required: false,
+                    },
+                  ],
+                },
+              ]
+            : []),
         ],
       };
     });
@@ -311,6 +345,25 @@ You MUST ask the user for confirmation before navigating to any URL.`,
 
   mcpServer.setRequestHandler(GetPromptRequestSchema, async (request) => {
     const promptName = request.params.name as keyof typeof PROMPT_SCHEMAS;
+
+    if (
+      chromeDisabled &&
+      (promptName === "launch_chrome_devtools" ||
+        promptName === "get_network_requests" ||
+        promptName === "get_console_messages")
+    ) {
+      return {
+        messages: [
+          {
+            role: "user",
+            content: {
+              type: "text",
+              text: "Chrome integration is disabled. Enable it by unsetting DEV_INSPECTOR_DISABLE_CHROME or setting it to 0/false.",
+            },
+          },
+        ],
+      } as GetPromptResult;
+    }
 
     switch (promptName) {
       case "capture_element": {
@@ -344,12 +397,14 @@ You MUST ask the user for confirmation before navigating to any URL.`,
       }
 
       case "launch_chrome_devtools": {
-        const defaultUrl = `http://${serverContext?.host || "localhost"}:${serverContext?.port || 5173}`;
+        const defaultUrl = process.env.DEV_INSPECTOR_PUBLIC_BASE_URL
+          ? stripTrailingSlash(process.env.DEV_INSPECTOR_PUBLIC_BASE_URL)
+          : `http://${serverContext?.host || "localhost"}:${serverContext?.port || 5173}`;
         const url = (request.params.arguments?.url as string | undefined) || defaultUrl;
 
         try {
           new URL(url);
-        } catch (error) {
+        } catch {
           return {
             messages: [
               {
@@ -379,12 +434,10 @@ You MUST ask the user for confirmation before navigating to any URL.`,
           await refreshChromeState();
 
           return {
-            messages: [
-              ...(result?.content || []).map((item) => ({
-                role: "user" as const,
-                content: item,
-              })),
-            ],
+            messages: (result?.content || []).map((item) => ({
+              role: "user" as const,
+              content: item,
+            })),
           } as GetPromptResult;
         } catch (error) {
           return {
@@ -426,12 +479,10 @@ You MUST ask the user for confirmation before navigating to any URL.`,
           })) as CallToolResult;
 
           return {
-            messages: [
-              ...(result?.content || []).map((item) => ({
-                role: "user" as const,
-                content: item,
-              })),
-            ],
+            messages: (result?.content || []).map((item) => ({
+              role: "user" as const,
+              content: item,
+            })),
           } as GetPromptResult;
         } catch (error) {
           return {
@@ -473,12 +524,10 @@ You MUST ask the user for confirmation before navigating to any URL.`,
           })) as CallToolResult;
 
           return {
-            messages: [
-              ...(result?.content || []).map((item) => ({
-                role: "user" as const,
-                content: item,
-              })),
-            ],
+            messages: (result?.content || []).map((item) => ({
+              role: "user" as const,
+              content: item,
+            })),
           } as GetPromptResult;
         } catch (error) {
           return {

@@ -1,5 +1,6 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { isChromeDisabled } from "./utils/helpers";
 
 import type { DevInspectorOptions } from "./core";
 
@@ -38,7 +39,7 @@ export function turbopackDevInspector(options: TurbopackDevInspectorOptions = {}
     try {
       const currentDir = path.dirname(fileURLToPath(import.meta.url));
       loaderPath = path.resolve(currentDir, "./loader.js");
-    } catch (e) {
+    } catch {
       // If all else fails, rely on package resolution?
       // Better to assume structure relative to this file
       loaderPath = "./loader.js";
@@ -48,6 +49,8 @@ export function turbopackDevInspector(options: TurbopackDevInspectorOptions = {}
   // Default to enabled in development only if not specified
   const enabled = options.enabled ?? process.env.NODE_ENV !== "production";
 
+  const chromeDisabled = isChromeDisabled(options.disableChrome);
+
   if (!enabled) {
     return {};
   }
@@ -55,6 +58,7 @@ export function turbopackDevInspector(options: TurbopackDevInspectorOptions = {}
   // Handle auto-open browser (only once)
   if (
     options.autoOpenBrowser &&
+    !chromeDisabled &&
     !browserLaunchScheduled &&
     typeof process !== "undefined" &&
     process.env.NODE_ENV !== "production"
@@ -65,6 +69,7 @@ export function turbopackDevInspector(options: TurbopackDevInspectorOptions = {}
     const { launchBrowserWithDevTools } = require("./utils/browser-launcher");
     const host = options.host || "localhost";
     const port = options.port || 8888; // Default Standalone MCP Server port
+    const publicBaseUrl = options.publicBaseUrl || process.env.DEV_INSPECTOR_PUBLIC_BASE_URL;
 
     // We delay slightly to ensure dev server is up
     setTimeout(async () => {
@@ -73,7 +78,7 @@ export function turbopackDevInspector(options: TurbopackDevInspectorOptions = {}
         // Default to Next.js port 3000 for browser URL if not specified
         // But use the MCP server port (8888) for the server connection
         await launchBrowserWithDevTools({
-          url: options.browserUrl || `http://${host}:3000`,
+          url: options.browserUrl || publicBaseUrl || `http://${host}:3000`,
           serverContext: { host, port },
         });
       } catch (e) {
