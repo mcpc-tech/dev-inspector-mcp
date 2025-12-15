@@ -43,35 +43,18 @@ type TransportWithMethods = {
 };
 
 /**
- * Session info for tracking initialized sessions
- */
-interface SessionInfo {
-  sessionId: string;
-  createdAt: number;
-}
-
-/**
- * Provider entry - one provider per agent config, multiple sessions
+ * Provider entry - one provider per session (request-scoped)
  */
 interface ProviderEntry {
   provider: ReturnType<typeof createACPProvider>;
-  agentKey: string;
-  sessions: Map<string, SessionInfo>;
   createdAt: number;
-  initializationPromise?: Promise<string>; // Promise that resolves to sessionId
 }
 
 /**
- * Provider manager - stores one provider per agent config
- * Key: agentKey (command:args), Value: ProviderEntry
+ * Session-scoped provider manager
+ * Key: sessionId, Value: ProviderEntry
  */
-const providerManager = new Map<string, ProviderEntry>();
-
-/**
- * Session to provider mapping for quick lookup
- * Key: sessionId, Value: agentKey
- */
-const sessionToProvider = new Map<string, string>();
+const sessionProviders = new Map<string, ProviderEntry>();
 
 /**
  * Generate a unique key for an agent configuration
@@ -117,11 +100,19 @@ function callMcpMethodViaTransport(
 /**
  * Load MCP tools from transport in AI SDK v5 format
  */
-async function loadMcpToolsV5(transport: TransportWithMethods): Promise<Record<string, any>> {
+async function loadMcpToolsV5(
+  getTransport: () => TransportWithMethods | null,
+): Promise<Record<string, any>> {
   const tools: Record<string, any> = {};
 
+  const initialTransport = getTransport();
+  if (!initialTransport) {
+    console.warn("[dev-inspector] [acp] No active MCP transport available, tools will not be loaded");
+    return tools;
+  }
+
   const { tools: toolsListFromServer } = (await callMcpMethodViaTransport(
-    transport,
+    initialTransport,
     "tools/list",
   )) as {
     tools: ToolInfo[];
@@ -134,6 +125,10 @@ async function loadMcpToolsV5(transport: TransportWithMethods): Promise<Record<s
       description: toolInfo.description,
       inputSchema: jsonSchema(toolInfo.inputSchema),
       execute: async (args: unknown) => {
+        const transport = getTransport();
+        if (!transport) {
+          throw new Error("No active MCP transport available");
+        }
         console.log(`[dev-inspector] [acp] Executing MCP tool: ${toolName}`);
         const result = await callMcpMethodViaTransport(transport, "tools/call", {
           name: toolName,
@@ -217,152 +212,83 @@ export function setupAcpMiddleware(
       const { agent, envVars } = JSON.parse(body);
 
       const cwd = process.cwd();
-      const agentKey = getAgentKey(agent.command, agent.args);
 
+      const agentKey = getAgentKey(agent.command, agent.args);
       console.log(
-        `[dev-inspector] [acp] Requesting session for agent: ${agent.name} (${agentKey})`,
+        `[dev-inspector] [acp] Creating request-scoped session for agent: ${agent.name} (${agentKey})`,
       );
 
-      let providerEntry = providerManager.get(agentKey);
-      let sessionId: string = "";
-
-      if (providerEntry) {
-        // 1. If we have active sessions, return the first one immediately (Reuse logic)
-        if (providerEntry.sessions.size > 0) {
-          const firstSession = providerEntry.sessions.values().next().value;
-          if (firstSession) {
-            sessionId = firstSession.sessionId;
-            console.log(
-              `[dev-inspector] [acp] Reusing existing session: ${sessionId} for ${agent.name}`,
-            );
-          }
+      // Request-scoped behavior: always create a fresh provider/session.
+      // Check if command exists before attempting to spawn
+      if (!checkCommandExists(agent.command)) {
+        const hints: string[] = [`Agent "${agent.name}" command not found: "${agent.command}"`];
+        if (agent.installCommand) {
+          hints.push(`Install with: ${agent.installCommand}`);
         }
-
-        // 2. If initialization is in progress (race condition), join the promise
-        if (!sessionId && providerEntry.initializationPromise) {
-          console.log(`[dev-inspector] [acp] Joining pending initialization for ${agent.name}`);
-          try {
-            sessionId = await providerEntry.initializationPromise;
-          } catch (e) {
-            // If pending failed, throw the error
-            throw e;
-          }
+        if (agent.configHint) {
+          hints.push(agent.configHint);
         }
+        if (agent.configLink) {
+          hints.push(`Documentation: ${agent.configLink}`);
+        }
+        console.error(`\n${hints.join("\n")}\n`);
+        res.statusCode = 400;
+        res.end(JSON.stringify({ error: hints.join("\n") }));
+        return;
       }
 
-      // 3. If still no session, create new one
-      if (!sessionId) {
-        let provider: ReturnType<typeof createACPProvider>;
-
-        if (providerEntry) {
-          console.log(`[dev-inspector] [acp] Reusing existing provider for ${agent.name}`);
-          provider = providerEntry.provider;
+      // Try to resolve npm package bin if npmPackage is specified
+      let command = agent.command;
+      let args = agent.args;
+      if (agent.npmPackage) {
+        const binPath = resolveNpmPackageBin(agent.npmPackage);
+        if (binPath) {
+          command = binPath;
+          args = agent.npmArgs || [];
+          console.log(`[dev-inspector] [acp] Using resolved npm package: ${agent.npmPackage}`);
         } else {
-          // Check if command exists before attempting to spawn
-          if (!checkCommandExists(agent.command)) {
-            const hints: string[] = [`Agent "${agent.name}" command not found: "${agent.command}"`];
-            if (agent.installCommand) {
-              hints.push(`Install with: ${agent.installCommand}`);
-            }
-            if (agent.configHint) {
-              hints.push(agent.configHint);
-            }
-            if (agent.configLink) {
-              hints.push(`Documentation: ${agent.configLink}`);
-            }
-            // Log error and return - do not throw to avoid crashing the server
-            console.error(`\n${hints.join('\n')}\n`);
-            return;
-          }
-          
-          console.log(`[dev-inspector] [acp] Creating new global provider for ${agent.name}`);
-          
-          // Try to resolve npm package bin if npmPackage is specified
-          let command = agent.command;
-          let args = agent.args;
-          if (agent.npmPackage) {
-            const binPath = resolveNpmPackageBin(agent.npmPackage);
-            if (binPath) {
-              command = binPath;
-              args = agent.npmArgs || [];
-              console.log(`[dev-inspector] [acp] Using resolved npm package: ${agent.npmPackage}`);
-            } else {
-              console.log(`[dev-inspector] [acp] Failed to resolve npm package, falling back to: ${agent.command}`);
-            }
-          }
-          
-          // Create ACP provider with persistSession enabled
-          provider = createACPProvider({
-            command,
-            args,
-            env: { ...process.env, ...envVars },
-            session: {
-              cwd,
-              mcpServers: [],
-            },
-            authMethodId: agent.authMethodId,
-            persistSession: true,
-          });
-
-          providerEntry = {
-            provider,
-            agentKey,
-            sessions: new Map(),
-            createdAt: Date.now(),
-            initializationPromise: undefined,
-          };
-          providerManager.set(agentKey, providerEntry);
-        }
-
-        // Initialize the session ONLY if we don't have one
-        console.log(`[dev-inspector] [acp] Spawning new process/session for ${agent.name}`);
-
-        // Create a promise for this initialization
-        const initPromise = (async () => {
-          // Pre-load tools if transport is available
-          const transport = getInspectorTransport() || getActiveTransport();
-          let initialTools: Record<string, any> = {};
-          if (transport) {
-            try {
-              const rawTools = await loadMcpToolsV5(transport);
-              initialTools = acpTools(rawTools);
-              console.log(
-                `[dev-inspector] [acp] Pre-loading ${Object.keys(rawTools).length} tools for session init`,
-              );
-            } catch (e) {
-              console.warn("[dev-inspector] [acp] Failed to pre-load tools:", e);
-            }
-          }
-
-          const session = await provider.initSession(initialTools);
-          const sid =
-            session.sessionId ||
-            `session-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-
-          if (providerEntry) {
-            providerEntry.sessions.set(sid, {
-              sessionId: sid,
-              createdAt: Date.now(),
-            });
-            providerEntry.initializationPromise = undefined;
-          }
-          sessionToProvider.set(sid, agentKey);
-          return sid;
-        })();
-
-        // Store the promise so others can join
-        if (providerEntry) {
-          providerEntry.initializationPromise = initPromise;
-        }
-
-        try {
-          sessionId = await initPromise;
-          console.log(`[dev-inspector] [acp] Session initialized: ${sessionId}`);
-        } catch (error) {
-          if (providerEntry) providerEntry.initializationPromise = undefined;
-          throw error;
+          console.log(
+            `[dev-inspector] [acp] Failed to resolve npm package, falling back to: ${agent.command}`,
+          );
         }
       }
+
+      const provider = createACPProvider({
+        command,
+        args,
+        env: { ...process.env, ...envVars },
+        session: {
+          cwd,
+          mcpServers: [],
+        },
+        authMethodId: agent.authMethodId,
+      });
+
+      console.log(`[dev-inspector] [acp] Spawning new process/session for ${agent.name}`);
+
+      // Pre-load tools if transport is available
+      const getTransport = () => getInspectorTransport() || getActiveTransport();
+      let initialTools: Record<string, any> = {};
+      try {
+        const rawTools = await loadMcpToolsV5(getTransport);
+        if (Object.keys(rawTools).length > 0) {
+          initialTools = acpTools(rawTools);
+          console.log(
+            `[dev-inspector] [acp] Pre-loading ${Object.keys(rawTools).length} tools for session init`,
+          );
+        }
+      } catch (e) {
+        console.warn("[dev-inspector] [acp] Failed to pre-load tools:", e);
+      }
+
+      const session = await provider.initSession(initialTools);
+      const sessionId =
+        session.sessionId || `session-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      sessionProviders.set(sessionId, {
+        provider,
+        createdAt: Date.now(),
+      });
+      console.log(`[dev-inspector] [acp] Session initialized: ${sessionId}`);
 
       res.setHeader("Content-Type", "application/json");
       res.end(JSON.stringify({ sessionId }));
@@ -402,29 +328,15 @@ export function setupAcpMiddleware(
       const body = await readBody(req);
       const { sessionId } = JSON.parse(body);
 
-      const agentKey = sessionToProvider.get(sessionId);
-      if (agentKey) {
-        const providerEntry = providerManager.get(agentKey);
-        if (providerEntry) {
-          console.log(
-            `[dev-inspector] [acp] Cleaning up session: ${sessionId} (Provider sessions left: ${providerEntry.sessions.size - 1})`,
-          );
-          providerEntry.sessions.delete(sessionId);
-
-          // Cleanup provider if no sessions left to save memory and ensure stability (restarting unstable agents like Droid)
-          if (providerEntry.sessions.size === 0) {
-            console.log(
-              `[dev-inspector] [acp] No active sessions for ${agentKey}, cleaning up provider`,
-            );
-            try {
-              providerEntry.provider.cleanup();
-            } catch (e) {
-              console.error("Error cleaning up provider:", e);
-            }
-            providerManager.delete(agentKey);
-          }
+      const providerEntry = sessionProviders.get(sessionId);
+      if (providerEntry) {
+        console.log(`[dev-inspector] [acp] Cleaning up session-scoped provider: ${sessionId}`);
+        try {
+          providerEntry.provider.cleanup();
+        } catch (e) {
+          console.error("Error cleaning up provider:", e);
         }
-        sessionToProvider.delete(sessionId);
+        sessionProviders.delete(sessionId);
       }
 
       res.setHeader("Content-Type", "application/json");
@@ -458,26 +370,17 @@ export function setupAcpMiddleware(
 
       const cwd = process.cwd();
 
-      // Try to get existing session from session manager
+      // Try to get existing request-scoped session (by sessionId)
       let provider: ReturnType<typeof createACPProvider>;
       let shouldCleanupProvider = true; // Track if we should cleanup on disconnect
 
-      // Lookup provider by sessionId or find global provider (if sessionId is just for tracking)
-      let existingProviderEntry: ProviderEntry | undefined;
-
-      if (sessionId) {
-        const agentKey = sessionToProvider.get(sessionId);
-        if (agentKey) {
-          existingProviderEntry = providerManager.get(agentKey);
-        }
-      }
-
+      const existingProviderEntry = sessionId ? sessionProviders.get(sessionId) : undefined;
       if (existingProviderEntry) {
         console.log(
-          `[dev-inspector] [acp] Using existing global provider for session: ${sessionId}`,
+          `[dev-inspector] [acp] Using existing session-scoped provider for session: ${sessionId}`,
         );
         provider = existingProviderEntry.provider;
-        shouldCleanupProvider = false; // Don't cleanup managed global providers
+        shouldCleanupProvider = false; // Cleanup happens via /cleanup-session
       } else {
         // Fallback: Create new provider (backward compatibility or missing session)
         console.log(`[dev-inspector] [acp] Creating new provider (no session found or provided)`);
@@ -510,15 +413,9 @@ export function setupAcpMiddleware(
 
       // Get active transport from shared connection manager and load tools
       // Prefer inspector transport for tools
-      const transport = getInspectorTransport() || getActiveTransport();
       let mcpTools: Record<string, any> = {};
-      if (transport) {
-        mcpTools = await loadMcpToolsV5(transport);
-      } else {
-        console.warn(
-          "[dev-inspector] [acp] No active MCP transport available, tools will not be loaded",
-        );
-      }
+      const getTransport = () => getInspectorTransport() || getActiveTransport();
+      mcpTools = await loadMcpToolsV5(getTransport);
 
       // Get mode/model/delay options
       const mode = agent.acpMode ?? acpOptions?.acpMode;

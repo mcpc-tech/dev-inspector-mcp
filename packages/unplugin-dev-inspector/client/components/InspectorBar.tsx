@@ -64,6 +64,29 @@ export const InspectorBar = ({
   // Session State
   const [sessionId, setSessionId] = useState<string | null>(null);
   const sessionIdRef = useRef<string | null>(null);
+  const didCleanupSessionRef = useRef(false);
+
+  const cleanupSession = (sid: string) => {
+    const url = `${getDevServerBaseUrl()}/api/acp/cleanup-session`;
+    const payload = JSON.stringify({ sessionId: sid });
+
+    try {
+      if (navigator.sendBeacon) {
+        const blob = new Blob([payload], { type: "application/json" });
+        navigator.sendBeacon(url, blob);
+        return;
+      }
+    } catch {
+      // Ignore and fall back to fetch
+    }
+
+    fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: payload,
+      keepalive: true,
+    }).catch(() => {});
+  };
 
   // Init session on mount or agent change
   useEffect(() => {
@@ -109,6 +132,7 @@ export const InspectorBar = ({
           console.log(`[InspectorBar] Session initialized: ${data.sessionId}`);
           setSessionId(data.sessionId);
           sessionIdRef.current = data.sessionId;
+          didCleanupSessionRef.current = false;
         }
       } catch (error) {
         console.error("[InspectorBar] Failed to initialize session:", error);
@@ -122,18 +146,30 @@ export const InspectorBar = ({
     };
   }, [selectedAgent, isReady, toolsReady]);
 
+  // Cleanup on refresh/close (best-effort)
+  useEffect(() => {
+    const onPageHide = () => {
+      const sid = sessionIdRef.current;
+      if (!sid || didCleanupSessionRef.current) return;
+      didCleanupSessionRef.current = true;
+      cleanupSession(sid);
+    };
+
+    window.addEventListener("pagehide", onPageHide);
+
+    return () => {
+      window.removeEventListener("pagehide", onPageHide);
+    };
+  }, []);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (sessionIdRef.current) {
-        console.log(`[InspectorBar] Cleaning up session on unmount: ${sessionIdRef.current}`);
-        fetch(`${getDevServerBaseUrl()}/api/acp/cleanup-session`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sessionId: sessionIdRef.current }),
-          keepalive: true,
-        }).catch((e) => console.warn("[InspectorBar] Failed to cleanup session:", e));
-      }
+      const sid = sessionIdRef.current;
+      if (!sid || didCleanupSessionRef.current) return;
+      didCleanupSessionRef.current = true;
+      console.log(`[InspectorBar] Cleaning up session on unmount: ${sid}`);
+      cleanupSession(sid);
     };
   }, []);
 
