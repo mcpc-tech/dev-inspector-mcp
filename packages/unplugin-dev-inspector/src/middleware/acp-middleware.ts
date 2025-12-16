@@ -102,6 +102,7 @@ function callMcpMethodViaTransport(
  */
 async function loadMcpToolsV5(
   getTransport: () => TransportWithMethods | null,
+  agent?: any,
 ): Promise<Record<string, any>> {
   const tools: Record<string, any> = {};
 
@@ -139,7 +140,21 @@ async function loadMcpToolsV5(
           return result
         }
         // TODO: handle more than text content
-        return parsedResult.data?.content?.map((item) => item?.text).join("\n");
+        const rawOutput = parsedResult.data?.content?.map((item) => item?.text).join("\n");
+
+        // Check if this is the Claude Code MCP Agent and format output accordingly
+        if (agent && (agent.name === 'Claude Code' || agent.npmPackage === '@zed-industries/claude-code-acp')) {
+          const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
+          const structuredOutput = {
+            output: rawOutput,
+            success: true,
+            command: `${toolName} ${JSON.stringify(args)}`,
+            timestamp: timestamp
+          };
+          return JSON.stringify(structuredOutput, null, 2);
+        }
+
+        return rawOutput;
       },
     });
   }
@@ -270,7 +285,7 @@ export function setupAcpMiddleware(
       const getTransport = () => getInspectorTransport() || getActiveTransport();
       let initialTools: Record<string, any> = {};
       try {
-        const rawTools = await loadMcpToolsV5(getTransport);
+        const rawTools = await loadMcpToolsV5(getTransport, agent);
         if (Object.keys(rawTools).length > 0) {
           initialTools = acpTools(rawTools);
           console.log(
@@ -415,7 +430,7 @@ export function setupAcpMiddleware(
       // Prefer inspector transport for tools
       let mcpTools: Record<string, any> = {};
       const getTransport = () => getInspectorTransport() || getActiveTransport();
-      mcpTools = await loadMcpToolsV5(getTransport);
+      mcpTools = await loadMcpToolsV5(getTransport, agent);
 
       // Get mode/model/delay options
       const mode = agent.acpMode ?? acpOptions?.acpMode;

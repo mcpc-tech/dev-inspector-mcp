@@ -51,7 +51,10 @@
   "pnpm": {
     "overrides": {
       "@types/node": "^24.10.1"
-    }
+    },
+    "ignoredBuiltDependencies": [
+      "electron"
+    ]
   },
   "dependencies": {
     "@mcpc-tech/cmcp": "^0.0.9",

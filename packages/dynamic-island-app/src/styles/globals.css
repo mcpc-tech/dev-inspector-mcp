@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+/* Dark theme by default - matches glass morphism aesthetic */
+@theme {
+  /* State colors - Liquid Intelligence palette */
+  --color-state-thinking: hsl(280 100% 60%);
+  --color-state-planning: hsl(217 91% 60%);
+  --color-state-executing: hsl(160 84% 39%);
+  --color-state-permission: hsl(25 95% 53%);
+  --color-state-idle: hsl(240 5% 65%);
+  
+  /* Glass morphism tokens */
+  --color-glass-bg: rgba(0, 0, 0, 0.9);
+  --color-glass-border: rgba(255, 255, 255, 0.1);
+}
+
+/* Critical: transparent body for Electron */
+html, body, #root {
+  background: transparent !important;
+  -webkit-font-smoothing: antialiased;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Pulse animation for thinking state */
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Spinner animation */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin 1.5s linear infinite;
+}
+
+/* Mini indicator pulse */
+@keyframes mini-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.8);
+  }
+}
+
+.animate-mini-pulse {
+  animation: mini-pulse 1.5s ease-in-out infinite;
+}
