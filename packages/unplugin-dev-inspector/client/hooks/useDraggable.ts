@@ -13,15 +13,14 @@ export function useDraggable({ initialOffset = { x: 0, y: 0 } }: UseDraggableOpt
 
   // Store drag start coordinates
   const dragStartRef = useRef({ x: 0, y: 0 });
-  const initialDragOffsetRef = useRef({ x: 0, y: 0 });
-
   const updateTransform = useCallback(() => {
     if (elementRef.current) {
       const { x, y } = offsetRef.current;
-      // Maintain the -50% X translation for centering, add the drag offset
-      elementRef.current.style.transform = `translate3d(calc(-50% + ${x}px), ${y}px, 0)`;
+      // Just apply the drag offset. Centering is handled by CSS (flexbox).
+      elementRef.current.style.transform = `translate3d(${x}px, ${y}px, 0)`;
     }
   }, []);
+  const initialDragOffsetRef = useRef({ x: 0, y: 0 });
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     // Ignore clicks on interactive elements
