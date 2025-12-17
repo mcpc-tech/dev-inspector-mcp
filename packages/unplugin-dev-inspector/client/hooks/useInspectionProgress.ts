@@ -51,8 +51,16 @@ export function useInspectionProgress() {
       );
     }
 
+    function handleInspectionDeleted(event: Event) {
+      const customEvent = event as CustomEvent;
+      const { inspectionId } = customEvent.detail;
+
+      setInspections((prev) => prev.filter((item) => item.id !== inspectionId));
+    }
+
     window.addEventListener("plan-progress-reported", handlePlanProgress as EventListener);
     window.addEventListener("inspection-result-received", handleInspectionResult as EventListener);
+    window.addEventListener("inspection-deleted", handleInspectionDeleted as EventListener);
 
     return () => {
       window.removeEventListener("plan-progress-reported", handlePlanProgress as EventListener);
@@ -60,6 +68,7 @@ export function useInspectionProgress() {
         "inspection-result-received",
         handleInspectionResult as EventListener,
       );
+      window.removeEventListener("inspection-deleted", handleInspectionDeleted as EventListener);
     };
   }, []);
 

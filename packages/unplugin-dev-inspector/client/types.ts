@@ -122,6 +122,7 @@ export interface InspectedElement {
       };
     };
   };
+  automated?: boolean;
 }
 
 export interface ReactFiber {
@@ -148,4 +149,20 @@ export interface EnhancedNetworkRequest {
   error?: string;
   size?: number;
   initiator?: string;
+}
+
+// Context data types for MCP chrome_devtools
+export interface ConsoleMessage {
+  msgid: number;
+  level: string;
+  text: string;
+  timestamp?: number;
+}
+
+export interface NetworkRequest {
+  reqid: number;
+  method: string;
+  url: string;
+  status: string;
+  timestamp?: number;
 }

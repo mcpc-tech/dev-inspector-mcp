@@ -28,7 +28,7 @@ interface InspectorContainerProps {
 }
 
 const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mountPoint }) => {
-  const { isClientReady } = useMcp();
+  const { client, isClientReady } = useMcp();
   const { resolvedTheme } = useInspectorTheme();
   const showInspectorBar = getShowInspectorBar();
 
@@ -153,52 +153,71 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
     btnRef,
   });
 
+  const handleElementInspected = (info: InspectedElement) => {
+    setSourceInfo(info);
+
+    // Auto-save in automated mode
+    if (info.automated) {
+      const inspectionId = `inspection-${Date.now()}`;
+      const newItem: InspectionItem = {
+        id: inspectionId,
+        sourceInfo: {
+          file: info.file,
+          component: info.component,
+          line: info.line,
+          column: info.column,
+          elementInfo: info.elementInfo,
+        },
+        description: "Auto-captured via automation",
+        status: "pending",
+        timestamp: Date.now(),
+      };
+
+      setInspections((prev) => [...prev, newItem]);
+
+      // Dispatch immediately for automated mode
+      window.dispatchEvent(
+        new CustomEvent("element-inspected", {
+          detail: {
+            inspections: [newItem],
+          },
+        }),
+      );
+
+      setIsActive(false);
+      document.body.style.cursor = "";
+      if (overlayRef.current) overlayRef.current.style.display = "none";
+      if (tooltipRef.current) tooltipRef.current.style.display = "none";
+      showNotif("✅ Element captured automatically");
+    } else {
+      // Manual mode - show input bubble
+      setBubbleMode("input");
+      if (overlayRef.current) overlayRef.current.style.display = "none";
+      if (tooltipRef.current) tooltipRef.current.style.display = "none";
+    }
+  };
+
+  // Listen for automated inspection events from MCP tools
+  useEffect(() => {
+    const handleCustomInspect = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail) {
+        // Support both direct detail or detail.info structure
+        const info = customEvent.detail.info || customEvent.detail;
+        if (info && info.file) {
+          handleElementInspected({ ...info, automated: true });
+        }
+      }
+    };
+
+    window.addEventListener("dev-inspector:inspect-element", handleCustomInspect);
+    return () => window.removeEventListener("dev-inspector:inspect-element", handleCustomInspect);
+  }, []); // Dependencies relying on state setters which are stable
+
   useInspectorClick({
     isActive,
     isWaitingForFeedback: bubbleMode !== null,
-    onElementInspected: (info) => {
-      setSourceInfo(info);
-      
-      // Auto-save in automated mode (e.g., when controlled by Chrome DevTools)
-      if (navigator.webdriver) {
-        const inspectionId = `inspection-${Date.now()}`;
-        const newItem: InspectionItem = {
-          id: inspectionId,
-          sourceInfo: {
-            file: info.file,
-            component: info.component,
-            line: info.line,
-            column: info.column,
-            elementInfo: info.elementInfo,
-          },
-          description: "Auto-captured via automation",
-          status: "pending",
-          timestamp: Date.now(),
-        };
-
-        setInspections((prev) => [...prev, newItem]);
-
-        // Dispatch immediately for automated mode
-        window.dispatchEvent(
-          new CustomEvent("element-inspected", {
-            detail: {
-              inspections: [newItem],
-            },
-          }),
-        );
-
-        setIsActive(false);
-        document.body.style.cursor = "";
-        if (overlayRef.current) overlayRef.current.style.display = "none";
-        if (tooltipRef.current) tooltipRef.current.style.display = "none";
-        showNotif("✅ Element captured automatically");
-      } else {
-        // Manual mode - show input bubble
-        setBubbleMode("input");
-        if (overlayRef.current) overlayRef.current.style.display = "none";
-        if (tooltipRef.current) tooltipRef.current.style.display = "none";
-      }
-    },
+    onElementInspected: handleElementInspected,
     btnRef,
   });
 
@@ -221,13 +240,13 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
     };
 
     setInspections((prev) => [...prev, newItem]);
-    
+
     // Add to current session inspections
     const updatedSessionInspections = [...currentSessionInspections, newItem];
     setCurrentSessionInspections(updatedSessionInspections);
 
     setBubbleMode(null);
-    
+
     if (continueInspecting) {
       // Keep inspector active for continued inspection
       // Don't dispatch event yet - wait for final submit
@@ -243,7 +262,7 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
           },
         }),
       );
-      
+
       // Clear session inspections
       setCurrentSessionInspections([]);
       setIsActive(false);
@@ -290,7 +309,8 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
         <div className="pointer-events-auto">
           {showInspectorBar && (
             <InspectorBar
-              toolsReady={isClientReady} // Wait for client tools
+              toolsReady={isClientReady}
+              mcpClient={client}
               isActive={isActive}
               onToggleInspector={toggleInspector}
               onSubmitAgent={handleAgentSubmit}

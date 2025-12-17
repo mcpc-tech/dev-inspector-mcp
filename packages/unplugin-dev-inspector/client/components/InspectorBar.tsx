@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from "react";
 import { cn } from "../lib/utils";
 import {
   Eye,
-  Sparkles,
   ArrowRight,
   Terminal,
   CheckCircle2,
@@ -14,10 +13,11 @@ import {
 } from "lucide-react";
 import { Shimmer } from "../../src/components/ai-elements/shimmer";
 import type { UIMessage } from "ai";
-import { processMessage, extractToolName } from "../utils/messageProcessor";
-import { InspectionQueue, type InspectionItem } from "./InspectionQueue";
+import { type InspectionItem } from "./InspectionQueue";
+import { ContextDialog } from "./ContextDialog";
+import type { Client } from "@modelcontextprotocol/sdk/client";
 import { MessageDetail } from "./MessageDetail";
-import { useTextBuffer } from "../hooks/useTextBuffer";
+import { useIslandState } from "../hooks/useIslandState";
 import { AVAILABLE_AGENTS, DEFAULT_AGENT } from "../constants/agents";
 import { useDraggable } from "../hooks/useDraggable";
 import { useAgent } from "../hooks/useAgent";
@@ -35,6 +35,7 @@ interface InspectorBarProps {
   inspectionItems?: InspectionItem[];
   onRemoveInspection?: (id: string) => void;
   toolsReady?: boolean;
+  mcpClient?: Client | null;
 }
 
 export const InspectorBar = ({
@@ -48,18 +49,27 @@ export const InspectorBar = ({
   inspectionCount = 0,
   inspectionItems = [],
   onRemoveInspection = () => { },
-  toolsReady = true, // Default to true if not provided (backward compatibility)
+  toolsReady = true,
+  mcpClient = null,
 }: InspectorBarProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [input, setInput] = useState("");
-  const [toolCall, setToolCall] = useState<string | null>(null);
   const [activePanel, setActivePanel] = useState<"none" | "inspections" | "chat">("none");
-  const [hideInputDuringWork, setHideInputDuringWork] = useState(false);
-  const [isLocked, setIsLocked] = useState(false);
   const [allowHover, setAllowHover] = useState(true);
   const { agent: selectedAgent, setAgent: setSelectedAgent, isReady } = useAgent(DEFAULT_AGENT);
   const [isAgentSelectorOpen, setIsAgentSelectorOpen] = useState(false);
   const [configInfoAgent, setConfigInfoAgent] = useState<string | null>(null);
+  const [showContextDialog, setShowContextDialog] = useState(false);
+
+  // Use state machine to derive Dynamic Island state from messages
+  const { uiState, chatStatus, toolName, displayText } = useIslandState(messages, status, isExpanded);
+
+  // Derived booleans for clarity
+  const isWorking = chatStatus === "submitted" || chatStatus === "streaming";
+  const showInput = uiState === "expanded" && !isWorking; // Only show input when expanded and NOT working
+  // Show message if we have content and are not in other states that hide it (like idle)
+  // We show message when working, or when we have a result (ready)
+  const showMessage = (messages.length > 0 && chatStatus !== "error") || isWorking;
 
   // Session State
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -85,7 +95,7 @@ export const InspectorBar = ({
       headers: { "Content-Type": "application/json" },
       body: payload,
       keepalive: true,
-    }).catch(() => {});
+    }).catch(() => { });
   };
 
   // Init session on mount or agent change
@@ -192,104 +202,8 @@ export const InspectorBar = ({
     };
   } | null>(null);
 
-  // accumulatedText tracks the full message history for reference
-  const [accumulatedText, setAccumulatedText] = useState<string>("");
-
-  // Use the text buffer hook to handle smooth text updates
-  const bufferedText = useTextBuffer(accumulatedText, isAgentWorking, 50);
-
-  // Only show the new fragment of text, not the whole history
-  const [visibleFragment, setVisibleFragment] = useState("");
-  const lastProcessedTextRef = useRef("");
-  const prevVisibleFragmentRef = useRef("");
-
-  // Effect to calculate visible fragment from buffered text
-  useEffect(() => {
-    const currentFullText = bufferedText;
-    const lastFullText = lastProcessedTextRef.current;
-
-    // 1. Handle Reset/Context Switch
-    if (currentFullText.length < lastFullText.length || !currentFullText.startsWith(lastFullText)) {
-      setVisibleFragment(currentFullText);
-      lastProcessedTextRef.current = currentFullText;
-      return;
-    }
-
-    // 2. Handle Incremental Update
-    if (currentFullText.length > lastFullText.length) {
-      const newPart = currentFullText.slice(lastFullText.length).trim();
-      // Only update if there is meaningful content
-      if (newPart) {
-        setVisibleFragment(newPart);
-      }
-      lastProcessedTextRef.current = currentFullText;
-    }
-  }, [bufferedText]);
-
   // Refs
   const inputRef = useRef<HTMLInputElement>(null);
-  // containerRef is now provided by useDraggable
-  const toolClearTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const lastSeenToolNameRef = useRef<string | null>(null);
-  const isToolActiveRef = useRef(false);
-
-  // Main effect: Process messages
-  useEffect(() => {
-    if (messages.length === 0) {
-      setAccumulatedText("");
-      setToolCall(null);
-      lastSeenToolNameRef.current = null;
-      isToolActiveRef.current = false;
-      setVisibleFragment("");
-      lastProcessedTextRef.current = "";
-      return;
-    }
-
-    // KISS: Only process the LAST message (the one that's being updated)
-    const lastMessage = messages[messages.length - 1];
-    if (lastMessage.role !== "assistant") return;
-
-    // Extract tool and text from the last message
-    const extractedTool = extractToolName(lastMessage);
-    const { displayText: messageText, toolCall: activeToolCall } = processMessage(
-      lastMessage,
-      extractedTool || lastSeenToolNameRef.current,
-    );
-
-    // Update accumulated text
-    const currentText = messageText || "";
-    setAccumulatedText(currentText);
-
-    // Track tool name
-    if (extractedTool) {
-      lastSeenToolNameRef.current = extractedTool;
-    }
-
-    // Update tool display
-    if (activeToolCall) {
-      // There's an active tool - show it
-      if (toolClearTimerRef.current) {
-        clearTimeout(toolClearTimerRef.current);
-        toolClearTimerRef.current = null;
-      }
-      setToolCall(activeToolCall);
-      isToolActiveRef.current = true;
-    } else {
-      isToolActiveRef.current = false;
-    }
-  }, [messages]);
-
-  // Effect to clear tool when text updates
-  useEffect(() => {
-    if (visibleFragment !== prevVisibleFragmentRef.current) {
-      // If text has updated and no tool is currently active, clear the tool display
-      // This ensures we keep showing the tool name until the text actually appears
-      if (!isToolActiveRef.current) {
-        setToolCall(null);
-      }
-      prevVisibleFragmentRef.current = visibleFragment;
-    }
-  }, [visibleFragment]);
 
   // Auto-focus input when expanded
   useEffect(() => {
@@ -298,22 +212,15 @@ export const InspectorBar = ({
     }
   }, [isExpanded]);
 
-  // Unlock immediately when AI finishes working, but delay hover to show result
+  // Re-enable hover after AI finishes working
   useEffect(() => {
-    if (!isAgentWorking && isLocked) {
-      // Unlock immediately, but keep showing the content
-      setHideInputDuringWork(false);
-      setIsLocked(false);
-      // Don't clear tool call here - let the message processing effect handle it with delay
-      // Temporarily disable hover to show result
-      setAllowHover(false);
-      // Re-enable hover after 2 seconds
+    if (!isWorking && !allowHover) {
       const timer = setTimeout(() => {
         setAllowHover(true);
       }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [isAgentWorking, isLocked]);
+  }, [isWorking, allowHover]);
 
   // Listen to inspection progress updates
   useEffect(() => {
@@ -372,27 +279,14 @@ export const InspectorBar = ({
     e.preventDefault();
     if (!input.trim()) return;
 
-    // Clear any pending timer
-    if (toolClearTimerRef.current) {
-      clearTimeout(toolClearTimerRef.current);
-      toolClearTimerRef.current = null;
-    }
-
-    // Clear all states for new query
-    setToolCall(null);
-    setAccumulatedText("");
-    setVisibleFragment("");
+    // Clear inspection status for new query
     setInspectionStatus(null);
-    lastSeenToolNameRef.current = null;
-    lastProcessedTextRef.current = "";
-    setHideInputDuringWork(true);
-    setIsLocked(true);
 
     onSubmitAgent(input, selectedAgent, sessionId || undefined);
     setInput("");
 
     // Auto-expand chat panel to show message detail
-    setIsExpanded(true);
+    // setIsExpanded(true);
     setActivePanel("chat");
   };
 
@@ -408,10 +302,6 @@ export const InspectorBar = ({
   };
 
   const isError = status === "error";
-  const hasMessage = messages.length > 0;
-  const shouldShowInput = isExpanded && !hideInputDuringWork;
-  const showMessage =
-    (!isExpanded || hideInputDuringWork) && (isAgentWorking || hasMessage || inspectionStatus);
 
   return (
     <>
@@ -420,7 +310,7 @@ export const InspectorBar = ({
         <div
           className="fixed inset-0 z-[999998] bg-transparent"
           onClick={() => {
-            if (!isLocked && !isAgentWorking) {
+            if (!isWorking) {
               setIsExpanded(false);
               setActivePanel("none");
             }
@@ -437,18 +327,13 @@ export const InspectorBar = ({
         )}
         onMouseDown={handleMouseDown}
         onMouseEnter={() => {
-          if (!isDragging) {
-            if (isAgentWorking || isLocked) {
-              // When agent is working, show the chat panel on hover
-              setIsExpanded(true);
-              setActivePanel("chat");
-            } else if (allowHover) {
-              setIsExpanded(true);
-            }
+          if (!isDragging && allowHover) {
+            // Only expand the bar (for input), don't auto-open chat panel
+            setIsExpanded(true);
           }
         }}
         onMouseLeave={() => {
-          if (!input.trim() && !isLocked && !isDragging) {
+          if (!input.trim() && !isDragging) {
             setIsExpanded(false);
             setActivePanel("none");
           }
@@ -470,15 +355,19 @@ export const InspectorBar = ({
           <div
             className={cn(
               "flex items-center transition-opacity duration-300 w-full relative",
-              shouldShowInput
+              showInput
                 ? "absolute left-3 opacity-0 pointer-events-none"
                 : "relative opacity-100",
             )}
           >
-            {!showMessage && (
+            {messages.length === 0 && (
               <>
                 <div className="flex items-center justify-center w-6 h-6 rounded-full bg-accent flex-shrink-0">
-                  <Sparkles className="w-3.5 h-3.5 text-foreground" />
+                  <img
+                    src={currentAgent?.meta?.icon}
+                    alt={selectedAgent}
+                    className="w-3.5 h-3.5"
+                  />
                 </div>
                 <span className="text-xs text-muted-foreground/70 ml-3 whitespace-nowrap">
                   ⌥I or hover to inspect
@@ -491,10 +380,14 @@ export const InspectorBar = ({
                 {/* Fixed left icon group */}
                 <div className="flex items-center gap-3 flex-shrink-0">
                   <div className="relative flex items-center justify-center w-6 h-6 rounded-full bg-accent flex-shrink-0">
-                    {isAgentWorking ? (
+                    {isWorking ? (
                       <>
                         <div className="absolute inset-0 rounded-full border-2 border-current opacity-20 animate-ping text-foreground" />
-                        <Sparkles className="w-3.5 h-3.5 animate-pulse text-foreground" />
+                        <img
+                          src={currentAgent?.meta?.icon}
+                          alt={selectedAgent}
+                          className="w-3.5 h-3.5 animate-pulse"
+                        />
                       </>
                     ) : inspectionStatus ? (
                       inspectionStatus.status === "in-progress" ? (
@@ -533,25 +426,60 @@ export const InspectorBar = ({
                       <div className="text-sm font-medium leading-[1.4] text-foreground truncate min-w-0">
                         {inspectionStatus.message}
                       </div>
-                    ) : toolCall ? (
+                    ) : toolName ? (
                       <div className="flex items-center gap-1.5 text-sm font-medium text-foreground min-w-0">
                         <Terminal className="w-4 h-4 flex-shrink-0" />
-                        <span className="truncate min-w-0">{toolCall}</span>
+                        <span className="truncate min-w-0">{toolName}</span>
                       </div>
                     ) : (
                       <div className="text-sm font-medium leading-[1.4] text-foreground truncate min-w-0">
-                        {isAgentWorking && !visibleFragment ? (
+                        {isWorking && !displayText ? (
                           <Shimmer duration={2} spread={2}>
                             {status === "submitted" && currentAgent?.command === "npx"
                               ? `Starting ${currentAgent.name}... This may take a moment.`
                               : "Thinking..."}
                           </Shimmer>
                         ) : (
-                          visibleFragment || "Processing..."
+                          displayText || "Processing..."
                         )}
                       </div>
                     )}
                   </div>
+                </div>
+
+                {/* Action buttons - visible during work */}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {/* Expand button */}
+                  <button
+                    type="button"
+                    onClick={() => setActivePanel((current) => (current === "chat" ? "none" : "chat"))}
+                    className={cn(
+                      "flex items-center justify-center w-7 h-7 rounded-full transition-all flex-shrink-0",
+                      activePanel === "chat"
+                        ? "bg-foreground text-background"
+                        : "bg-accent text-muted-foreground hover:bg-accent/80 hover:text-foreground",
+                    )}
+                    title={activePanel === "chat" ? "Collapse" : "Expand messages"}
+                  >
+                    <ChevronUp
+                      className={cn(
+                        "w-3.5 h-3.5 transition-transform duration-300",
+                        activePanel === "chat" && "rotate-180",
+                      )}
+                    />
+                  </button>
+
+                  {/* Cancel button - only when working */}
+                  {isWorking && (
+                    <button
+                      type="button"
+                      onClick={onCancel}
+                      className="flex items-center justify-center w-7 h-7 rounded-full bg-destructive text-destructive-foreground transition-all flex-shrink-0 hover:bg-destructive/90"
+                      title="Cancel request"
+                    >
+                      <Square className="w-3 h-3" />
+                    </button>
+                  )}
                 </div>
               </>
             )}
@@ -560,7 +488,7 @@ export const InspectorBar = ({
           <div
             className={cn(
               "flex items-center w-full gap-3 transition-all duration-500 delay-75",
-              shouldShowInput
+              showInput
                 ? "opacity-100 translate-y-0 relative pointer-events-auto"
                 : "opacity-0 translate-y-4 pointer-events-none absolute top-2 left-4 right-2",
             )}
@@ -581,29 +509,27 @@ export const InspectorBar = ({
 
             <div className="w-px h-4 bg-border flex-shrink-0" />
 
-            {/* Inspection Count Button */}
-            {inspectionCount > 0 && (
-              <>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setActivePanel((current) => (current === "inspections" ? "none" : "inspections"))
-                  }
-                  className={cn(
-                    "relative flex items-center justify-center w-7 h-7 rounded-full transition-colors flex-shrink-0",
-                    "hover:bg-accent/50",
-                    activePanel === "inspections" && "bg-accent/50 text-foreground",
-                  )}
-                  title="View Inspections"
-                >
-                  <Inbox className="w-3.5 h-3.5" />
+            {/* Context Button */}
+            <>
+              <button
+                type="button"
+                onClick={() => setShowContextDialog(true)}
+                className={cn(
+                  "relative flex items-center justify-center w-7 h-7 rounded-full transition-colors flex-shrink-0",
+                  "hover:bg-accent/50",
+                  showContextDialog && "bg-accent/50 text-foreground",
+                )}
+                title="Context"
+              >
+                <Inbox className="w-3.5 h-3.5" />
+                {inspectionCount > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[12px] h-[12px] px-0.5 text-[8px] font-bold text-white bg-red-500 rounded-full border border-background shadow-sm leading-none">
                     {inspectionCount > 99 ? "99+" : inspectionCount}
                   </span>
-                </button>
-                <div className="w-px h-4 bg-border flex-shrink-0" />
-              </>
-            )}
+                )}
+              </button>
+              <div className="w-px h-4 bg-border flex-shrink-0" />
+            </>
 
             <form
               onSubmit={handleSubmit}
@@ -680,11 +606,11 @@ export const InspectorBar = ({
                 placeholder={`Ask ${selectedAgent}...`}
                 className="w-full bg-transparent border-none outline-none text-foreground placeholder-muted-foreground text-sm h-7 disabled:opacity-50"
                 tabIndex={0}
-                disabled={isAgentWorking}
+                disabled={isWorking}
               />
 
               {/* Expand button - only show when AI is working or has messages */}
-              {(messages.length > 0 || isAgentWorking || isLocked) && (
+              {(messages.length > 0 || isWorking) && (
                 <button
                   type="button"
                   onClick={() => setActivePanel((current) => (current === "chat" ? "none" : "chat"))}
@@ -705,7 +631,7 @@ export const InspectorBar = ({
                 </button>
               )}
 
-              {isAgentWorking ? (
+              {isWorking ? (
                 <button
                   type="button"
                   onClick={onCancel}
@@ -736,13 +662,6 @@ export const InspectorBar = ({
         {activePanel !== "none" && (
           <div className="absolute bottom-full left-0 right-0 pointer-events-auto max-w-[480px] mx-auto animate-panel-in">
             <div className="bg-muted/95 backdrop-blur-xl rounded-t-xl border border-border border-b-0 shadow-2xl overflow-hidden">
-              {/* Inspection Queue Section */}
-              {activePanel === "inspections" && inspectionItems.length > 0 && (
-                <div className="border-b border-border">
-                  <InspectionQueue items={inspectionItems} onRemove={onRemoveInspection} />
-                </div>
-              )}
-
               {/* Message Detail Section - Show InspectorBar messages */}
               {activePanel === "chat" && (
                 <div className="h-[500px]">
@@ -753,6 +672,16 @@ export const InspectorBar = ({
           </div>
         )}
       </div>
+
+      {/* Context Dialog */}
+      <ContextDialog
+        open={showContextDialog}
+        onOpenChange={setShowContextDialog}
+        inspectionItems={inspectionItems}
+        onRemoveInspection={onRemoveInspection}
+        client={mcpClient}
+        isClientReady={toolsReady}
+      />
 
       {/* Config Info Modal - using Dialog component */}
       {configInfoAgent && (() => {

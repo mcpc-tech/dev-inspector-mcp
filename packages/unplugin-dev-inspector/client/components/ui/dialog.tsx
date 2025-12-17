@@ -61,10 +61,10 @@ function DialogContent({
       {/* Content */}
       <div
         className={cn(
-          "fixed top-1/2 left-1/2 z-[1000001] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2",
+          "fixed top-1/2 left-1/2 z-[1000001] -translate-x-1/2 -translate-y-1/2",
           "bg-background border rounded-lg p-6 shadow-lg",
           "animate-in fade-in-0 zoom-in-95 duration-200",
-          "sm:max-w-lg",
+          "w-full max-w-lg", // Default width, can be overridden by className
           className,
         )}
         onClick={(e) => e.stopPropagation()}
