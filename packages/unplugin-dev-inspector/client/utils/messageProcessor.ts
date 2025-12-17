@@ -245,6 +245,65 @@ export function extractToolCall(message: any, currentTool?: string | null): stri
 }
 
 /**
+ * Extract the LATEST tool name from the message components.
+ * Returns null if the latest component is non-empty text (indicating the tool is done or text is more recent).
+ */
+export function extractLatestToolName(message: any): string | null {
+  if (!("parts" in message) || !Array.isArray(message.parts)) {
+    return null;
+  }
+
+  // Iterate backwards to find the *latest* meaningful part
+  for (let i = message.parts.length - 1; i >= 0; i--) {
+    const part = message.parts[i];
+
+    // Check for standard tool-call
+    if (part.type === "tool-call" && "toolName" in part && typeof part.toolName === "string") {
+      return part.toolName;
+    }
+
+    // Check for tool types that start with "tool-" (including ACP and dynamic types seen in logs)
+    if (typeof part.type === "string" && part.type.startsWith("tool-")) {
+      // Check for nested input.toolName (common in these parts)
+      if (
+        "input" in part &&
+        typeof part.input === "object" &&
+        part.input !== null &&
+        "toolName" in part.input &&
+        typeof part.input.toolName === "string"
+      ) {
+        return part.input.toolName;
+      }
+      
+      // Check for direct toolName (fallback)
+      if ("toolName" in part && typeof part.toolName === "string") {
+        return part.toolName;
+      }
+    }
+
+    // If it's a text part
+    if (part.type === "text" && "text" in part && typeof part.text === "string") {
+      // If text is non-empty, then TEXT is the latest part. Return null (no tool).
+      if (part.text.trim().length > 0) {
+        return null; 
+      }
+      // If text IS empty/whitespace, continue looking backwards?
+      // Yes, usually ignore whitespace.
+      continue;
+    }
+
+    // If it's a tool result
+    if (part.type === "tool-result") {
+      // If we see a result, it means the tool is done.
+      // Return null, so we show whatever text state (or "Thinking...")
+      return null;
+    }
+  }
+
+  return null;
+}
+
+/**
  * Process a message and extract all relevant information
  */
 export function processMessage(message: any, currentTool?: string | null): MessageProcessingResult {

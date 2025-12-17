@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { ChatStatus, UIMessage } from "ai";
-import { processMessage, extractToolName } from "../utils/messageProcessor";
+import { processMessage, extractLatestToolName } from "../utils/messageProcessor";
 
 export type IslandState =
   | "idle" // No messages, not expanded
@@ -39,8 +39,9 @@ export function useIslandState(
       const processed = processMessage(lastMessage);
       displayText = processed.displayText;
       
-      // Prioritize active tool call, then extracted tool name
-      toolName = processed.toolCall || extractToolName(lastMessage);
+      // Prioritize active tool call based on strict "latest part" logic
+      // toolName = processed.toolCall || extractToolName(lastMessage);
+      toolName = extractLatestToolName(lastMessage);
     }
 
     // 2. Determine UI State

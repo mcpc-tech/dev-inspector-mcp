@@ -382,7 +382,7 @@ export const InspectorBar = ({
                   <div className="relative flex items-center justify-center w-6 h-6 rounded-full bg-accent flex-shrink-0">
                     {isWorking ? (
                       <>
-                        <div className="absolute inset-0 rounded-full border-2 border-current opacity-20 animate-ping text-foreground" />
+                        <div className="absolute inset-1 rounded-full border-2 border-current opacity-20 animate-ping text-foreground" />
                         <img
                           src={currentAgent?.meta?.icon}
                           alt={selectedAgent}
@@ -392,7 +392,7 @@ export const InspectorBar = ({
                     ) : inspectionStatus ? (
                       inspectionStatus.status === "in-progress" ? (
                         <>
-                          <div className="absolute inset-0 rounded-full border-2 border-current opacity-20 animate-ping text-blue-500" />
+                          <div className="absolute inset-1 rounded-full border-2 border-current opacity-20 animate-ping text-blue-500" />
                           <Terminal className="w-3.5 h-3.5 animate-pulse text-blue-500" />
                         </>
                       ) : inspectionStatus.status === "completed" ? (
