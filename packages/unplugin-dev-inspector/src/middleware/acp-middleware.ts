@@ -297,7 +297,7 @@ export function setupAcpMiddleware(
       if (error instanceof Error && error.message.includes('command not found')) {
         throw error;
       }
-      
+
       console.error("ACP Init Session Error:", error);
       if (!res.headersSent) {
         res.statusCode = 500;
@@ -366,7 +366,7 @@ export function setupAcpMiddleware(
 
     try {
       const body = await readBody(req);
-      const { messages, agent, envVars, sessionId } = JSON.parse(body);
+      const { messages, agent, envVars, sessionId, isAutomated } = JSON.parse(body);
 
       const cwd = process.cwd();
 
@@ -384,7 +384,7 @@ export function setupAcpMiddleware(
       } else {
         // Fallback: Create new provider (backward compatibility or missing session)
         console.log(`[dev-inspector] [acp] Creating new provider (no session found or provided)`);
-        
+
         // Try to resolve npm package bin if npmPackage is specified
         let command = agent.command;
         let args = agent.args;
@@ -396,7 +396,7 @@ export function setupAcpMiddleware(
             console.log(`[dev-inspector] [acp] Using resolved npm package: ${agent.npmPackage}`);
           }
         }
-        
+
         provider = createACPProvider({
           command,
           args,
@@ -429,13 +429,14 @@ export function setupAcpMiddleware(
 
       // Create abort controller for request cancellation
       const abortController = new AbortController();
-
-      // Listen for client disconnect to cancel the stream
-      req.on("close", () => {
-        console.log("[dev-inspector] [acp] Client disconnected, aborting stream");
-        abortController.abort();
-        if (shouldCleanupProvider) {
-          provider.cleanup();
+      
+      res.on("close", () => {
+        if (!abortController.signal.aborted) {
+          console.log("[dev-inspector] [acp] Client disconnected, aborting stream");
+          abortController.abort();
+          if (shouldCleanupProvider) {
+            provider.cleanup();
+          }
         }
       });
 
@@ -446,9 +447,14 @@ export function setupAcpMiddleware(
       const modelMessages = convertToModelMessages(messages);
       const enhancedMessages = modelMessages.map((msg: any, index: number) => {
         if (index === 0 && msg.role === "user" && Array.isArray(msg.content)) {
-          return { 
-            ...msg, 
-            content: [{ type: "text", text: `<system_instructions>\n${systemPrompt}\n</system_instructions>\n\n` }, ...msg.content] 
+          return {
+            ...msg,
+            content: [{
+              type: "text", text: `<system_instructions>
+${systemPrompt}
+${isAutomated ? '' : 'Currently chrome devtools automation is disabled. You do not have access to Console/Network context.'}
+</system_instructions>
+` }, ...msg.content]
           };
         }
         return msg;
@@ -464,7 +470,9 @@ export function setupAcpMiddleware(
         tools: acpTools(mcpTools),
         onError: (error) => {
           console.error("Error occurred while streaming text:", JSON.stringify(error, null, 2));
-          provider.cleanup();
+          if (shouldCleanupProvider) {
+            provider.cleanup();
+          }
         },
       });
 

@@ -111,19 +111,17 @@ DOM Path: ${elementInfo.domPath || "N/A"}
 \`\`\`
 
 ### Position & Size
-${
-  elementInfo.boundingBox
-    ? `
+${elementInfo.boundingBox
+      ? `
 - **Position**: (${Math.round(elementInfo.boundingBox.x)}, ${Math.round(elementInfo.boundingBox.y)})
 - **Size**: ${Math.round(elementInfo.boundingBox.width)}px × ${Math.round(elementInfo.boundingBox.height)}px
 `
-    : ""
-}
+      : ""
+    }
 
 ### Computed Styles (Key Properties)
-${
-  elementInfo.computedStyles
-    ? `
+${elementInfo.computedStyles
+      ? `
 **Layout**:
 - display: ${elementInfo.computedStyles.layout.display}
 - position: ${elementInfo.computedStyles.layout.position}
@@ -148,7 +146,7 @@ ${
 - box-shadow: ${elementInfo.computedStyles.effects.boxShadow || "none"}
 - transform: ${elementInfo.computedStyles.effects.transform || "none"}
 `
-    : `
+      : `
 **Legacy Styles**:
 \`\`\`css
 display: ${elementInfo.styles?.display}
@@ -159,7 +157,7 @@ padding: ${elementInfo.styles?.padding}
 margin: ${elementInfo.styles?.margin}
 \`\`\`
 `
-}
+    }
 `
     : "";
 
@@ -316,6 +314,9 @@ export function useMcp() {
   const clientRef = useRef<Client | null>(null);
   const [isClientReady, setIsClientReady] = useState(false);
 
+  // Check if automated by chrome devtools, then we have console/network access
+  const isAutomated = navigator.webdriver
+
   useEffect(() => {
     if (clientRef.current) return;
 
@@ -325,7 +326,34 @@ export function useMcp() {
     );
 
     // Tool implementations
-    async function inspectElement() {
+    async function inspectElement(args: any) {
+      if (args?.automated) {
+        activateInspector();
+        
+        if (isAutomated) {
+          // Chrome DevTools available
+          return createTextContent(
+            `Inspector activated. Click the target element to auto-capture.
+
+**Available tools**:
+- chrome_take_snapshot: See the page visually
+- chrome_click: Click element via browser automation
+
+After clicking, use \`list_inspections\` to view the captured element with full context (DOM, styles, source).`,
+          );
+        } else {
+          // No Chrome DevTools - use execute_page_script only
+          return createTextContent(
+            `Inspector activated. Click the target element to auto-capture.
+
+**Available tool**:
+- execute_page_script: Find the target element on the page, then trigger a click programmatically
+
+After clicking, use \`list_inspections\` to view the captured element with full context (DOM, styles, source).`,
+          );
+        }
+      }
+
       cancelPendingRequest("New inspect request started");
       activateInspector();
 
@@ -347,7 +375,7 @@ export function useMcp() {
       if (!pendingResolve) return;
 
       const { inspections } = event.detail;
-      
+
       // Always expect an array of inspections
       if (!inspections || !Array.isArray(inspections) || inspections.length === 0) {
         pendingReject?.(new Error("No inspections received"));
@@ -360,10 +388,10 @@ export function useMcp() {
       sessionStorage.setItem(INSPECTION_ID_KEY, lastInspection.id);
 
       // Format all inspections
-      const results = inspections.map((item: any) => 
+      const results = inspections.map((item: any) =>
         formatResult(item.sourceInfo, item.description)
       );
-      
+
       // Return single result if only one, otherwise combine them
       if (results.length === 1) {
         pendingResolve(results[0]);
@@ -372,10 +400,10 @@ export function useMcp() {
           const { sourceInfo, description } = item;
           return `## Inspection ${index + 1}\n\n**File**: ${sourceInfo.file}:${sourceInfo.line}:${sourceInfo.column}\n**Component**: ${sourceInfo.component}\n\n**User Request**:\n${description}\n\n${formatElementInfo(sourceInfo.elementInfo)}`;
         }).join("\n\n---\n\n");
-        
+
         pendingResolve(createTextContent(`# ${inspections.length} Elements Inspected\n\n${combinedText}`));
       }
-      
+
       clearPendingRequest();
     }
 
@@ -478,7 +506,7 @@ export function useMcp() {
     }
 
     const transport = new SSEClientTransport(
-      new URL(`/__mcp__/sse?clientId=inspector`, getDevServerBaseUrl()),
+      new URL(`/__mcp__/sse?clientId=inspector&isAutomated=${isAutomated}`, getDevServerBaseUrl()),
     );
 
     client

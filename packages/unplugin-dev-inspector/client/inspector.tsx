@@ -158,10 +158,46 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
     isWaitingForFeedback: bubbleMode !== null,
     onElementInspected: (info) => {
       setSourceInfo(info);
-      setBubbleMode("input");
+      
+      // Auto-save in automated mode (e.g., when controlled by Chrome DevTools)
+      if (navigator.webdriver) {
+        const inspectionId = `inspection-${Date.now()}`;
+        const newItem: InspectionItem = {
+          id: inspectionId,
+          sourceInfo: {
+            file: info.file,
+            component: info.component,
+            line: info.line,
+            column: info.column,
+            elementInfo: info.elementInfo,
+          },
+          description: "Auto-captured via automation",
+          status: "pending",
+          timestamp: Date.now(),
+        };
 
-      if (overlayRef.current) overlayRef.current.style.display = "none";
-      if (tooltipRef.current) tooltipRef.current.style.display = "none";
+        setInspections((prev) => [...prev, newItem]);
+
+        // Dispatch immediately for automated mode
+        window.dispatchEvent(
+          new CustomEvent("element-inspected", {
+            detail: {
+              inspections: [newItem],
+            },
+          }),
+        );
+
+        setIsActive(false);
+        document.body.style.cursor = "";
+        if (overlayRef.current) overlayRef.current.style.display = "none";
+        if (tooltipRef.current) tooltipRef.current.style.display = "none";
+        showNotif("✅ Element captured automatically");
+      } else {
+        // Manual mode - show input bubble
+        setBubbleMode("input");
+        if (overlayRef.current) overlayRef.current.style.display = "none";
+        if (tooltipRef.current) tooltipRef.current.style.display = "none";
+      }
     },
     btnRef,
   });

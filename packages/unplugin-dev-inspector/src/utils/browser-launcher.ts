@@ -104,7 +104,7 @@ export async function launchBrowserWithDevTools(options: BrowserLaunchOptions): 
 
   const host = serverContext.host === "0.0.0.0" ? "localhost" : serverContext.host || "localhost";
   const port = serverContext.port || 5173;
-  const sseUrl = `http://${host}:${port}/__mcp__/sse?clientId=browser-launcher-${process.pid}`;
+  const sseUrl = `http://${host}:${port}/__mcp__/sse?clientId=browser-launcher-${process.pid}&isAutomated=true`;
 
   try {
     const client = await getOrCreateClient(sseUrl);

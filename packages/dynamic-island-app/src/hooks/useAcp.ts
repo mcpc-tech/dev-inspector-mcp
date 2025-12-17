@@ -56,6 +56,8 @@ export function useAcp() {
 
   // Init session when agent changes
   useEffect(() => {
+    // Check if automated by chrome devtools, then we have console/network access
+    const isAutomated = navigator.webdriver
     let cancelled = false;
 
     const initSession = async () => {
@@ -72,7 +74,7 @@ export function useAcp() {
         const response = await fetch(`${baseUrl}/api/acp/init-session`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ agent, envVars: {} }),
+          body: JSON.stringify({ agent, envVars: {}, isAutomated }),
         });
         if (!cancelled && response.ok) {
           const data = await response.json();

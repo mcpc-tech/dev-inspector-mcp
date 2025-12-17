@@ -251,8 +251,6 @@ async function handleSseConnection(
     res.socket?.setKeepAlive?.(true);
     res.socket?.setTimeout?.(0);
 
-    // Create MCP server for this SSE connection
-    const mcpServer = await createInspectorMcpServer(serverContext);
     // Use injected serverContext for local dev server address
     const host = serverContext?.host || "localhost";
     const port = serverContext?.port || 5173;
@@ -262,6 +260,19 @@ async function handleSseConnection(
     // Default clientId to "agent" for watcher connections without explicit clientId
     const clientId = url.searchParams.get("clientId") || `agent-${sessionId}`;
     const puppetId = url.searchParams.get("puppetId") || "inspector";
+    // Disable Chrome for if not automated
+    const isAutomated = url.searchParams.get("isAutomated") === 'true';
+    console.log(`[dev-inspector] New SSE connection: sessionId=${sessionId}, clientId=${clientId}, puppetId=${puppetId}, isAutomated=${isAutomated}`);
+
+    if (isAutomated && serverContext) {
+      serverContext.isAutomated = true;
+    }
+    
+    // Create MCP server for this SSE connection
+    const mcpServer = await createInspectorMcpServer({
+      ...serverContext,
+      isAutomated,
+    });
 
     console.log(`[dev-inspector] [sse] New connection request: clientId=${clientId}, puppetId=${puppetId}, sessionId=${sessionId}`);
 

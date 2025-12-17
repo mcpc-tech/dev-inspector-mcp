@@ -6,11 +6,22 @@
 export const TOOL_SCHEMAS = {
   capture_element_context: {
     name: "capture_element_context",
-    description:
-      "Capture element context for troubleshooting. Activates visual selector, user clicks element and provides notes, returns source location, DOM hierarchy, computed styles, dimensions, and user notes. Combine with chrome_devtools MCP for deeper diagnostics (Network, Console, Performance, DOM tools).",
+    description: `Capture element context for troubleshooting. 
+
+**Default (automated=false)**: Manual mode - activates visual selector for user interaction.
+
+**Automated (automated=true)**: AI controls capture by clicking elements programmatically. Only set to true when user needs automation.
+
+Returns: source location, DOM hierarchy, computed styles, dimensions, and user notes. Use \`list_inspections\` to view all captured elements.`,
     inputSchema: {
       type: "object" as const,
-      properties: {},
+      properties: {
+        automated: {
+          type: "boolean",
+          description:
+            "Set to true ONLY when user explicitly requests automated capture. Default is false (manual mode).",
+        },
+      },
     },
   },
 

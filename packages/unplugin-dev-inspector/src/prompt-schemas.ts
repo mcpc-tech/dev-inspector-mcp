@@ -8,7 +8,14 @@ export const PROMPT_SCHEMAS = {
     name: "capture_element",
     title: "Capture Element Context",
     description: "Capture context about a UI element for troubleshooting and investigation.",
-    arguments: [],
+    arguments: [
+      {
+        name: "automated",
+        description:
+          "If true, the AI will automate the capture process (click/feedback/submit).",
+        required: false,
+      },
+    ],
   },
 
   view_inspections: {

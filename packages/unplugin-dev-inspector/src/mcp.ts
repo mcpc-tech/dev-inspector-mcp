@@ -76,6 +76,11 @@ export interface ServerContext {
    * Useful for CI/headless/cloud environments.
    */
   disableChrome?: boolean;
+  /**
+   * Whether the client supports automation (e.g. Chrome DevTools automation).
+   * If false, we should guide the user to open the browser manually.
+   */
+  isAutomated?: boolean;
 }
 
 /**
@@ -83,6 +88,8 @@ export interface ServerContext {
  */
 export async function createInspectorMcpServer(serverContext?: ServerContext) {
   const chromeDisabled = isChromeDisabled(serverContext?.disableChrome);
+  const isAutomated = serverContext?.isAutomated ?? false;
+  console.log(`[dev-inspector] Chrome DevTools integration is ${chromeDisabled ? "disabled" : "enabled"}`);
 
   const chromeDevToolsServers = chromeDisabled
     ? []
@@ -93,10 +100,14 @@ export async function createInspectorMcpServer(serverContext?: ServerContext) {
 
 Provides tools for inspecting network requests, console logs, and performance metrics.
 
-If Chrome is already open, this tool can connect to it directly. Otherwise, call chrome_navigate_page first to launch Chrome.
-Default dev server URL: ${process.env.DEV_INSPECTOR_PUBLIC_BASE_URL || `http://${serverContext?.host || "localhost"}:${serverContext?.port || 5173}`}
+${
+  isAutomated
+    ? "Chrome is already open and connected. You can use this tool to inspect the page directly."
+    : "The client does not support automation. You MUST ask the user for confirmation before navigating to any URL."
+}
 
-You MUST ask the user for confirmation before navigating to any URL.`,
+Default dev server URL: ${process.env.DEV_INSPECTOR_PUBLIC_BASE_URL || `http://${serverContext?.host || "localhost"}:${serverContext?.port || 5173}`}
+`,
           options: {
             refs: [
               // Page navigation and management
@@ -367,9 +378,12 @@ You MUST ask the user for confirmation before navigating to any URL.`,
 
     switch (promptName) {
       case "capture_element": {
+        const automated = request.params.arguments?.automated === "true";
         const element = (await callMcpMethod(mcpServer, "tools/call", {
           name: "capture_element_context",
-          arguments: {},
+          arguments: {
+            automated,
+          },
         })) as CallToolResult;
 
         return {
