@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import type { InspectedElement } from "./types";
 import { Notification } from "./components/Notification";
 import { FeedbackBubble } from "./components/FeedbackBubble";
+import type { SelectedContext } from "./components/ContextPicker";
 import { type InspectionItem } from "./components/InspectionQueue";
 import { Overlay, Tooltip } from "./components/Overlays";
 import { useNotification } from "./hooks/useNotification";
@@ -221,7 +222,7 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
     btnRef,
   });
 
-  const handleInspectionSubmit = (description: string, continueInspecting = false) => {
+  const handleInspectionSubmit = (description: string, continueInspecting = false, context?: SelectedContext) => {
     if (!sourceInfo) return;
 
     const inspectionId = `inspection-${Date.now()}`;
@@ -237,6 +238,7 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
       description,
       status: "pending",
       timestamp: Date.now(),
+      selectedContext: context,
     };
 
     setInspections((prev) => [...prev, newItem]);
@@ -337,6 +339,8 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
               mode={bubbleMode}
               onSubmit={handleInspectionSubmit}
               onClose={handleBubbleClose}
+              client={client}
+              isClientReady={isClientReady}
             />
           </div>
         )}

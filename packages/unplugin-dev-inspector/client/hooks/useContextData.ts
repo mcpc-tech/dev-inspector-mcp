@@ -129,10 +129,19 @@ function parseNetworkRequests(text: string): NetworkRequest[] {
         reqid: parseInt(reqid),
         method,
         url,
-        status,
+        status: normalizeStatus(status),
       });
     }
   }
 
   return requests.reverse(); // Show newest first
+}
+
+/**
+ * Normalize status text for display - extract only the status code
+ * KISS: Show "304" instead of "failed - 304"
+ */
+function normalizeStatus(status: string): string {
+  const codeMatch = status.match(/\b(\d{3})\b/);
+  return codeMatch ? codeMatch[1] : status;
 }

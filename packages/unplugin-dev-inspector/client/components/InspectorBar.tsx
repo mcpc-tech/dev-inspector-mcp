@@ -494,21 +494,6 @@ export const InspectorBar = ({
             )}
             onClick={(e) => e.stopPropagation()}
           >
-            <button
-              onClick={onToggleInspector}
-              className={cn(
-                "relative flex items-center justify-center w-7 h-7 rounded-full transition-colors flex-shrink-0",
-                isActive
-                  ? "bg-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]"
-                  : "bg-accent text-muted-foreground hover:bg-accent/80 hover:text-foreground",
-              )}
-              title="Toggle Inspector (⌥I)"
-            >
-              <Eye className="w-3.5 h-3.5" />
-            </button>
-
-            <div className="w-px h-4 bg-border flex-shrink-0" />
-
             {/* Context Button */}
             <>
               <button
@@ -530,6 +515,24 @@ export const InspectorBar = ({
               </button>
               <div className="w-px h-4 bg-border flex-shrink-0" />
             </>
+
+            {/* Toggle Button */}
+            <button
+              onClick={onToggleInspector}
+              className={cn(
+                "relative flex items-center justify-center w-7 h-7 rounded-full transition-colors flex-shrink-0",
+                isActive
+                  ? "bg-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]"
+                  : "bg-accent text-muted-foreground hover:bg-accent/80 hover:text-foreground",
+              )}
+              title="Toggle Inspector (⌥I)"
+            >
+              <Eye className="w-3.5 h-3.5" />
+            </button>
+
+            <div className="w-px h-4 bg-border flex-shrink-0" />
+
+
 
             <form
               onSubmit={handleSubmit}

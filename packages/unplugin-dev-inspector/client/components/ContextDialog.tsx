@@ -207,7 +207,7 @@ export const ContextDialog: React.FC<ContextDialogProps> = ({
             >
                 <DialogHeader className="flex-shrink-0 pr-8">
                     <div className="flex items-center justify-between gap-4">
-                        <DialogTitle>Context</DialogTitle>
+                        <DialogTitle>Full Page Context</DialogTitle>
                         <button
                             type="button"
                             onClick={() => refresh()}
