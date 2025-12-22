@@ -609,4 +609,4 @@ For a deep dive into how the MCP context, CMCP library, and Puppet binding mecha
 
 ## License
 
-MIT
+[MIT](./LICENSE)

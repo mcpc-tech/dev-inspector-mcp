@@ -16,15 +16,23 @@ Works with any MCP-compatible AI client. Supports ACP agents: **Claude Code**, *
 ## 📑 Table of Contents
 
 - [Demo Video](#-demo-video)
-- [Key Features](#-key-features)
-- [Quick Start](#-quick-start)
+- [Social Media](#-social-media)
+- [Key Features](#key-features)
+- [Quick Start](#quick-start)
+  - [Installation](#installation)
+  - [Automated Setup](#-automated-setup-recommended)
+  - [Manual Configuration](#manual-configuration)
 - [Framework Support](#framework-support)
-- [Configuration](#-configuration)
-- [Agent Installation](#agent-installation)
-- [How It Works](#-what-it-does)
-- [Workflow Modes](#-two-workflow-modes)
-- [MCP Tools](#-mcp-tools)
-- [Architecture](#-architecture)
+- [Configuration](#configuration)
+  - [Auto-Update MCP Config](#auto-update-mcp-config)
+  - [Agent Installation](#agent-installation)
+  - [Custom Agents](#custom-agents)
+- [What It Does](#what-it-does)
+- [Two Workflow Modes](#two-workflow-modes)
+- [MCP Tools](#mcp-tools)
+- [Custom Inspector Tools](#custom-inspector-tools)
+- [MCP Prompts](#mcp-prompts)
+- [Architecture](#architecture)
 
 ## 🎬 Demo Video
 
@@ -601,4 +609,4 @@ For a deep dive into how the MCP context, CMCP library, and Puppet binding mecha
 
 ## License
 
-MIT
+[MIT](./LICENSE)
