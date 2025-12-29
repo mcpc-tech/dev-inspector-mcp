@@ -33,26 +33,20 @@ function createTextContent(text: string) {
   return { content: [{ type: "text" as const, text }] };
 }
 
-function formatElementInfo(elementInfo: any) {
-  if (!elementInfo) return "";
+// Create MCP image content from base64 data URL
+function createImageContent(dataUrl: string) {
+  // Extract base64 data from data URL (remove "data:image/png;base64," prefix)
+  const base64Data = dataUrl.replace(/^data:image\/\w+;base64,/, "");
+  return { type: "image" as const, data: base64Data, mimeType: "image/png" };
+}
 
-  const { tagName, textContent, className, id: elemId, styles } = elementInfo;
+// KISS: Reuse shared format function with simplified output for list view
+function formatElementInfoSimple(elementInfo: any) {
+  if (!elementInfo) return "";
+  const { tagName, textContent, className, id: elemId } = elementInfo;
   const idAttr = elemId ? ` id="${elemId}"` : "";
   const classAttr = className ? ` class="${className}"` : "";
-
-  return `
-**DOM Element**:
-\`\`\`
-Tag: <${tagName}${idAttr}${classAttr}>
-Text: ${textContent || "(empty)"}
-\`\`\`
-
-**Key Styles**:
-- display: ${styles.display}
-- color: ${styles.color}
-- background: ${styles.backgroundColor}
-- font-size: ${styles.fontSize}
-`;
+  return `\n**DOM Element**: \`<${tagName}${idAttr}${classAttr}>\` - ${textContent || "(empty)"}\n`;
 }
 
 function getAllFeedbacks() {
@@ -80,7 +74,7 @@ function getAllFeedbacks() {
 **File**: ${sourceInfo.file}
 **Line**: ${sourceInfo.line}
 **Component**: ${sourceInfo.component}
-${formatElementInfo(sourceInfo.elementInfo)}
+${formatElementInfoSimple(sourceInfo.elementInfo)}
 **User Request**:
 ${description}
 
@@ -90,19 +84,45 @@ ${result ? `**Result**: ${result}\n` : ""}---`;
 
     const hint = `\n\n## How to Update\n\nUse \`update_inspection_status\` tool to update any inspection:\n\n\`\`\`\nupdate_inspection_status({\n  inspectionId: "feedback-xxx",  // Copy from above\n  status: "completed",\n  message: "Your findings here"\n})\n\`\`\``;
 
-    return createTextContent(
-      `# Inspection Queue (${items.length} items)\n\n${feedbackList}${hint}`,
-    );
-  } catch (e) {
+    // Build content array with text + images (MCP spec)
+    const content: any[] = [
+      {
+        type: "text" as const,
+        text: `# Inspection Queue (${items.length} items)\n\n${feedbackList}${hint}`,
+      },
+    ];
+
+    // Add screenshots for each item that has them
+    items.forEach((item: any) => {
+      if (item.selectedContext?.screenshot) {
+        content.push(createImageContent(item.selectedContext.screenshot));
+      }
+    });
+
+    return { content };
+  } catch {
     return createTextContent("# Error\n\nFailed to load inspection items.");
   }
 }
 
-function formatResult(sourceInfo: any, description: string) {
+function formatResult(sourceInfo: any, description: string, selectedContext?: any) {
   const { file, line, component, elementInfo } = sourceInfo;
 
-  const domInfo = elementInfo
-    ? `
+  let output = `# Element Inspection Result
+
+## Source Code
+- **File**: ${file}
+- **Line**: ${line}
+- **Component**: ${component}
+`;
+
+  // Only include element info if selected (or if no context specified, include by default)
+  const includeElement = selectedContext?.includeElement !== false;
+  const includeStyles = selectedContext?.includeStyles !== false;
+
+  const domInfo =
+    elementInfo && includeElement
+      ? `
 ## DOM Element
 \`\`\`
 Tag: <${elementInfo.tagName}${elementInfo.id ? ` id="${elementInfo.id}"` : ""}${elementInfo.className ? ` class="${elementInfo.className}"` : ""}>
@@ -111,17 +131,19 @@ DOM Path: ${elementInfo.domPath || "N/A"}
 \`\`\`
 
 ### Position & Size
-${elementInfo.boundingBox
-      ? `
+${
+  elementInfo.boundingBox
+    ? `
 - **Position**: (${Math.round(elementInfo.boundingBox.x)}, ${Math.round(elementInfo.boundingBox.y)})
 - **Size**: ${Math.round(elementInfo.boundingBox.width)}px × ${Math.round(elementInfo.boundingBox.height)}px
 `
-      : ""
-    }
+    : ""
+}
 
-### Computed Styles (Key Properties)
-${elementInfo.computedStyles
-      ? `
+${
+  includeStyles && elementInfo.computedStyles
+    ? `### Computed Styles (Key Properties)
+
 **Layout**:
 - display: ${elementInfo.computedStyles.layout.display}
 - position: ${elementInfo.computedStyles.layout.position}
@@ -146,8 +168,8 @@ ${elementInfo.computedStyles
 - box-shadow: ${elementInfo.computedStyles.effects.boxShadow || "none"}
 - transform: ${elementInfo.computedStyles.effects.transform || "none"}
 `
-      : `
-**Legacy Styles**:
+    : includeStyles && elementInfo.styles
+      ? `### Legacy Styles:
 \`\`\`css
 display: ${elementInfo.styles?.display}
 color: ${elementInfo.styles?.color}
@@ -157,27 +179,76 @@ padding: ${elementInfo.styles?.padding}
 margin: ${elementInfo.styles?.margin}
 \`\`\`
 `
-    }
+      : ""
+}
 `
-    : "";
+      : "";
 
-  return createTextContent(`# Element Inspection Result
+  output += domInfo;
 
-## Source Code
-- **File**: ${file}
-- **Line**: ${line}
-- **Component**: ${component}
-${domInfo}
-## User Request
+  // Add user request
+  output += `## User Request
 ${description}
 
-## Your Task
+`;
+
+  // Note: Screenshot is now returned as MCP image content type (not in markdown)
+
+  // Add console messages if provided
+  if (selectedContext?.consoleMessages && selectedContext.consoleMessages.length > 0) {
+    const messages = selectedContext.consoleMessages
+      .map((msg: any) => {
+        const levelIcon = msg.level === "error" ? "❌" : msg.level === "warn" ? "⚠️" : "📝";
+        return `- ${levelIcon} [${msg.level}] ${msg.text}`;
+      })
+      .join("\n");
+    output += `## Console Messages (${selectedContext.consoleMessages.length})
+${messages}
+
+`;
+  }
+
+  // Add network requests if provided
+  if (selectedContext?.networkRequests && selectedContext.networkRequests.length > 0) {
+    const requests = selectedContext.networkRequests
+      .map((req: any) => {
+        let entry = `### ${req.method} ${req.url}
+- **Status**: ${req.status}
+`;
+        if (req.details && req.details !== "(expand request to load details)") {
+          entry += `
+#### Details
+\`\`\`
+${req.details}
+\`\`\`
+`;
+        }
+        return entry;
+      })
+      .join("\n");
+    output += `## Network Requests (${selectedContext.networkRequests.length})
+${requests}
+
+`;
+  }
+
+  output += `## Your Task
 1. Investigate the issue using 'chrome_devtools' tool (check console logs, network requests, performance)
 2. Use 'execute_page_script' to query element state if needed
 3. Update status with 'update_inspection_status':
    - "in-progress" with progress details while investigating
    - "completed" with findings when done
-   - "failed" if unresolvable`);
+   - "failed" if unresolvable`;
+
+  // Return content array with text and optional image (MCP spec)
+  const content: any[] = [{ type: "text" as const, text: output }];
+
+  // Add screenshot as MCP image content if available
+  if (selectedContext?.screenshot) {
+    content.push(createImageContent(selectedContext.screenshot));
+  }
+
+  return { content };
 }
 
 function patchContext(args: any) {
@@ -206,7 +277,7 @@ function patchContext(args: any) {
       try {
         // Try to serialize to JSON
         formattedResult = JSON.stringify(result, null, 2);
-      } catch (e) {
+      } catch {
         // If serialization fails, use toString
         formattedResult = `[Object: ${Object.prototype.toString.call(result)}]`;
       }
@@ -265,7 +336,7 @@ function updateInspectionStatus(args: any) {
       );
 
       return createTextContent(`Inspection ${inspectionId} deleted successfully.`);
-    } catch (error) {
+    } catch {
       return createTextContent("Error: Failed to delete inspection");
     }
   }
@@ -315,7 +386,7 @@ export function useMcp() {
   const [isClientReady, setIsClientReady] = useState(false);
 
   // Check if automated by chrome devtools, then we have console/network access
-  const isAutomated = navigator.webdriver
+  const isAutomated = navigator.webdriver;
 
   useEffect(() => {
     if (clientRef.current) return;
@@ -329,7 +400,7 @@ export function useMcp() {
     async function inspectElement(args: any) {
       if (args?.automated) {
         activateInspector();
-        
+
         if (isAutomated) {
           // Chrome DevTools available
           return createTextContent(
@@ -387,21 +458,25 @@ After clicking, use \`list_inspections\` to view the captured element with full 
       const lastInspection = inspections[inspections.length - 1];
       sessionStorage.setItem(INSPECTION_ID_KEY, lastInspection.id);
 
-      // Format all inspections
+      // Format all inspections (include selectedContext for image content)
       const results = inspections.map((item: any) =>
-        formatResult(item.sourceInfo, item.description)
+        formatResult(item.sourceInfo, item.description, item.selectedContext),
       );
 
       // Return single result if only one, otherwise combine them
       if (results.length === 1) {
         pendingResolve(results[0]);
       } else {
-        const combinedText = inspections.map((item: any, index: number) => {
-          const { sourceInfo, description } = item;
-          return `## Inspection ${index + 1}\n\n**File**: ${sourceInfo.file}:${sourceInfo.line}:${sourceInfo.column}\n**Component**: ${sourceInfo.component}\n\n**User Request**:\n${description}\n\n${formatElementInfo(sourceInfo.elementInfo)}`;
-        }).join("\n\n---\n\n");
+        const combinedText = inspections
+          .map((item: any, index: number) => {
+            const { sourceInfo, description } = item;
+            return `## Inspection ${index + 1}\n\n**File**: ${sourceInfo.file}:${sourceInfo.line}:${sourceInfo.column}\n**Component**: ${sourceInfo.component}\n\n**User Request**:\n${description}\n\n${formatElementInfoSimple(sourceInfo.elementInfo)}`;
+          })
+          .join("\n\n---\n\n");
 
-        pendingResolve(createTextContent(`# ${inspections.length} Elements Inspected\n\n${combinedText}`));
+        pendingResolve(
+          createTextContent(`# ${inspections.length} Elements Inspected\n\n${combinedText}`),
+        );
       }
 
       clearPendingRequest();

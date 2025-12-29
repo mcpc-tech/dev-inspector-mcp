@@ -14,6 +14,7 @@ import { cn } from "./lib/utils";
 import { useInspectorTheme } from "./context/ThemeContext";
 import { InspectorContainerContext } from "./context/InspectorContainerContext";
 import { useInspectionProgress } from "./hooks/useInspectionProgress";
+import { captureElementScreenshot } from "./utils/screenshot";
 import inspectorStyles from "./styles.css";
 import ReactDOM from "react-dom/client";
 import { InspectorThemeProvider } from "./context/ThemeContext";
@@ -35,6 +36,7 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
 
   const [isActive, setIsActive] = useState(false);
   const [sourceInfo, setSourceInfo] = useState<InspectedElement | null>(null);
+  const [screenshot, setScreenshot] = useState<string>("");
   const [bubbleMode, setBubbleMode] = useState<"input" | null>(null);
   const { inspections, setInspections } = useInspectionProgress();
   const [currentSessionInspections, setCurrentSessionInspections] = useState<InspectionItem[]>([]);
@@ -94,43 +96,30 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
     showNotif(newActive ? "🔍 Inspector ON - Click any element" : "Inspector OFF");
   }, [isActive, showNotif]);
 
-  // Stable handler ref to avoid re-binding listener on state changes
-  // This prevents the "gap" where keypress events can slip through during re-render
-  const handleKeyDownRef = useRef<(e: KeyboardEvent) => void>(undefined);
-
-  // Update the ref with the latest closure
+  // KISS: Simplified keyboard shortcut handling - standard React pattern
   useEffect(() => {
-    handleKeyDownRef.current = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       // Escape to close inspector
       if (e.key === "Escape" && isActive) {
         handleBubbleClose();
         return;
       }
 
-      // Keyboard shortcuts to toggle inspector:
-      // - Alt/Option + I (I for Inspector) - Use e.code to handle keyboard layouts and macOS Option key char transformations
+      // Alt/Option + I to toggle inspector
       const isToggleShortcut =
         e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.code === "KeyI";
 
       if (isToggleShortcut) {
         e.preventDefault();
         e.stopPropagation();
-        e.stopImmediatePropagation(); // Ensure no other listeners see this
+        e.stopImmediatePropagation();
         toggleInspector();
       }
     };
-  });
 
-  useEffect(() => {
-    const listener = (e: KeyboardEvent) => {
-      if (handleKeyDownRef.current) {
-        handleKeyDownRef.current(e);
-      }
-    };
-
-    window.addEventListener("keydown", listener, true);
-    return () => window.removeEventListener("keydown", listener, true);
-  }, []); // Bind once, never remove
+    window.addEventListener("keydown", handleKeyDown, true);
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
+  }, [isActive, toggleInspector]);
 
   useEffect(() => {
     const handleActivateInspector = () => {
@@ -154,7 +143,13 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
     btnRef,
   });
 
-  const handleElementInspected = (info: InspectedElement) => {
+  const handleElementInspected = async (info: InspectedElement) => {
+    // Capture screenshot BEFORE dialog opens (KISS: capture timing fix)
+    if (info.element) {
+      const dataUrl = await captureElementScreenshot(info.element);
+      setScreenshot(dataUrl);
+    }
+
     setSourceInfo(info);
 
     // Auto-save in automated mode
@@ -336,6 +331,7 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
           <div className="pointer-events-auto">
             <FeedbackBubble
               sourceInfo={sourceInfo}
+              screenshot={screenshot}
               mode={bubbleMode}
               onSubmit={handleInspectionSubmit}
               onClose={handleBubbleClose}

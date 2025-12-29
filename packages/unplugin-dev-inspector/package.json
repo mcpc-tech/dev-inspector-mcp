@@ -150,6 +150,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "embla-carousel-react": "^8.6.0",
+    "html-to-image": "^1.11.13",
     "lucide-react": "^0.546.0",
     "magic-string": "^0.30.21",
     "mcp-remote": "^0.1.31",

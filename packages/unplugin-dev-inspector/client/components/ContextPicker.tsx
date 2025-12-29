@@ -12,8 +12,16 @@ export interface SelectedContext {
     includeElement: boolean;
     /** Include computed styles */
     includeStyles: boolean;
+    /** Include screenshot */
+    includeScreenshot: boolean;
     consoleIds: number[];
     networkIds: number[];
+    /** Actual console message data (enriched at submission time) */
+    consoleMessages?: ConsoleMessage[];
+    /** Actual network request data with details (enriched at submission time) */
+    networkRequests?: Array<NetworkRequest & { details?: string | null }>;
+    /** Screenshot data URL (captured at inspection time) */
+    screenshot?: string;
 }
 
 interface ContextPickerProps {
@@ -23,6 +31,8 @@ interface ContextPickerProps {
     sourceInfo?: InspectedElement;
     selectedContext: SelectedContext;
     onSelectionChange: (context: SelectedContext) => void;
+    /** Screenshot file path (if available) */
+    screenshot?: string;
     /** Callback when data is loaded, provides console/network data for parent */
     onDataReady?: (data: {
         consoleMessages: ConsoleMessage[];
@@ -31,7 +41,40 @@ interface ContextPickerProps {
     }) => void;
 }
 
-type TabType = "code" | "styles" | "console" | "network";
+type TabType = "code" | "styles" | "screenshot" | "console" | "network";
+
+interface TabConfig {
+    id: TabType;
+    label: string;
+    selectedCount?: number;
+    totalCount?: number;
+}
+
+const TabButton: React.FC<{
+    tab: TabConfig;
+    isActive: boolean;
+    onClick: () => void;
+}> = ({ tab, isActive, onClick }) => (
+    <button
+        type="button"
+        onClick={onClick}
+        className={cn(
+            "px-3 py-1.5 text-xs font-medium transition-colors relative",
+            isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+        )}
+    >
+        {tab.label}
+        {tab.totalCount !== undefined && tab.totalCount > 0 && (
+            <span className="ml-1 text-xs text-muted-foreground">({tab.totalCount})</span>
+        )}
+        {tab.selectedCount !== undefined && tab.selectedCount > 0 && (
+            <span className="ml-1.5 inline-flex items-center justify-center min-w-[16px] h-4 px-1 text-[10px] font-medium bg-primary text-primary-foreground rounded-full">
+                {tab.selectedCount}
+            </span>
+        )}
+        {isActive && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground" />}
+    </button>
+);
 
 export const ContextPicker: React.FC<ContextPickerProps> = ({
     client,
@@ -39,6 +82,7 @@ export const ContextPicker: React.FC<ContextPickerProps> = ({
     sourceInfo,
     selectedContext,
     onSelectionChange,
+    screenshot,
     onDataReady,
 }) => {
     const [isExpanded, setIsExpanded] = useState(true); // Default expanded
@@ -91,6 +135,7 @@ export const ContextPicker: React.FC<ContextPickerProps> = ({
     const totalSelected =
         (selectedContext.includeElement ? 1 : 0) +
         (selectedContext.includeStyles ? 1 : 0) +
+        (selectedContext.includeScreenshot ? 1 : 0) +
         selectedContext.consoleIds.length +
         selectedContext.networkIds.length;
 
@@ -100,6 +145,10 @@ export const ContextPicker: React.FC<ContextPickerProps> = ({
 
     const toggleStyles = () => {
         onSelectionChange({ ...selectedContext, includeStyles: !selectedContext.includeStyles });
+    };
+
+    const toggleScreenshot = () => {
+        onSelectionChange({ ...selectedContext, includeScreenshot: !selectedContext.includeScreenshot });
     };
 
     const toggleConsole = (msgid: number) => {
@@ -121,6 +170,15 @@ export const ContextPicker: React.FC<ContextPickerProps> = ({
 
     // Extract typography styles from sourceInfo
     const typographyStyles = sourceInfo?.elementInfo?.computedStyles?.typography;
+
+    // Tab configuration (KISS: data-driven rendering)
+    const tabs: TabConfig[] = [
+        { id: "code", label: "Code", selectedCount: selectedContext.includeElement ? 1 : 0 },
+        { id: "styles", label: "Styles", selectedCount: selectedContext.includeStyles ? 1 : 0 },
+        { id: "screenshot", label: "Visual", selectedCount: selectedContext.includeScreenshot ? 1 : 0 },
+        { id: "console", label: "Console", totalCount: consoleMessages.length, selectedCount: selectedContext.consoleIds.length },
+        { id: "network", label: "Network", totalCount: networkRequests.length, selectedCount: selectedContext.networkIds.length },
+    ];
 
     return (
         <div className="border border-border rounded-md overflow-hidden">
@@ -162,78 +220,16 @@ export const ContextPicker: React.FC<ContextPickerProps> = ({
             {/* Expanded Content */}
             {isExpanded && (
                 <div className="border-t border-border">
-                    {/* Tabs */}
+                    {/* Tabs - KISS: data-driven rendering */}
                     <div className="flex gap-1 border-b border-border px-2 pt-1">
-                        <button
-                            type="button"
-                            onClick={() => setActiveTab("code")}
-                            className={cn(
-                                "px-3 py-1.5 text-xs font-medium transition-colors relative",
-                                activeTab === "code" ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-                            )}
-                        >
-                            Code
-                            {selectedContext.includeElement && (
-                                <span className="ml-1.5 inline-flex items-center justify-center min-w-[16px] h-4 px-1 text-[10px] font-medium bg-primary text-primary-foreground rounded-full">
-                                    1
-                                </span>
-                            )}
-                            {activeTab === "code" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground" />}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setActiveTab("styles")}
-                            className={cn(
-                                "px-3 py-1.5 text-xs font-medium transition-colors relative",
-                                activeTab === "styles" ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-                            )}
-                        >
-                            Styles
-                            {selectedContext.includeStyles && (
-                                <span className="ml-1.5 inline-flex items-center justify-center min-w-[16px] h-4 px-1 text-[10px] font-medium bg-primary text-primary-foreground rounded-full">
-                                    1
-                                </span>
-                            )}
-                            {activeTab === "styles" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground" />}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setActiveTab("console")}
-                            className={cn(
-                                "px-3 py-1.5 text-xs font-medium transition-colors relative",
-                                activeTab === "console" ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-                            )}
-                        >
-                            Console
-                            {consoleMessages.length > 0 && (
-                                <span className="ml-1 text-xs text-muted-foreground">({consoleMessages.length})</span>
-                            )}
-                            {selectedContext.consoleIds.length > 0 && (
-                                <span className="ml-1 px-1 text-[10px] bg-primary text-primary-foreground rounded-full">
-                                    {selectedContext.consoleIds.length}
-                                </span>
-                            )}
-                            {activeTab === "console" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground" />}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setActiveTab("network")}
-                            className={cn(
-                                "px-3 py-1.5 text-xs font-medium transition-colors relative",
-                                activeTab === "network" ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-                            )}
-                        >
-                            Network
-                            {networkRequests.length > 0 && (
-                                <span className="ml-1 text-xs text-muted-foreground">({networkRequests.length})</span>
-                            )}
-                            {selectedContext.networkIds.length > 0 && (
-                                <span className="ml-1 px-1 text-[10px] bg-primary text-primary-foreground rounded-full">
-                                    {selectedContext.networkIds.length}
-                                </span>
-                            )}
-                            {activeTab === "network" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground" />}
-                        </button>
+                        {tabs.map(tab => (
+                            <TabButton
+                                key={tab.id}
+                                tab={tab}
+                                isActive={activeTab === tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                            />
+                        ))}
                     </div>
 
                     {/* Tab Content */}
@@ -315,7 +311,38 @@ export const ContextPicker: React.FC<ContextPickerProps> = ({
                             </div>
                         )}
 
-                        {loading && activeTab !== "code" && activeTab !== "styles" && (
+                        {/* Screenshot Tab */}
+                        {activeTab === "screenshot" && (
+                            <div className="p-2 space-y-1">
+                                {screenshot ? (
+                                    <label className="flex items-start gap-2 p-2 rounded hover:bg-accent/50 cursor-pointer transition-colors">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedContext.includeScreenshot}
+                                            onChange={toggleScreenshot}
+                                            className="mt-0.5 rounded border-border"
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-xs font-medium text-foreground mb-1">Element Visual</div>
+                                            <div className="text-[10px] text-muted-foreground/70 mb-2">Most editors paste image-only when both are copied. Right-click to copy manually.</div>
+                                            <div className="rounded border border-border overflow-hidden bg-muted/30">
+                                                <img
+                                                    src={screenshot}
+                                                    alt="Element Visual"
+                                                    className="w-full h-auto max-h-[150px] object-contain"
+                                                />
+                                            </div>
+                                        </div>
+                                    </label>
+                                ) : (
+                                    <p className="text-xs text-muted-foreground text-center py-4">
+                                        No visual available
+                                    </p>
+                                )}
+                            </div>
+                        )}
+
+                        {loading && activeTab !== "code" && activeTab !== "styles" && activeTab !== "screenshot" && (
                             <div className="flex items-center justify-center py-6">
                                 <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                             </div>
