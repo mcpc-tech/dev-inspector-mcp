@@ -32,7 +32,7 @@ export function DevInspector({ host = "localhost", port = "8888", baseUrl }: Dev
     const resolvedBaseUrl = (baseUrl || `http://${host}:${port}`).replace(/\/$/, "");
 
     const script = document.createElement("script");
-    script.src = `${resolvedBaseUrl}/__inspector__/inspector.iife.js`;
+    script.src = `${resolvedBaseUrl}/__inspector__/inspector.js`;
     script.type = "module";
     document.head.appendChild(script);
   }, [host, port, baseUrl]);

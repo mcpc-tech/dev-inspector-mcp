@@ -234,7 +234,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     const config = window.__DEV_INSPECTOR_CONFIG__;
     let baseUrl = config.baseUrl || ('http://' + config.host + ':' + config.port + config.base);
     if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
-    script.src = baseUrl + '/__inspector__/inspector.iife.js';
+    script.src = baseUrl + '/__inspector__/inspector.js';
     script.type = 'module';
     document.head.appendChild(script);
   }
@@ -319,7 +319,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
       baseUrl = baseUrl.slice(0, -1);
     }
 
-    script.src = baseUrl + '/__inspector__/inspector.iife.js';
+    script.src = baseUrl + '/__inspector__/inspector.js';
     script.type = 'module';
     document.head.appendChild(script);
   }

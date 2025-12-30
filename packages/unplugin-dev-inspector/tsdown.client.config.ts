@@ -6,14 +6,13 @@ import path from "path";
 
 export default defineConfig({
   entry: ["client/inspector.tsx"],
-  format: ["iife"],
+  format: ["esm"],
   outDir: "client/dist",
   clean: true,
   dts: false,
   external: [], // Don't externalize anything
   noExternal: [/@mcpc-tech\/cmcp/, /.*/], // Bundle everything including @mcpc-tech/cmcp
   platform: "browser",
-  globalName: "DevInspector",
   define: {
     "process.env.NODE_ENV": '"production"',
   },
@@ -22,7 +21,7 @@ export default defineConfig({
   plugins: [
     {
       name: "path-alias-resolver",
-      resolveId(id, importer) {
+      resolveId(id, _importer) {
         // Resolve client/lib/utils to actual path
         if (id === "client/lib/utils") {
           return path.resolve(process.cwd(), "client/lib/utils.ts");
@@ -37,15 +36,16 @@ export default defineConfig({
     },
     {
       name: "asset-inline-handler",
-      enforce: "pre",
-      resolveId(id, importer) {
+      resolveId(id, _importer) {
         // Handle ?raw (SVG) and ?png imports
         const match = id.match(/\?(raw|png)$/);
         if (!match) return null;
 
         const suffix = match[0];
         const cleanId = id.replace(suffix, "");
-        const importerDir = importer ? path.dirname(importer.replace(/\?.*$/, "")) : process.cwd();
+        const importerDir = _importer
+          ? path.dirname(_importer.replace(/\?.*$/, ""))
+          : process.cwd();
         const resolved = path.resolve(importerDir, cleanId);
         return {
           id: resolved + suffix,
