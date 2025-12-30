@@ -81,6 +81,8 @@ export const NetworkRequestItem: React.FC<NetworkRequestItemProps> = ({
         try {
             // Check if we should use Chrome DevTools or fallback to local storage
             const config = typeof window !== 'undefined' ? (window as any).__DEV_INSPECTOR_CONFIG__ : null;
+            // Use Chrome DevTools only when: Chrome is enabled AND running in automated/headless mode
+            // In non-automated mode, Chrome DevTools may not be available even if enabled
             const shouldUseChrome = config && !config.disableChrome && config.isAutomated;
 
             // Try Chrome DevTools only if explicitly enabled

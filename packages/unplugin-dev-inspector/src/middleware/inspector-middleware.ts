@@ -12,6 +12,9 @@ import { addLog, addNetworkRequest, getRequestById } from "../utils/log-storage"
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+// Maximum request body size (10MB)
+const MAX_BODY_SIZE = 10 * 1024 * 1024;
+
 /**
  * Get the inspector client script content
  * Tries multiple paths to locate the bundled inspector script
@@ -141,10 +144,24 @@ export function setupInspectorMiddleware(middlewares: Connect.Server, config?: I
 
     if (req.url === "/__inspector__/log" && req.method === "POST") {
       let body = "";
+      let bodySize = 0;
+
       req.on("data", (chunk) => {
+        bodySize += chunk.length;
+        // Reject immediately if too large - don't accumulate
+        if (bodySize > MAX_BODY_SIZE) {
+          res.statusCode = 413;
+          res.end("Request body too large");
+          req.destroy();
+          return;
+        }
+        // Only accumulate if under limit
         body += chunk.toString();
       });
+
       req.on("end", () => {
+        if (bodySize > MAX_BODY_SIZE) return;
+
         try {
           const { type, data } = JSON.parse(body);
           if (type === "console") {
@@ -166,6 +183,14 @@ export function setupInspectorMiddleware(middlewares: Connect.Server, config?: I
     const requestDetailsMatch = req.url?.match(/^\/__inspector__\/request-details\/(\d+)$/);
     if (requestDetailsMatch && req.method === "GET") {
       const reqid = parseInt(requestDetailsMatch[1]);
+
+      // Validate ID is a positive integer
+      if (!Number.isInteger(reqid) || reqid <= 0) {
+        res.statusCode = 400;
+        res.end("Invalid request ID");
+        return;
+      }
+
       const request = getRequestById(reqid);
 
       if (request && request.details) {

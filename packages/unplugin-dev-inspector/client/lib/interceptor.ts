@@ -3,6 +3,9 @@ import { BatchInterceptor } from "@mswjs/interceptors";
 import { FetchInterceptor } from "@mswjs/interceptors/fetch";
 import { XMLHttpRequestInterceptor } from "@mswjs/interceptors/XMLHttpRequest";
 
+// Maximum response body length before truncation
+const MAX_RESPONSE_BODY_LENGTH = 10000;
+
 interface InterceptorConfig {
   disableChrome?: boolean;
 }
@@ -32,6 +35,7 @@ export function initInterceptors(config?: InterceptorConfig) {
       const safeArgs = args.map((arg) => {
         try {
           if (typeof arg === "object" && arg !== null) {
+            // Create new cache for each argument to avoid false positives
             const cache = new Set();
             return JSON.parse(
               JSON.stringify(arg, (key, value) => {
@@ -74,6 +78,7 @@ export function initInterceptors(config?: InterceptorConfig) {
 
   interceptor.on("response", async ({ request, response }) => {
     // Filter out our own logs to prevent infinite loops
+    // Use includes with leading slash to avoid false matches like /user/__inspector__data
     if (
       request.url.includes("/__inspector__") ||
       request.url.includes("/__mcp__") ||
@@ -111,8 +116,8 @@ export function initInterceptors(config?: InterceptorConfig) {
         }
 
         // Truncate if too large
-        if (responseBody.length > 10000) {
-          responseBody = responseBody.substring(0, 10000) + "\n... (truncated)";
+        if (responseBody.length > MAX_RESPONSE_BODY_LENGTH) {
+          responseBody = responseBody.substring(0, MAX_RESPONSE_BODY_LENGTH) + "\n... (truncated)";
         }
       } catch {
         responseBody = "<Failed to read response body>";
