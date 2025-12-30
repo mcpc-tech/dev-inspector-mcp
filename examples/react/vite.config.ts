@@ -7,7 +7,8 @@ export default defineConfig({
   plugins: [
     DevInspector.vite({
       enabled: true,
-      autoOpenBrowser: true,
+      disableChrome: true,
+      // autoOpenBrowser: true,
       visibleAgents: ['Claude Code']
     }),
     react(),

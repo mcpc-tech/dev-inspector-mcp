@@ -39,34 +39,70 @@ export function useContextData(
     setData((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
-      // Call chrome_devtools tool to get console messages
-      const consoleResult = await client.callTool({
-        name: "chrome_devtools",
-        arguments: {
-          useTool: "chrome_list_console_messages",
-          hasDefinitions: ["chrome_list_console_messages"],
-          chrome_list_console_messages: {},
-        },
-      });
+      let consoleText = "";
+      let networkText = "";
 
-      // Call chrome_devtools tool to get network requests
-      const networkResult = await client.callTool({
-        name: "chrome_devtools",
-        arguments: {
-          useTool: "chrome_list_network_requests",
-          hasDefinitions: ["chrome_list_network_requests"],
-          chrome_list_network_requests: {},
-        },
-      });
+      try {
+        // Try using tools first (Chrome enabled mode)
+        const consoleResult = await client.callTool({
+          name: "chrome_devtools",
+          arguments: {
+            useTool: "chrome_list_console_messages",
+            hasDefinitions: ["chrome_list_console_messages"],
+            chrome_list_console_messages: {},
+          },
+        });
 
-      // Parse console messages from response
-      const consoleContent = (consoleResult as { content?: Array<{ text?: string }> })?.content;
-      const consoleText = consoleContent?.map((item) => item.text).join("\n") || "";
+        const networkResult = await client.callTool({
+          name: "chrome_devtools",
+          arguments: {
+            useTool: "chrome_list_network_requests",
+            hasDefinitions: ["chrome_list_network_requests"],
+            chrome_list_network_requests: {},
+          },
+        });
+
+        const consoleContent = (consoleResult as { content?: Array<{ text?: string }> })?.content;
+        consoleText = consoleContent?.map((item) => item.text).join("\n") || "";
+
+        const networkContent = (networkResult as { content?: Array<{ text?: string }> })?.content;
+        networkText = networkContent?.map((item) => item.text).join("\n") || "";
+      } catch (e) {
+        // Fallback to prompts (Chrome disabled / local mode)
+        // When using prompts, we can get data from the prompt result
+        // Note: In local mode (mcp.ts), we put both console and network in the same prompt result for convenience,
+        // but here we can try calling the specific prompts.
+
+        // Actually, my mcp.ts implementation for local mode puts EVERYTHING in the result of ANY of the refresh calls.
+        // But let's try calling get_console_messages and get_network_requests prompts individually if possible.
+        // However, the prompt result structure might be different (list of messages).
+
+        try {
+          const consolePrompt = await client.getPrompt({ name: "get_console_messages" });
+          const networkPrompt = await client.getPrompt({ name: "get_network_requests" });
+
+          // The prompt result messages content is where the text is.
+          // In local mode mcp.ts, we return a single message with combined text.
+          // Let's parse that.
+
+          const consoleMsg = consolePrompt.messages[0]?.content;
+          const networkMsg = networkPrompt.messages[0]?.content;
+
+          const fullText =
+            (consoleMsg?.type === "text" ? consoleMsg.text : "") +
+            "\n" +
+            (networkMsg?.type === "text" ? networkMsg.text : "");
+
+          // Allow the parsers to just extract what they can find from the combined text
+          consoleText = fullText;
+          networkText = fullText;
+        } catch (promptError) {
+          console.error("[useContextData] Prompts fallback failed:", promptError);
+          throw e; // Throw original error if fallback fails
+        }
+      }
+
       const consoleMessages = parseConsoleMessages(consoleText);
-
-      // Parse network requests from response
-      const networkContent = (networkResult as { content?: Array<{ text?: string }> })?.content;
-      const networkText = networkContent?.map((item) => item.text).join("\n") || "";
       const networkRequests = parseNetworkRequests(networkText);
 
       setData({
@@ -113,7 +149,7 @@ function parseConsoleMessages(text: string): ConsoleMessage[] {
     }
   }
 
-  return messages.reverse(); // Show newest first
+  return messages; // MCP returns in correct order (newest first)
 }
 
 /**
@@ -139,7 +175,7 @@ function parseNetworkRequests(text: string): NetworkRequest[] {
     }
   }
 
-  return requests.reverse(); // Show newest first
+  return requests; // MCP returns in correct order (newest first)
 }
 
 /**
