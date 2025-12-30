@@ -28,10 +28,14 @@ export function useContextData(
   });
 
   const fetchContextData = useCallback(async () => {
-    if (!client || !isClientReady || !isEnabled) {
+    if (!isEnabled) {
+      return;
+    }
+
+    if (!client || !isClientReady) {
       setData((prev) => ({
         ...prev,
-        error: "Chrome devtools not ready",
+        error: "MCP client not ready",
       }));
       return;
     }

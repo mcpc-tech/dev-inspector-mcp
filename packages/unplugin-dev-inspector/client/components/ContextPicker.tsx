@@ -132,7 +132,8 @@ export const ContextPicker: React.FC<ContextPickerProps> = ({
     const [consoleSearch, setConsoleSearch] = useState("");
     const [networkSearch, setNetworkSearch] = useState("");
     const [networkDetails, setNetworkDetails] = useState<Record<number, string>>({});
-    const { consoleMessages, networkRequests, loading, error, refresh } = useContextData(client, isClientReady, isAutomated);
+    // Always fetch context data regardless of isAutomated - we have fallback logic for Chrome unavailable scenarios
+    const { consoleMessages, networkRequests, loading, error, refresh } = useContextData(client, isClientReady, true);
 
     // Filtered lists
     const filteredConsole = consoleSearch
