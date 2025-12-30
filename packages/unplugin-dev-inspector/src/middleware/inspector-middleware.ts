@@ -21,12 +21,12 @@ const MAX_BODY_SIZE = 10 * 1024 * 1024;
  */
 function getInspectorScript(): string | null {
   const possiblePaths = [
-    path.resolve(process.cwd(), "packages/unplugin-dev-inspector/client/dist/inspector.iife.js"),
-    path.resolve(__dirname, "../../client/dist/inspector.iife.js"),
-    path.resolve(__dirname, "../client/dist/inspector.iife.js"),
+    path.resolve(process.cwd(), "packages/unplugin-dev-inspector/client/dist/inspector.js"),
+    path.resolve(__dirname, "../../client/dist/inspector.js"),
+    path.resolve(__dirname, "../client/dist/inspector.js"),
     path.resolve(
       process.cwd(),
-      "node_modules/@mcpc-tech/unplugin-dev-inspector-mcp/client/dist/inspector.iife.js",
+      "node_modules/@mcpc-tech/unplugin-dev-inspector-mcp/client/dist/inspector.js",
     ),
   ];
 
@@ -108,7 +108,7 @@ export function setupInspectorMiddleware(middlewares: Connect.Server, config?: I
       filesChecked = true;
     }
 
-    if (req.url === "/__inspector__/inspector.iife.js") {
+    if (req.url === "/__inspector__/inspector.js") {
       if (cachedScript) {
         res.statusCode = 200;
         res.setHeader("Content-Type", "application/javascript");
@@ -119,6 +119,37 @@ export function setupInspectorMiddleware(middlewares: Connect.Server, config?: I
       res.statusCode = 404;
       res.end("Inspector script not found");
       return;
+    }
+
+    // Serve code-split chunks from /__inspector__/
+    if (req.url?.startsWith("/__inspector__/") && req.url.endsWith(".js")) {
+      const chunkName = req.url.replace("/__inspector__/", "");
+      const possibleChunkPaths = [
+        path.resolve(process.cwd(), "packages/unplugin-dev-inspector/client/dist", chunkName),
+        path.resolve(__dirname, "../../client/dist", chunkName),
+        path.resolve(__dirname, "../client/dist", chunkName),
+        path.resolve(
+          process.cwd(),
+          "node_modules/@mcpc-tech/unplugin-dev-inspector-mcp/client/dist",
+          chunkName,
+        ),
+      ];
+
+      for (const chunkPath of possibleChunkPaths) {
+        try {
+          if (fs.existsSync(chunkPath)) {
+            const content = fs.readFileSync(chunkPath, "utf-8");
+            res.statusCode = 200;
+            res.setHeader("Content-Type", "application/javascript");
+            res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+            res.end(content);
+            return;
+          }
+        } catch (error) {
+          continue;
+        }
+      }
+      // If chunk not found, fall through to next handler
     }
 
     if (req.url === "/__inspector__/inspector.css") {
