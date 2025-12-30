@@ -32,12 +32,27 @@ export interface InspectionItem {
   };
   result?: string;
   timestamp: number;
-  /** User-selected context from Console/Network tabs */
+  /** User-selected context from Console/Network tabs (with enriched data) */
   selectedContext?: {
     includeElement: boolean;
     includeStyles: boolean;
     consoleIds: number[];
     networkIds: number[];
+    consoleMessages?: Array<{
+      msgid: number;
+      level: string;
+      text: string;
+      timestamp?: number;
+    }>;
+    networkRequests?: Array<{
+      reqid: number;
+      method: string;
+      url: string;
+      status: string;
+      timestamp?: number;
+      details?: string | null;
+    }>;
+    screenshot?: string;
   };
 }
 

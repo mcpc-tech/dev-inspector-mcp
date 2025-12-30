@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import type { Client } from "@modelcontextprotocol/sdk/client";
 import type { InspectedElement } from "../types";
 import {
@@ -19,6 +19,7 @@ import type { ConsoleMessage, NetworkRequest } from "../types";
 
 interface FeedbackBubbleProps {
   sourceInfo: InspectedElement;
+  screenshot?: string;
   onClose: () => void;
   mode: "input" | "loading" | "success" | "error";
   onSubmit?: (feedback: string, continueInspecting?: boolean, context?: SelectedContext) => void;
@@ -31,6 +32,7 @@ interface FeedbackBubbleProps {
 
 export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
   sourceInfo,
+  screenshot = "",
   onClose,
   mode,
   onSubmit,
@@ -44,6 +46,7 @@ export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
   const [selectedContext, setSelectedContext] = useState<SelectedContext>({
     includeElement: true,  // Default checked
     includeStyles: true,   // Default checked
+    includeScreenshot: false, // Default unchecked (clipboard compatibility issues)
     consoleIds: [],
     networkIds: [],
   });
@@ -57,6 +60,15 @@ export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
     networkDetails: {},
   });
 
+  // KISS: Extract repeated condition (was duplicated in handleKeyDown and handleSubmit)
+  const hasContext = useMemo(() =>
+    selectedContext.includeElement ||
+    selectedContext.includeStyles ||
+    selectedContext.consoleIds.length > 0 ||
+    selectedContext.networkIds.length > 0,
+    [selectedContext]
+  );
+
   const handleDataReady = (data: {
     consoleMessages: ConsoleMessage[];
     networkRequests: NetworkRequest[];
@@ -69,24 +81,16 @@ export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
     if (!open) onClose();
   }, [open, onClose]);
 
-  const handleSubmit = (continueInspecting: boolean) => {
-    if (onSubmit) {
-      const hasContext = selectedContext.includeElement || selectedContext.includeStyles ||
-        selectedContext.consoleIds.length > 0 || selectedContext.networkIds.length > 0;
-      onSubmit(feedback, continueInspecting, hasContext ? selectedContext : undefined);
-    }
-  };
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && onSubmit) {
       e.preventDefault();
-      const hasContext = selectedContext.includeElement || selectedContext.includeStyles ||
-        selectedContext.consoleIds.length > 0 || selectedContext.networkIds.length > 0;
-      onSubmit(feedback, e.shiftKey, hasContext ? selectedContext : undefined);
+      const enrichedContext = hasContext ? prepareEnrichedContext() : undefined;
+      onSubmit(feedback, e.shiftKey, enrichedContext);
     }
   };
 
-  const handleCopyAndGo = async () => {
+  // Unified context preparation (KISS principle - reuse for both Copy & Go and Submit)
+  const prepareEnrichedContext = () => {
     // Get actual console and network data for selected IDs
     const selectedConsole = contextData.consoleMessages.filter(msg =>
       selectedContext.consoleIds.includes(msg.msgid)
@@ -100,21 +104,80 @@ export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
         details: contextData.networkDetails[req.reqid] || null,
       }));
 
-    // Build Markdown content
+    return {
+      ...selectedContext,
+      consoleMessages: selectedConsole,
+      networkRequests: selectedNetwork,
+      screenshot: selectedContext.includeScreenshot ? screenshot : undefined,
+    };
+  };
+
+  const handleCopyAndGo = async () => {
+    const enrichedContext = prepareEnrichedContext();
+
     const markdown = formatCopyContext({
-      sourceInfo: selectedContext.includeElement || selectedContext.includeStyles ? sourceInfo : undefined,
-      includeElement: selectedContext.includeElement,
-      includeStyles: selectedContext.includeStyles,
+      sourceInfo: enrichedContext.includeElement || enrichedContext.includeStyles ? sourceInfo : undefined,
+      includeElement: enrichedContext.includeElement,
+      includeStyles: enrichedContext.includeStyles,
       feedback: feedback || undefined,
-      consoleMessages: selectedConsole.length > 0 ? selectedConsole : undefined,
-      networkRequests: selectedNetwork.length > 0 ? selectedNetwork : undefined,
+      consoleMessages: enrichedContext.consoleMessages.length > 0 ? enrichedContext.consoleMessages : undefined,
+      networkRequests: enrichedContext.networkRequests.length > 0 ? enrichedContext.networkRequests : undefined,
     });
 
     try {
-      await navigator.clipboard.writeText(markdown);
+      // Check if screenshot is included (Visual tab)
+      const hasScreenshot = enrichedContext.screenshot && enrichedContext.includeScreenshot;
+
+      if (hasScreenshot) {
+        // Validate screenshot is a safe data URL to prevent XSS
+        const isValidDataUrl = enrichedContext.screenshot?.startsWith('data:image/') ?? false;
+        if (!isValidDataUrl) {
+          console.warn('Invalid screenshot data URL, skipping image in clipboard');
+          await navigator.clipboard.writeText(markdown);
+          setOpen(false);
+          return;
+        }
+
+        // Create HTML that includes both image (as base64 data URL) and text
+        // Note: We don't include image/png separately because apps will prefer it over text
+        const htmlContent = `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+<img src="${enrichedContext.screenshot}" alt="Element Screenshot" style="max-width: min(100%, 37.5rem); display: block; margin-bottom: 1rem; border-radius: 0.5rem; box-shadow: 0 0.125rem 0.5rem rgba(0,0,0,0.1);">
+<pre style="font-family: 'SF Mono', Monaco, 'Courier New', monospace; font-size: 0.75rem; white-space: pre-wrap; background: #f6f8fa; padding: 1rem; border-radius: 0.375rem; border: 1px solid #e1e4e8; overflow-x: auto;">${markdown.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+</div>`;
+
+        // Copy HTML + text/plain (NO image/png to avoid preference issue)
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            'text/html': new Blob([htmlContent], { type: 'text/html' }),
+            'text/plain': new Blob([markdown], { type: 'text/plain' }),
+          }),
+        ]);
+      } else {
+        // No screenshot - just copy text
+        await navigator.clipboard.writeText(markdown);
+      }
       setOpen(false);
-    } catch {
-      console.error('Failed to copy to clipboard');
+    } catch (err) {
+      // Fallback to text-only if clipboard.write fails
+      console.warn('Clipboard copy failed, falling back to text-only:', err);
+      try {
+        await navigator.clipboard.writeText(markdown);
+        // Notify user that screenshot couldn't be copied
+        const event = new CustomEvent('inspector-notification', {
+          detail: { message: '⚠️ Screenshot not copied - only text was copied to clipboard' }
+        });
+        window.dispatchEvent(event);
+        setOpen(false);
+      } catch {
+        console.error('Failed to copy to clipboard');
+      }
+    }
+  };
+
+  const handleSubmit = (continueInspecting: boolean) => {
+    if (onSubmit) {
+      const enrichedContext = hasContext ? prepareEnrichedContext() : undefined;
+      onSubmit(feedback, continueInspecting, enrichedContext);
     }
   };
 
@@ -176,6 +239,7 @@ export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
               sourceInfo={sourceInfo}
               selectedContext={selectedContext}
               onSelectionChange={setSelectedContext}
+              screenshot={screenshot}
               onDataReady={handleDataReady}
               isAutomated={!!sourceInfo.automated}
               userInput={feedback}

@@ -1,26 +1,16 @@
 import type { InspectedElement, ConsoleMessage, NetworkRequest } from "../types";
 
 /**
- * Format element info for Markdown output
+ * Format DOM element info only (for Code tab)
  */
-export function formatElementInfo(elementInfo: InspectedElement["elementInfo"]): string {
+export function formatDomElement(elementInfo: InspectedElement["elementInfo"]): string {
   if (!elementInfo) return "";
 
-  const {
-    tagName,
-    textContent,
-    className,
-    id: elemId,
-    styles,
-    domPath,
-    boundingBox,
-    computedStyles,
-  } = elementInfo;
+  const { tagName, textContent, className, id: elemId, domPath, boundingBox } = elementInfo;
   const idAttr = elemId ? ` id="${elemId}"` : "";
   const classAttr = className ? ` class="${className}"` : "";
 
-  let output = `
-### DOM Element
+  let output = `### DOM Element
 \`\`\`
 Tag: <${tagName}${idAttr}${classAttr}>
 Text: ${textContent || "(empty)"}
@@ -36,9 +26,19 @@ Path: ${domPath || "N/A"}
 `;
   }
 
+  return output;
+}
+
+/**
+ * Format computed styles only (for Styles tab)
+ */
+export function formatComputedStyles(elementInfo: InspectedElement["elementInfo"]): string {
+  if (!elementInfo) return "";
+
+  const { computedStyles, styles } = elementInfo;
+
   if (computedStyles) {
-    output += `
-### Computed Styles
+    return `### Computed Styles
 
 **Layout**:
 - display: ${computedStyles.layout.display}
@@ -60,8 +60,7 @@ Path: ${domPath || "N/A"}
 - border-radius: ${computedStyles.border.borderRadius}
 `;
   } else if (styles) {
-    output += `
-### Key Styles
+    return `### Key Styles
 - display: ${styles.display}
 - color: ${styles.color}
 - background: ${styles.backgroundColor}
@@ -69,6 +68,21 @@ Path: ${domPath || "N/A"}
 `;
   }
 
+  return "";
+}
+
+/**
+ * Format element info for Markdown output (legacy compatibility)
+ */
+export function formatElementInfo(
+  elementInfo: InspectedElement["elementInfo"],
+  includeStyles = true,
+): string {
+  if (!elementInfo) return "";
+  let output = formatDomElement(elementInfo);
+  if (includeStyles) {
+    output += formatComputedStyles(elementInfo);
+  }
   return output;
 }
 
@@ -135,7 +149,7 @@ ${formatted}
  * Format typography styles only
  */
 export function formatTypography(
-  typography: InspectedElement["elementInfo"]["computedStyles"]["typography"],
+  typography: NonNullable<InspectedElement["elementInfo"]>["computedStyles"]["typography"],
 ): string {
   if (!typography) return "";
 
@@ -150,7 +164,7 @@ export function formatTypography(
 }
 
 /**
- * Format complete context for Copy & Go
+ * Format complete context for Copy & Go (matches ContextPicker tab structure)
  */
 export function formatCopyContext(options: {
   sourceInfo?: InspectedElement;
@@ -165,33 +179,34 @@ export function formatCopyContext(options: {
 
   let output = "# Element Context\n\n";
 
-  // Source info
+  // == Code Tab ==
   if (sourceInfo && includeElement) {
+    output += "## Code\n\n";
     output += formatSourceInfo(sourceInfo);
     output += "\n";
-    output += formatElementInfo(sourceInfo.elementInfo);
+    output += formatDomElement(sourceInfo.elementInfo);
+    output += "\n";
   }
 
-  // Typography styles only
-  if (sourceInfo?.elementInfo?.computedStyles?.typography && includeStyles && !includeElement) {
-    output += formatTypography(sourceInfo.elementInfo.computedStyles.typography);
+  // == Styles Tab ==
+  if (sourceInfo?.elementInfo && includeStyles) {
+    output += "## Styles\n\n";
+    output += formatComputedStyles(sourceInfo.elementInfo);
+    output += "\n";
   }
 
-  // User feedback
+  // == User Request ==
   if (feedback) {
-    output += `## User Request
-${feedback}
-
-`;
+    output += `## User Request\n\n${feedback}\n\n`;
   }
 
-  // Console messages
+  // == Console Tab ==
   if (consoleMessages && consoleMessages.length > 0) {
     output += formatConsoleMessages(consoleMessages);
     output += "\n";
   }
 
-  // Network requests
+  // == Network Tab ==
   if (networkRequests && networkRequests.length > 0) {
     output += formatNetworkRequests(networkRequests);
   }
