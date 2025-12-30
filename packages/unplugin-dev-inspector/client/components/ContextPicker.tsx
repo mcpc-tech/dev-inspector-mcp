@@ -324,7 +324,7 @@ export const ContextPicker: React.FC<ContextPickerProps> = ({
                                         />
                                         <div className="flex-1 min-w-0">
                                             <div className="text-xs font-medium text-foreground mb-1">Element Visual</div>
-                                            <div className="text-[10px] text-muted-foreground/70 mb-2">Most editors paste image-only when both are copied. Right-click to copy manually.</div>
+                                            <div className="text-[10px] text-muted-foreground/70 mb-2">Note: Some editors may only paste the image. Use Ctrl+Shift+V or right-click to paste as plain text if needed.</div>
                                             <div className="rounded border border-border overflow-hidden bg-muted/30">
                                                 <img
                                                     src={screenshot}

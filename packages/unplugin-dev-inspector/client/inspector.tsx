@@ -96,6 +96,15 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
     showNotif(newActive ? "🔍 Inspector ON - Click any element" : "Inspector OFF");
   }, [isActive, showNotif]);
 
+  const handleBubbleClose = useCallback(() => {
+    setBubbleMode(null);
+    setIsActive(false);
+    document.body.style.cursor = "";
+
+    if (overlayRef.current) overlayRef.current.style.display = "none";
+    if (tooltipRef.current) tooltipRef.current.style.display = "none";
+  }, []);
+
   // KISS: Simplified keyboard shortcut handling - standard React pattern
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -119,7 +128,7 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
 
     window.addEventListener("keydown", handleKeyDown, true);
     return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [isActive, toggleInspector]);
+  }, [isActive, toggleInspector, handleBubbleClose]);
 
   useEffect(() => {
     const handleActivateInspector = () => {
@@ -145,9 +154,21 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
 
   const handleElementInspected = async (info: InspectedElement) => {
     // Capture screenshot BEFORE dialog opens (KISS: capture timing fix)
+    // Wait for next frame and a short delay to let UI settle and avoid race conditions
     if (info.element) {
-      const dataUrl = await captureElementScreenshot(info.element);
-      setScreenshot(dataUrl);
+      const element = info.element;
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => {
+          setTimeout(resolve, 50);
+        });
+      });
+
+      if (element.isConnected) {
+        const dataUrl = await captureElementScreenshot(element);
+        setScreenshot(dataUrl);
+      } else {
+        setScreenshot("");
+      }
     }
 
     setSourceInfo(info);
@@ -268,14 +289,7 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
     }
   };
 
-  const handleBubbleClose = () => {
-    setBubbleMode(null);
-    setIsActive(false);
-    document.body.style.cursor = "";
 
-    if (overlayRef.current) overlayRef.current.style.display = "none";
-    if (tooltipRef.current) tooltipRef.current.style.display = "none";
-  };
 
   const handleAgentSubmit = (query: string, agentName: string, sessionId?: string) => {
     const currentAgent = AVAILABLE_AGENTS.find((a) => a.name === agentName) || AVAILABLE_AGENTS[0];
