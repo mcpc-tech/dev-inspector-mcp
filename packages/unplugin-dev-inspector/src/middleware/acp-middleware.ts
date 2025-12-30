@@ -6,6 +6,8 @@ import { createACPProvider, acpTools } from "@mcpc-tech/acp-ai-provider";
 import { planEntrySchema } from "@agentclientprotocol/sdk";
 import { z } from "zod";
 import { handleCors } from "../utils/cors";
+
+import { contextSelectorTool } from "./tools/context-selector";
 import type { ServerContext } from "../mcp";
 import type { AcpOptions } from "../../client/constants/types";
 import { CallToolResultSchema, type JSONRPCMessage } from "@modelcontextprotocol/sdk/types.js";
@@ -13,7 +15,6 @@ import { getConnectionManager } from "./mcproute-middleware";
 import { resolveNpmPackageBin } from "../utils/npm-package";
 
 export type { AcpOptions };
-
 
 /**
  * Check if a command exists in the system PATH
@@ -107,7 +108,9 @@ async function loadMcpToolsV5(
 
   const initialTransport = getTransport();
   if (!initialTransport) {
-    console.warn("[dev-inspector] [acp] No active MCP transport available, tools will not be loaded");
+    console.warn(
+      "[dev-inspector] [acp] No active MCP transport available, tools will not be loaded",
+    );
     return tools;
   }
 
@@ -136,7 +139,7 @@ async function loadMcpToolsV5(
         });
         const parsedResult = CallToolResultSchema.safeParse(result);
         if (!parsedResult.success) {
-          return result
+          return result;
         }
         // TODO: handle more than text content
         return parsedResult.data?.content?.map((item) => item?.text).join("\n");
@@ -175,7 +178,9 @@ function getActiveTransport(): TransportWithMethods | null {
   // Use inspector transport if available, otherwise fallback to any transport
   return (
     (connectionManager.getInspectorTransport() as TransportWithMethods) ||
-    (connectionManager.transports[Object.keys(connectionManager.transports)[0]] as TransportWithMethods)
+    (connectionManager.transports[
+      Object.keys(connectionManager.transports)[0]
+    ] as TransportWithMethods)
   );
 }
 
@@ -184,7 +189,9 @@ function getActiveTransport(): TransportWithMethods | null {
  */
 function getInspectorTransport(): TransportWithMethods | null {
   const connectionManager = getConnectionManager();
-  return connectionManager ? (connectionManager.getInspectorTransport() as TransportWithMethods) : null;
+  return connectionManager
+    ? (connectionManager.getInspectorTransport() as TransportWithMethods)
+    : null;
 }
 
 export function setupAcpMiddleware(
@@ -294,7 +301,7 @@ export function setupAcpMiddleware(
       res.end(JSON.stringify({ sessionId }));
     } catch (error) {
       // Re-throw command not found errors to exit the server
-      if (error instanceof Error && error.message.includes('command not found')) {
+      if (error instanceof Error && error.message.includes("command not found")) {
         throw error;
       }
 
@@ -366,7 +373,7 @@ export function setupAcpMiddleware(
 
     try {
       const body = await readBody(req);
-      const { messages, agent, envVars, sessionId, isAutomated } = JSON.parse(body);
+      const { messages, agent, envVars, sessionId, isAutomated, inferContext } = JSON.parse(body);
 
       const cwd = process.cwd();
 
@@ -415,7 +422,16 @@ export function setupAcpMiddleware(
       // Prefer inspector transport for tools
       let mcpTools: Record<string, any> = {};
       const getTransport = () => getInspectorTransport() || getActiveTransport();
-      mcpTools = await loadMcpToolsV5(getTransport);
+
+      // In inferContext mode, only load context_selector tool (no MCP tools needed)
+      if (inferContext) {
+        console.log("[dev-inspector] [acp] Context inference mode - adding context_selector tool");
+        mcpTools = {
+          context_selector: contextSelectorTool,
+        };
+      } else {
+        mcpTools = await loadMcpToolsV5(getTransport);
+      }
 
       // Get mode/model/delay options
       const mode = agent.acpMode ?? acpOptions?.acpMode;
@@ -429,7 +445,7 @@ export function setupAcpMiddleware(
 
       // Create abort controller for request cancellation
       const abortController = new AbortController();
-      
+
       res.on("close", () => {
         if (!abortController.signal.aborted) {
           console.log("[dev-inspector] [acp] Client disconnected, aborting stream");
@@ -441,7 +457,8 @@ export function setupAcpMiddleware(
       });
 
       // Get system prompt: agent config > acpOptions > default
-      const systemPrompt = agent.acpSystemPrompt ?? acpOptions?.acpSystemPrompt ?? DEFAULT_SYSTEM_INSTRUCTIONS;
+      const systemPrompt =
+        agent.acpSystemPrompt ?? acpOptions?.acpSystemPrompt ?? DEFAULT_SYSTEM_INSTRUCTIONS;
 
       // Merge system prompt into the first user message
       const modelMessages = convertToModelMessages(messages);
@@ -449,12 +466,17 @@ export function setupAcpMiddleware(
         if (index === 0 && msg.role === "user" && Array.isArray(msg.content)) {
           return {
             ...msg,
-            content: [{
-              type: "text", text: `<system_instructions>
+            content: [
+              {
+                type: "text",
+                text: `<system_instructions>
 ${systemPrompt}
-${isAutomated ? '' : 'Currently chrome devtools automation is disabled. You do not have access to Console/Network context.'}
+${isAutomated ? "" : "Currently chrome devtools automation is disabled. You do not have access to Console/Network context."}
 </system_instructions>
-` }, ...msg.content]
+`,
+              },
+              ...msg.content,
+            ],
           };
         }
         return msg;

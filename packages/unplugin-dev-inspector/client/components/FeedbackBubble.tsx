@@ -241,6 +241,8 @@ export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
               onSelectionChange={setSelectedContext}
               screenshot={screenshot}
               onDataReady={handleDataReady}
+              isAutomated={!!sourceInfo.automated}
+              userInput={feedback}
             />
           </div>
         )}

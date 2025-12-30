@@ -8,8 +8,8 @@ export default defineConfig({
     vue(),
     DevInspector.vite({
       enabled: true,
+      autoOpenBrowser: false,
       autoInject: false,
-      autoOpenBrowser: true,
     }),
   ],
 });

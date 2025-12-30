@@ -13,8 +13,13 @@ export interface ContextData {
  * Hook to fetch and manage context data from chrome_devtools MCP tool
  * @param client - MCP client instance (passed from useMcp hook in parent component)
  * @param isClientReady - whether the client is ready
+ * @param isEnabled - whether to enable data fetching (default: true)
  */
-export function useContextData(client: Client | null, isClientReady: boolean) {
+export function useContextData(
+  client: Client | null,
+  isClientReady: boolean,
+  isEnabled: boolean = true,
+) {
   const [data, setData] = useState<ContextData>({
     consoleMessages: [],
     networkRequests: [],
@@ -23,10 +28,10 @@ export function useContextData(client: Client | null, isClientReady: boolean) {
   });
 
   const fetchContextData = useCallback(async () => {
-    if (!client || !isClientReady) {
+    if (!client || !isClientReady || !isEnabled) {
       setData((prev) => ({
         ...prev,
-        error: "MCP client not ready",
+        error: "Chrome devtools not ready",
       }));
       return;
     }
