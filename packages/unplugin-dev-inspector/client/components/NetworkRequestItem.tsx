@@ -75,22 +75,55 @@ export const NetworkRequestItem: React.FC<NetworkRequestItemProps> = ({
     }, [cachedDetails, details]);
 
     const fetchDetails = async () => {
-        if (!client || !isClientReady || details !== null) return;
+        if (details !== null) return;
 
         setLoadingDetails(true);
         try {
-            const result = await client.callTool({
-                name: "chrome_devtools",
-                arguments: {
-                    useTool: "chrome_get_network_request",
-                    hasDefinitions: ["chrome_get_network_request"],
-                    chrome_get_network_request: { reqid: request.reqid },
-                },
-            });
-            const content = (result as { content?: Array<{ text?: string }> })?.content;
-            const text = content?.map((item) => item.text).join("\n") || "No details";
-            setDetails(text);
-            onDetailsFetched?.(request.reqid, text);
+            // Check if we should use Chrome DevTools or fallback to local storage
+            const config = typeof window !== 'undefined' ? (window as any).__DEV_INSPECTOR_CONFIG__ : null;
+            // Use Chrome DevTools only when: Chrome is enabled AND running in automated/headless mode
+            // In non-automated mode, Chrome DevTools may not be available even if enabled
+            const shouldUseChrome = config && !config.disableChrome && config.isAutomated;
+
+            // Try Chrome DevTools only if explicitly enabled
+            if (shouldUseChrome && client && isClientReady) {
+                try {
+                    const result = await client.callTool({
+                        name: "chrome_devtools",
+                        arguments: {
+                            useTool: "chrome_get_network_request",
+                            hasDefinitions: ["chrome_get_network_request"],
+                            chrome_get_network_request: { reqid: request.reqid },
+                        },
+                    });
+                    const content = (result as { content?: Array<{ text?: string }> })?.content;
+                    const text = content?.map((item) => item.text).join("\n") || "No details";
+                    setDetails(text);
+                    onDetailsFetched?.(request.reqid, text);
+                    return; // Success, exit early
+                } catch (mcpError) {
+                    // Chrome DevTools failed, fall through to API method
+                    console.log('[NetworkRequestItem] Chrome DevTools failed, using local storage');
+                }
+            }
+
+            // Fallback: Fetch from local storage API (Chromeless mode or Chrome unavailable)
+            const baseUrl = config
+                ? (() => {
+                    const url = config.baseUrl || (`http://${config.host}:${config.port}${config.base || '/'}`);
+                    return url.endsWith('/') ? url.slice(0, -1) : url;
+                })()
+                : '';
+
+            const response = await fetch(`${baseUrl}/__inspector__/request-details/${request.reqid}`);
+
+            if (response.ok) {
+                const text = await response.text();
+                setDetails(text);
+                onDetailsFetched?.(request.reqid, text);
+            } else {
+                throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
+            }
         } catch (error) {
             const errorText = `Failed to fetch details: ${error instanceof Error ? error.message : String(error)}`;
             setDetails(errorText);

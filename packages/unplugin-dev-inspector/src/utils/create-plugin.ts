@@ -286,7 +286,8 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
             const port = options.port ?? server?.config.server.port ?? 5173;
             const base = server?.config.base ?? "/";
             const showInspectorBar = options.showInspectorBar ?? true;
-            const publicBaseUrl = options.publicBaseUrl || process.env.DEV_INSPECTOR_PUBLIC_BASE_URL;
+            const publicBaseUrl =
+              options.publicBaseUrl || process.env.DEV_INSPECTOR_PUBLIC_BASE_URL;
 
             // Use 'localhost' for display when host is '0.0.0.0'
             const displayHost = host === "0.0.0.0" ? "localhost" : host;
@@ -306,7 +307,8 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
       port: '${port}',
       base: '${base}',
       baseUrl: ${publicBaseUrl ? `'${publicBaseUrl.replace(/'/g, "\\'")}'` : "undefined"},
-      showInspectorBar: ${showInspectorBar}
+      showInspectorBar: ${showInspectorBar},
+      disableChrome: ${chromeDisabled}
     };
     var script = document.createElement('script');
     var config = window.__DEV_INSPECTOR_CONFIG__;
@@ -346,7 +348,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
           const publicBase = getPublicBaseUrl({
             publicBaseUrl: options.publicBaseUrl,
             host: displayHost,
-            port: serverContext.port
+            port: serverContext.port,
           });
           const baseUrl = `${publicBase}/__mcp__/sse`;
           console.log(`[dev-inspector] 📡 MCP: ${baseUrl}\n`);
@@ -438,7 +440,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
             const publicBase = getPublicBaseUrl({
               publicBaseUrl: options.publicBaseUrl,
               host: displayHost,
-              port
+              port,
             });
             const baseUrl = `${publicBase}/__mcp__/sse`;
             console.log(`[dev-inspector] 📡 MCP (Standalone): ${baseUrl}\n`);

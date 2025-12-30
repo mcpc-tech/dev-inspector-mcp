@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import type { InspectedElement } from "./types";
+import { initInterceptors } from "./lib/interceptor";
 import { Notification } from "./components/Notification";
 import { FeedbackBubble } from "./components/FeedbackBubble";
 import type { SelectedContext } from "./components/ContextPicker";
@@ -383,6 +384,13 @@ class DevInspector extends HTMLElement {
         }),
       ),
     );
+
+    // Initialize interceptors if configured
+    // @ts-ignore - Config injected by server
+    const config = window.__DEV_INSPECTOR_CONFIG__;
+    initInterceptors({
+      disableChrome: config?.disableChrome,
+    });
   }
 }
 

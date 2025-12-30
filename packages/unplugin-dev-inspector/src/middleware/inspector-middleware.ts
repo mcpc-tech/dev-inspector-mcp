@@ -6,10 +6,14 @@ import { fileURLToPath } from "url";
 import { dirname } from "path";
 import type { Agent } from "../../client/constants/types";
 import { handleCors } from "../utils/cors";
+import { addLog, addNetworkRequest, getRequestById } from "../utils/log-storage";
 
 // ESM equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+// Maximum request body size (10MB)
+const MAX_BODY_SIZE = 10 * 1024 * 1024;
 
 /**
  * Get the inspector client script content
@@ -135,6 +139,72 @@ export function setupInspectorMiddleware(middlewares: Connect.Server, config?: I
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Cache-Control", "no-cache");
       res.end(JSON.stringify(config || {}));
+      return;
+    }
+
+    if (req.url === "/__inspector__/log" && req.method === "POST") {
+      let body = "";
+      let bodySize = 0;
+
+      req.on("data", (chunk) => {
+        bodySize += chunk.length;
+        // Reject immediately if too large - don't accumulate
+        if (bodySize > MAX_BODY_SIZE) {
+          res.statusCode = 413;
+          res.end("Request body too large");
+          req.destroy();
+          return;
+        }
+        // Only accumulate if under limit
+        body += chunk.toString();
+      });
+
+      req.on("end", () => {
+        if (bodySize > MAX_BODY_SIZE) return;
+
+        try {
+          const { type, data } = JSON.parse(body);
+          if (type === "console") {
+            addLog(data.type, data.args);
+          } else if (type === "network") {
+            addNetworkRequest(data);
+          }
+          res.statusCode = 200;
+          res.end("ok");
+        } catch {
+          res.statusCode = 400;
+          res.end("Invalid JSON");
+        }
+      });
+      return;
+    }
+
+    // GET /__inspector__/request-details/:id - Fetch network request details by ID
+    const requestDetailsMatch = req.url?.match(/^\/__inspector__\/request-details\/(\d+)$/);
+    if (requestDetailsMatch && req.method === "GET") {
+      const reqid = parseInt(requestDetailsMatch[1]);
+
+      // Validate ID is a positive integer
+      if (!Number.isInteger(reqid) || reqid <= 0) {
+        res.statusCode = 400;
+        res.end("Invalid request ID");
+        return;
+      }
+
+      const request = getRequestById(reqid);
+
+      if (request && request.details) {
+        res.statusCode = 200;
+        res.setHeader("Content-Type", "text/plain");
+        res.end(request.details);
+      } else if (request) {
+        res.statusCode = 200;
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify(request, null, 2));
+      } else {
+        res.statusCode = 404;
+        res.end("Request not found");
+      }
       return;
     }
 

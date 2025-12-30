@@ -12,6 +12,7 @@ import { createRequire } from "node:module";
 import { PROMPT_SCHEMAS } from "./prompt-schemas.js";
 import { TOOL_SCHEMAS } from "./tool-schemas.js";
 import { isChromeDisabled, stripTrailingSlash } from "./utils/helpers.js";
+import { getLogs, getNetworkRequests, getLogById, getRequestById } from "./utils/log-storage.js";
 
 /**
  * Get Chrome DevTools binary path from npm package, then use node to run it, faster/stabler than npx
@@ -89,7 +90,9 @@ export interface ServerContext {
 export async function createInspectorMcpServer(serverContext?: ServerContext) {
   const chromeDisabled = isChromeDisabled(serverContext?.disableChrome);
   const isAutomated = serverContext?.isAutomated ?? false;
-  console.log(`[dev-inspector] Chrome DevTools integration is ${chromeDisabled ? "disabled" : "enabled"}`);
+  console.log(
+    `[dev-inspector] Chrome DevTools integration is ${chromeDisabled ? "disabled" : "enabled"}`,
+  );
 
   const chromeDevToolsServers = chromeDisabled
     ? []
@@ -238,13 +241,68 @@ Default dev server URL: ${process.env.DEV_INSPECTOR_PUBLIC_BASE_URL || `http://$
   // Helper function to refresh chrome state (network requests and console messages)
   async function refreshChromeState(): Promise<GetPromptResult> {
     if (chromeDisabled) {
+      // Use local storage
+      const requests = getNetworkRequests();
+      const logs = getLogs();
+
+      const requestOptions = requests
+        .map((r) => {
+          // Truncate long URLs
+          const truncatedUrl = r.url.length > 60 ? r.url.substring(0, 57) + "..." : r.url;
+          return `reqid=${r.id} ${r.method} ${truncatedUrl} [${r.status}]`;
+        })
+        .reverse() // Newest first to match Chrome DevTools order
+        .join("\n");
+
+      const messageOptions = logs
+        .map((l) => {
+          const text = l.args.map(String).join(" ");
+          const truncatedText = text.length > 60 ? text.substring(0, 57) + "..." : text;
+          return `msgid=${l.id} [${l.type}] ${truncatedText}`;
+        })
+        .reverse() // Newest first to match Chrome DevTools order
+        .join("\n");
+
+      // Dynamically update prompts (same as chrome version but with local data)
+      mcpServer.setRequestHandler(ListPromptsRequestSchema, async (_request) => {
+        return {
+          prompts: [
+            { ...PROMPT_SCHEMAS.capture_element },
+            { ...PROMPT_SCHEMAS.view_inspections },
+            // When disabled, we still offer these prompts but powered by local storage
+            {
+              ...PROMPT_SCHEMAS.get_network_requests,
+              arguments: [
+                {
+                  name: "reqid",
+                  description: `Optional. The request ID to get details for. If omitted, only refreshes and lists requests.\n\nAvailable requests:\n${requestOptions || "No requests available"}`,
+                  required: false,
+                },
+              ],
+            },
+            {
+              ...PROMPT_SCHEMAS.get_console_messages,
+              arguments: [
+                {
+                  name: "msgid",
+                  description: `Optional. The message ID to get details for. If omitted, only refreshes and lists messages.\n\nAvailable messages:\n${messageOptions || "No messages available"}`,
+                  required: false,
+                },
+              ],
+            },
+          ],
+        };
+      });
+
+      await mcpServer.sendPromptListChanged();
+
       return {
         messages: [
           {
-            role: "user" as const,
+            role: "user",
             content: {
               type: "text",
-              text: "Chrome integration is disabled (set DEV_INSPECTOR_DISABLE_CHROME=0 to enable).",
+              text: `Refreshed state (Local Interception).\n\nNetwork Requests:\n${requestOptions || "No requests"}\n\nConsole Messages:\n${messageOptions || "No messages"}`,
             },
           },
         ],
@@ -357,23 +415,69 @@ Default dev server URL: ${process.env.DEV_INSPECTOR_PUBLIC_BASE_URL || `http://$
   mcpServer.setRequestHandler(GetPromptRequestSchema, async (request) => {
     const promptName = request.params.name as keyof typeof PROMPT_SCHEMAS;
 
-    if (
-      chromeDisabled &&
-      (promptName === "launch_chrome_devtools" ||
-        promptName === "get_network_requests" ||
-        promptName === "get_console_messages")
-    ) {
-      return {
-        messages: [
-          {
-            role: "user",
-            content: {
-              type: "text",
-              text: "Chrome integration is disabled. Enable it by unsetting DEV_INSPECTOR_DISABLE_CHROME or setting it to 0/false.",
+    if (chromeDisabled) {
+      if (promptName === "get_network_requests") {
+        const refreshResult = await refreshChromeState();
+        const reqidStr = request.params.arguments?.reqid as string | undefined;
+        if (!reqidStr) return refreshResult;
+
+        const req = getRequestById(parseInt(reqidStr));
+        if (req) {
+          return {
+            messages: [
+              {
+                role: "user",
+                content: {
+                  type: "text",
+                  text: req.details || JSON.stringify(req, null, 2),
+                },
+              },
+            ],
+          } as GetPromptResult;
+        }
+        return {
+          messages: [{ role: "user", content: { type: "text", text: "Request not found" } }],
+        } as GetPromptResult;
+      }
+
+      if (promptName === "get_console_messages") {
+        const refreshResult = await refreshChromeState();
+        const msgidStr = request.params.arguments?.msgid as string | undefined;
+        if (!msgidStr) return refreshResult;
+
+        const log = getLogById(parseInt(msgidStr));
+        if (log) {
+          return {
+            messages: [
+              {
+                role: "user",
+                content: {
+                  type: "text",
+                  text: JSON.stringify(log, null, 2),
+                },
+              },
+            ],
+          } as GetPromptResult;
+        }
+        return {
+          messages: [{ role: "user", content: { type: "text", text: "Log not found" } }],
+        } as GetPromptResult;
+      }
+
+      // For launch_chrome_devtools when disabled, show warning
+      if (promptName === "launch_chrome_devtools") {
+        return {
+          messages: [
+            {
+              role: "user",
+              content: {
+                type: "text",
+                text: "Chrome integration is disabled. Enable it by unsetting DEV_INSPECTOR_DISABLE_CHROME or setting it to 0/false.",
+              },
             },
-          },
-        ],
-      } as GetPromptResult;
+          ],
+        } as GetPromptResult;
+      }
     }
 
     switch (promptName) {
