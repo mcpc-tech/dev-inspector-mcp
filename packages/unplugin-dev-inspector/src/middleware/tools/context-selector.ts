@@ -21,7 +21,7 @@ export const contextSelectorSchema = z.object({
   reasoning: z
     .string()
     .optional()
-    .describe("Brief explanation of why these items are relevant and what have been selected"),
+    .describe("Brief explanation of why these items are relevant and what has been selected"),
 });
 
 export const contextSelectorTool = tool({

@@ -11,6 +11,9 @@ import { getDevServerBaseUrl } from "../utils/config-loader";
 import { DefaultChatTransport } from "ai";
 import { DEFAULT_AGENT, AVAILABLE_AGENTS } from "../constants/agents";
 
+// Maximum number of recent items to include in AI context analysis
+const MAX_RECENT_ITEMS = 50;
+
 function getContextSelectorArgs(message: UIMessage): ContextSelectorArgs | null {
     const m = message as unknown as { parts?: unknown[] };
     if (!m.parts || !Array.isArray(m.parts)) return null;
@@ -205,7 +208,7 @@ export const ContextPicker: React.FC<ContextPickerProps> = ({
         }),
     });
 
-    const isAnalyzing = status === 'submitted' || status === 'streaming';
+    const isProcessing = status === 'submitted' || status === 'streaming';
 
     // Watch for tool result
     useEffect(() => {
@@ -220,7 +223,7 @@ export const ContextPicker: React.FC<ContextPickerProps> = ({
         // With client-side tools, the args are available in the tool call
         if (args) {
             try {
-                // Ensure args is an object if it came as string (keeping robustness)
+                // Defensive parsing: despite type annotation, args might be a string in some transport scenarios
                 let parsedArgs = args;
                 if (typeof parsedArgs === 'string') {
                     try {
@@ -248,11 +251,11 @@ export const ContextPicker: React.FC<ContextPickerProps> = ({
     }, [messages, status, onSelectionChange]);
 
     const handleSmartSelect = async () => {
-        if (!sourceInfo || isAnalyzing) return;
+        if (!sourceInfo || isProcessing) return;
         setMessages([]);
 
-        const recentConsole = consoleMessages.slice(-50).map(m => `[${m.msgid}] ${m.level}: ${m.text}`).join('\n');
-        const recentNetwork = networkRequests.slice(-50).map(r => `[${r.reqid}] ${r.method} ${r.url}`).join('\n');
+        const recentConsole = consoleMessages.slice(-MAX_RECENT_ITEMS).map(m => `[${m.msgid}] ${m.level}: ${m.text}`).join('\n');
+        const recentNetwork = networkRequests.slice(-MAX_RECENT_ITEMS).map(r => `[${r.reqid}] ${r.method} ${r.url}`).join('\n');
 
         const prompt = `
 I am inspecting the following element:
@@ -261,10 +264,10 @@ Tag: ${sourceInfo.elementInfo?.tagName}
 File: ${sourceInfo.file}:${sourceInfo.line}
 Component: ${sourceInfo.component}
 
-Available Console Logs (Recent 50):
+Available Console Logs (Recent ${MAX_RECENT_ITEMS}):
 ${recentConsole}
 
-Available Network Requests (Recent 50):
+Available Network Requests (Recent ${MAX_RECENT_ITEMS}):
 ${recentNetwork}
 
 Please analyze these logs and requests. You MUST call the context_selector tool to return your selection, even if you select nothing (pass empty arrays). Do not just reply with text.
@@ -325,17 +328,17 @@ Please analyze these logs and requests. You MUST call the context_selector tool 
                             e.stopPropagation();
                             handleSmartSelect();
                         }}
-                        disabled={loading || isAnalyzing}
+                        disabled={loading || isProcessing}
                         className={cn(
                             "flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded transition-colors border shadow-sm",
-                            isAnalyzing
+                            isProcessing
                                 ? "bg-blue-100 text-blue-700 border-blue-200"
                                 : "bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 hover:text-blue-700 hover:border-blue-300"
                         )}
                         title="Let AI analyze logs and network to select relevant context"
                     >
-                        <Sparkles className={cn("w-3.5 h-3.5", isAnalyzing && "animate-pulse")} />
-                        <span>{isAnalyzing ? "Analyzing..." : "Smart Select"}</span>
+                        <Sparkles className={cn("w-3.5 h-3.5", isProcessing && "animate-pulse")} />
+                        <span>{isProcessing ? "Analyzing..." : "Smart Select"}</span>
                     </button>
                     <button
                         type="button"
@@ -368,7 +371,7 @@ Please analyze these logs and requests. You MUST call the context_selector tool 
 
                 {/* Tab Content */}
                 <div className="max-h-[200px] overflow-auto relative">
-                    {isAnalyzing && (
+                    {isProcessing && (
                         <div className="absolute inset-0 z-10 bg-background/80 backdrop-blur-sm flex items-center justify-center flex-col gap-2">
                             <Sparkles className="w-5 h-5 text-blue-500 animate-pulse" />
                             <span className="text-xs text-muted-foreground animate-pulse">Analyzing context...</span>
@@ -379,7 +382,7 @@ Please analyze these logs and requests. You MUST call the context_selector tool 
                     )}
 
                     {/* Reasoning Display */}
-                    {selectedContext.reasoning && !isAnalyzing && (
+                    {selectedContext.reasoning && !isProcessing && (
                         <div className="bg-blue-50/50 p-2 border-b border-border">
                             <div className="flex items-start gap-2">
                                 <Sparkles className="w-3.5 h-3.5 text-blue-500 mt-0.5 flex-shrink-0" />
