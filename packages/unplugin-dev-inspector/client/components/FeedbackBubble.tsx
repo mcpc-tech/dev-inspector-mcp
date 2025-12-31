@@ -28,6 +28,8 @@ interface FeedbackBubbleProps {
   client?: Client | null;
   /** Whether MCP client is ready */
   isClientReady?: boolean;
+  /** Currently selected agent name */
+  selectedAgent?: string;
 }
 
 export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
@@ -39,6 +41,7 @@ export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
   resultMessage,
   client = null,
   isClientReady = false,
+  selectedAgent,
 }) => {
   const plan = usePlanProgress();
   const [feedback, setFeedback] = useState("");
@@ -243,6 +246,7 @@ export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
               onDataReady={handleDataReady}
               isAutomated={!!sourceInfo.automated}
               userInput={feedback}
+              selectedAgent={selectedAgent}
             />
           </div>
         )}

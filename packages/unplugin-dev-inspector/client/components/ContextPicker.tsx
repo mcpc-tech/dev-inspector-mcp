@@ -72,6 +72,8 @@ interface ContextPickerProps {
     isAutomated?: boolean;
     /** User input to guide the context selection */
     userInput?: string;
+    /** Currently selected agent name */
+    selectedAgent?: string;
 }
 
 interface ContextSelectorArgs {
@@ -126,7 +128,8 @@ export const ContextPicker: React.FC<ContextPickerProps> = ({
     screenshot,
     onDataReady,
     isAutomated = false,
-    userInput
+    userInput,
+    selectedAgent = DEFAULT_AGENT
 }) => {
     const [activeTab, setActiveTab] = useState<TabType>("code");
     const [consoleSearch, setConsoleSearch] = useState("");
@@ -271,9 +274,9 @@ ${recentConsole}
 Available Network Requests (Recent ${MAX_RECENT_ITEMS}):
 ${recentNetwork}
 
-Please analyze these logs and requests. You MUST call the context_selector tool to return your selection, even if you select nothing (pass empty arrays). Do not just reply with text.
+IMPORTANT: For this task, you MUST call the "context_selector" tool to return your selection. Do NOT use inspector tools like list_inspections, capture_element_context, update_inspection_status, or execute_page_script - the context is already provided above. You may read files if needed to understand the context better. Even if you select nothing, still call context_selector with empty arrays. Do not reply with text only.
 `;
-        const currentAgent = AVAILABLE_AGENTS.find(a => a.name === DEFAULT_AGENT) || AVAILABLE_AGENTS[0];
+        const currentAgent = AVAILABLE_AGENTS.find(a => a.name === selectedAgent) || AVAILABLE_AGENTS[0];
         await sendMessage(
             { text: prompt },
             {

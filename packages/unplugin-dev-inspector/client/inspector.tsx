@@ -41,6 +41,7 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
   const [bubbleMode, setBubbleMode] = useState<"input" | null>(null);
   const { inspections, setInspections } = useInspectionProgress();
   const [currentSessionInspections, setCurrentSessionInspections] = useState<InspectionItem[]>([]);
+  const [selectedAgentName, setSelectedAgentName] = useState<string | null>(null);
 
   // Agent State
   const { messages, sendMessage, status, stop } = useChat({
@@ -333,6 +334,7 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
               inspectionCount={inspections.length}
               inspectionItems={inspections}
               onRemoveInspection={handleRemoveInspection}
+              onAgentChange={setSelectedAgentName}
             />
           )}
         </div>
@@ -352,6 +354,7 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
               onClose={handleBubbleClose}
               client={client}
               isClientReady={isClientReady}
+              selectedAgent={selectedAgentName || undefined}
             />
           </div>
         )}

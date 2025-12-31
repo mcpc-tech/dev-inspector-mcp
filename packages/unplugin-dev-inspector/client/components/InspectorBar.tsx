@@ -36,6 +36,8 @@ interface InspectorBarProps {
   onRemoveInspection?: (id: string) => void;
   toolsReady?: boolean;
   mcpClient?: Client | null;
+  /** Callback when selected agent changes */
+  onAgentChange?: (agentName: string) => void;
 }
 
 export const InspectorBar = ({
@@ -51,6 +53,7 @@ export const InspectorBar = ({
   onRemoveInspection = () => { },
   toolsReady = true,
   mcpClient = null,
+  onAgentChange,
 }: InspectorBarProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [input, setInput] = useState("");
@@ -572,6 +575,7 @@ export const InspectorBar = ({
                           <button
                             onClick={() => {
                               setSelectedAgent(agent.name);
+                              onAgentChange?.(agent.name);
                               setIsAgentSelectorOpen(false);
                             }}
                             className="flex items-center gap-2 flex-1 text-left"

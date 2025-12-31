@@ -378,10 +378,13 @@ export function setupAcpMiddleware(
       const cwd = process.cwd();
 
       // Try to get existing request-scoped session (by sessionId)
+      // BUT: In inferContext mode, always create new provider because existing session
+      // has inspector tools registered, not context_selector
       let provider: ReturnType<typeof createACPProvider>;
       let shouldCleanupProvider = true; // Track if we should cleanup on disconnect
 
-      const existingProviderEntry = sessionId ? sessionProviders.get(sessionId) : undefined;
+      const existingProviderEntry =
+        sessionId && !inferContext ? sessionProviders.get(sessionId) : undefined;
       if (existingProviderEntry) {
         console.log(
           `[dev-inspector] [acp] Using existing session-scoped provider for session: ${sessionId}`,
@@ -389,8 +392,10 @@ export function setupAcpMiddleware(
         provider = existingProviderEntry.provider;
         shouldCleanupProvider = false; // Cleanup happens via /cleanup-session
       } else {
-        // Fallback: Create new provider (backward compatibility or missing session)
-        console.log(`[dev-inspector] [acp] Creating new provider (no session found or provided)`);
+        // Create new provider (backward compatibility, missing session, or inferContext mode)
+        console.log(
+          `[dev-inspector] [acp] Creating new provider${inferContext ? " (inferContext mode)" : " (no session found or provided)"}`,
+        );
 
         // Try to resolve npm package bin if npmPackage is specified
         let command = agent.command;
@@ -414,8 +419,14 @@ export function setupAcpMiddleware(
           },
           authMethodId: agent.authMethodId,
         });
-        // Initialize session if no existing session
-        await provider.initSession();
+        // Initialize session - in inferContext mode, pass context_selector tool directly
+        if (inferContext) {
+          await provider.initSession(
+            acpTools({ context_selector: contextSelectorTool } as Record<string, any>),
+          );
+        } else {
+          await provider.initSession();
+        }
       }
 
       // Get active transport from shared connection manager and load tools
