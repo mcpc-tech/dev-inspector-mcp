@@ -226,7 +226,8 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
       port: '${port}',
       base: '/',
       baseUrl: ${injectedBaseUrl ? `'${injectedBaseUrl.replace(/'/g, "\\'")}'` : "undefined"},
-      showInspectorBar: ${showInspectorBar}
+      showInspectorBar: ${showInspectorBar},
+      disableChrome: ${chromeDisabled}
     };
 
     // Dynamically load inspector script
