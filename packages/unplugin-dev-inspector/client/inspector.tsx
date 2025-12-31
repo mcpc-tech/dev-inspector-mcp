@@ -364,6 +364,18 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
 
 class DevInspector extends HTMLElement {
   connectedCallback() {
+    // CRITICAL: Set host element styles to ensure it's always on top
+    // This fixes Shadow DOM stacking context conflicts with user page elements
+    this.style.cssText = `
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      pointer-events: none !important;
+      z-index: 2147483647 !important;
+    `;
+
     const shadowRoot = this.attachShadow({ mode: "open" });
 
     const styleElement = document.createElement("style");
