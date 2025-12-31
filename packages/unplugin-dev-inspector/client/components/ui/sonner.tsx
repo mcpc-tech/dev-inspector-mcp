@@ -14,12 +14,12 @@ type ToasterProps = React.ComponentProps<typeof Sonner> & {
 };
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useInspectorTheme();
+  const { resolvedTheme } = useInspectorTheme();
   const shadowRoot = useShadowRoot();
 
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
+      theme={resolvedTheme as ToasterProps["theme"]}
       className="toaster group"
       icons={{
         success: <CircleCheckIcon className="size-4" />,

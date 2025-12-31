@@ -9,7 +9,7 @@ export const Overlay = React.forwardRef<HTMLDivElement, OverlayProps>(({ visible
   <div
     ref={ref}
     className={cn(
-      "fixed pointer-events-none border-2 border-black dark:border-white bg-black/[0.06] dark:bg-white/[0.12] z-[999997]",
+      "fixed pointer-events-none border-2 border-black dark:border-blue-500 bg-black/[0.06] dark:bg-blue-500/10 z-[999997]",
       visible ? "block" : "hidden",
     )}
   />

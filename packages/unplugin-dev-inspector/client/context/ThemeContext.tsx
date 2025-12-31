@@ -1,10 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 
-export type Theme = "dark" | "light" | "system";
 
+
+// Simplified to only expose resolved theme (dark/light) based on system preference
 interface InspectorThemeContextType {
-  theme: Theme;
-  setTheme: (theme: Theme) => void;
   resolvedTheme: "dark" | "light";
 }
 
@@ -21,40 +20,29 @@ export const useInspectorTheme = () => {
 export const InspectorThemeProvider: React.FC<{
   children: React.ReactNode;
 }> = ({ children }) => {
-  const [theme, setTheme] = useState<Theme>("system");
-
+  // Always track system preference
   const [resolvedTheme, setResolvedTheme] = useState<"dark" | "light">(() => {
     if (typeof window === "undefined") return "light";
-    // Default theme is 'system', so we check media query immediately
     return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   });
 
   useEffect(() => {
-    if (theme === "system") {
-      const media = window.matchMedia("(prefers-color-scheme: dark)");
-      const handleChange = () => {
-        setResolvedTheme(media.matches ? "dark" : "light");
-      };
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleChange = (e: MediaQueryListEvent) => {
+      setResolvedTheme(e.matches ? "dark" : "light");
+    };
 
-      // Initial check
-      handleChange();
+    // Listen for changes
+    media.addEventListener("change", handleChange);
 
-      // Listen for changes
-      media.addEventListener("change", handleChange);
-      return () => media.removeEventListener("change", handleChange);
-    } else {
-      setResolvedTheme(theme);
-    }
-  }, [theme]);
+    // Ensure we are in sync on mount/updates
+    setResolvedTheme(media.matches ? "dark" : "light");
 
-  useEffect(() => {
-    const root = window.document.documentElement;
-    root.classList.remove("light", "dark");
-    root.classList.add(resolvedTheme);
-  }, [resolvedTheme]);
+    return () => media.removeEventListener("change", handleChange);
+  }, []);
 
   return (
-    <InspectorThemeContext.Provider value={{ theme, setTheme, resolvedTheme }}>
+    <InspectorThemeContext.Provider value={{ resolvedTheme }}>
       {children}
     </InspectorThemeContext.Provider>
   );

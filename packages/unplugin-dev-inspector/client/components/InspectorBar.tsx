@@ -23,6 +23,7 @@ import { useDraggable } from "../hooks/useDraggable";
 import { useAgent } from "../hooks/useAgent";
 import { getDevServerBaseUrl } from "../utils/config-loader";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
+
 interface InspectorBarProps {
   isActive: boolean;
   onToggleInspector: () => void;

@@ -383,15 +383,15 @@ IMPORTANT: For this task, you MUST call the "context_selector" tool to return yo
                         const toolName = lastMsg?.role === 'assistant' ? extractLatestToolName(lastMsg) : null;
 
                         return (
-                            <div className="absolute inset-0 z-10 bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center p-4 min-h-[120px]">
+                            <div className="absolute inset-0 z-10 bg-background/95 backdrop-blur-sm flex flex-col items-center justify-center p-4 min-h-[120px]">
                                 <Sparkles className="w-6 h-6 text-blue-500 animate-pulse mb-3" />
-                                <span className="text-sm font-medium text-gray-800 text-center max-w-full truncate px-2">
+                                <span className="text-sm font-medium text-foreground text-center max-w-full truncate px-2">
                                     {toolName
                                         ? `Running: ${normalizeToolName(toolName)}`
                                         : 'Analyzing context...'}
                                 </span>
                                 {displayText && (
-                                    <p className="text-xs text-gray-500 leading-relaxed text-center mt-2 line-clamp-2 max-w-[280px]">
+                                    <p className="text-xs text-muted-foreground leading-relaxed text-center mt-2 line-clamp-2 max-w-[280px]">
                                         {displayText}
                                     </p>
                                 )}
