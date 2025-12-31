@@ -34,6 +34,29 @@ type UIMessagePart<TMeta = Record<string, unknown>, _TToolMap = Record<string, U
     state?: string;
   });
 
+/**
+ * Normalize tool name by stripping provider prefixes and namespaces
+ */
+export function normalizeToolName(rawName: string): string {
+  let name = rawName;
+
+  // Some providers include prefixes/namespaces that we don't want to show in UI.
+  name = name.replace(/^tool-/, "");
+  name = name.replace(/^mcp__/, "");
+
+  // Strip ACP AI SDK tools branding across common separators.
+  // Examples:
+  // - mcp__acp_ai_sdk_tools__show_alert
+  // - acp-ai-sdk-tools/show_alert
+  name = name.replace(/(^|__|\/)(acp[-_]?ai[-_]?sdk[-_]?tools)(?=__|\/|$)/g, "$1");
+
+  // Normalize repeated separators.
+  name = name.replace(/^__+/, "").replace(/__+$/, "");
+  name = name.replace(/__{3,}/g, "__");
+
+  return name || rawName;
+}
+
 function isToolPart(part: unknown): part is Record<string, unknown> & {
   type: string;
   state: string;
@@ -126,25 +149,6 @@ export function renderMessagePart(
 
   // Handle tool calls with type starting with "tool-"
   if (isToolPart(part)) {
-    const normalizeToolName = (rawName: string) => {
-      let name = rawName;
-
-      // Some providers include prefixes/namespaces that we don't want to show in UI.
-      name = name.replace(/^tool-/, "");
-      name = name.replace(/^mcp__/, "");
-
-      // Strip ACP AI SDK tools branding across common separators.
-      // Examples:
-      // - mcp__acp_ai_sdk_tools__show_alert
-      // - acp-ai-sdk-tools/show_alert
-      name = name.replace(/(^|__|\/)(acp[-_]?ai[-_]?sdk[-_]?tools)(?=__|\/|$)/g, "$1");
-
-      // Normalize repeated separators.
-      name = name.replace(/^__+/, "").replace(/__+$/, "");
-      name = name.replace(/__{3,}/g, "__");
-
-      return name || rawName;
-    };
     const toolInput = part.input as ProviderAgentDynamicToolInput | undefined;
 
     // Guard clause: skip rendering if input or toolName is missing

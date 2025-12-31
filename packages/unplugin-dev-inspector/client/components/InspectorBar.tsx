@@ -64,6 +64,13 @@ export const InspectorBar = ({
   const [configInfoAgent, setConfigInfoAgent] = useState<string | null>(null);
   const [showContextDialog, setShowContextDialog] = useState(false);
 
+  // Notify parent when agent changes (including initial load)
+  useEffect(() => {
+    if (isReady && selectedAgent) {
+      onAgentChange?.(selectedAgent);
+    }
+  }, [selectedAgent, isReady, onAgentChange]);
+
   // Use state machine to derive Dynamic Island state from messages
   const { uiState, chatStatus, toolName, displayText } = useIslandState(messages, status, isExpanded);
 
@@ -575,7 +582,6 @@ export const InspectorBar = ({
                           <button
                             onClick={() => {
                               setSelectedAgent(agent.name);
-                              onAgentChange?.(agent.name);
                               setIsAgentSelectorOpen(false);
                             }}
                             className="flex items-center gap-2 flex-1 text-left"

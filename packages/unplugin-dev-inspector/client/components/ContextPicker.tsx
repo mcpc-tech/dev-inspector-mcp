@@ -10,6 +10,8 @@ import { useChat, type UIMessage } from "@ai-sdk/react";
 import { getDevServerBaseUrl } from "../utils/config-loader";
 import { DefaultChatTransport } from "ai";
 import { DEFAULT_AGENT, AVAILABLE_AGENTS } from "../constants/agents";
+import { extractDisplayText, extractLatestToolName } from "../utils/messageProcessor";
+import { normalizeToolName } from "../lib/messageRenderer";
 
 // Maximum number of recent items to include in AI context analysis
 const MAX_RECENT_ITEMS = 50;
@@ -374,13 +376,28 @@ IMPORTANT: For this task, you MUST call the "context_selector" tool to return yo
                 </div>
 
                 {/* Tab Content */}
-                <div className="max-h-[200px] overflow-auto relative">
-                    {isProcessing && (
-                        <div className="absolute inset-0 z-10 bg-background/80 backdrop-blur-sm flex items-center justify-center flex-col gap-2">
-                            <Sparkles className="w-5 h-5 text-blue-500 animate-pulse" />
-                            <span className="text-xs text-muted-foreground animate-pulse">Analyzing context...</span>
-                        </div>
-                    )}
+                <div className={`max-h-[200px] overflow-auto relative ${isProcessing ? 'min-h-[150px]' : ''}`}>
+                    {isProcessing && (() => {
+                        const lastMsg = messages[messages.length - 1];
+                        const displayText = lastMsg?.role === 'assistant' ? extractDisplayText(lastMsg) : '';
+                        const toolName = lastMsg?.role === 'assistant' ? extractLatestToolName(lastMsg) : null;
+
+                        return (
+                            <div className="absolute inset-0 z-10 bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center p-4 min-h-[120px]">
+                                <Sparkles className="w-6 h-6 text-blue-500 animate-pulse mb-3" />
+                                <span className="text-sm font-medium text-gray-800 text-center max-w-full truncate px-2">
+                                    {toolName
+                                        ? `Running: ${normalizeToolName(toolName)}`
+                                        : 'Analyzing context...'}
+                                </span>
+                                {displayText && (
+                                    <p className="text-xs text-gray-500 leading-relaxed text-center mt-2 line-clamp-2 max-w-[280px]">
+                                        {displayText}
+                                    </p>
+                                )}
+                            </div>
+                        );
+                    })()}
                     {error && (activeTab === "console" || activeTab === "network") && (
                         <div className="p-2 text-xs text-destructive">{error}</div>
                     )}
@@ -483,7 +500,7 @@ IMPORTANT: For this task, you MUST call the "context_selector" tool to return yo
                                     />
                                     <div className="flex-1 min-w-0">
                                         <div className="text-xs font-medium text-foreground mb-1">Element Visual</div>
-                                        <div className="text-[10px] text-muted-foreground/70 mb-2">Note: Some editors may only paste the image. Use Ctrl+Shift+V or right-click to paste as plain text if needed.</div>
+                                        <div className="text-[10px] text-muted-foreground/70 mb-2">Note: Copy & Go only copies text (IDEs don't support mixed text/image paste). To include the image, please right-click and copy it manually.</div>
                                         <div className="rounded border border-border overflow-hidden bg-muted/30">
                                             <img
                                                 src={screenshot}
