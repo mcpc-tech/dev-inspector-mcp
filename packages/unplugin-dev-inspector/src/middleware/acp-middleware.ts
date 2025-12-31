@@ -157,15 +157,20 @@ async function loadMcpToolsV5(
  */
 const DEFAULT_SYSTEM_INSTRUCTIONS = `# DevInspector Context
 
-You are connected to a web app with DevInspector. Available tools:
+You are connected to a web app with DevInspector.
 
-- **list_inspections**: Check pending element inspections from user
-- **capture_element_context**: Activate visual selector to capture UI elements
-- **update_inspection_status**: Update inspection status with progress/results
-- **execute_page_script**: Run JavaScript in browser context
-- **chrome_devtools**: Access Chrome DevTools for network, console, performance
+CRITICAL WORKFLOW:
+1. ALWAYS call \`list_inspections\` FIRST to check for user feedback context.
+2. IF inspections exist:
+   - If user intent is ACTIONABLE (e.g., "fix", "start", "optimize") -> Analyze & Execute immediately.
+   - Otherwise -> Answer user's question first, then ask if they want to use the pending inspections.
 
-Workflow: Check \`list_inspections\` first. If there are pending items, help resolve them. Otherwise, assist with the user's request.`;
+Available tools:
+- **list_inspections**: Get pending user feedback context (do this first!)
+- **capture_element_context**: Activate visual selector
+- **update_inspection_status**: Update status
+- **execute_page_script**: Run JS in browser
+- **chrome_devtools**: Access network/console`;
 
 /**
  * Get an active transport from the connection manager

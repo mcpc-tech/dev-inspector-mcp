@@ -19,8 +19,8 @@ const logs: ConsoleLog[] = [];
 const networkRequests: NetworkRequest[] = [];
 let nextLogId = 1;
 let nextRequestId = 1;
-const MAX_LOGS = 1000;
-const MAX_REQUESTS = 1000;
+const MAX_LOGS = 500;
+const MAX_REQUESTS = 500;
 
 export function addLog(type: ConsoleLog["type"], args: any[]) {
   const log: ConsoleLog = {
@@ -30,7 +30,7 @@ export function addLog(type: ConsoleLog["type"], args: any[]) {
     timestamp: Date.now(),
   };
   logs.push(log);
-  if (logs.length > MAX_LOGS) logs.shift();
+  while (logs.length > MAX_LOGS) logs.shift();
   return log;
 }
 
@@ -41,7 +41,7 @@ export function addNetworkRequest(request: Omit<NetworkRequest, "id" | "timestam
     ...request,
   };
   networkRequests.push(req);
-  if (networkRequests.length > MAX_REQUESTS) networkRequests.shift();
+  while (networkRequests.length > MAX_REQUESTS) networkRequests.shift();
   return req;
 }
 

@@ -87,7 +87,7 @@ export interface ServerContext {
 /**
  * Create and configure the MCP server for source inspection
  */
-export async function createInspectorMcpServer(serverContext?: ServerContext) {
+export async function createInspectorMcpServer(serverContext?: ServerContext): Promise<any> {
   const chromeDisabled = isChromeDisabled(serverContext?.disableChrome);
   const isAutomated = serverContext?.isAutomated ?? false;
   console.log(
@@ -256,8 +256,19 @@ Default dev server URL: ${process.env.DEV_INSPECTOR_PUBLIC_BASE_URL || `http://$
 
       const messageOptions = logs
         .map((l) => {
-          const text = l.args.map(String).join(" ");
-          const truncatedText = text.length > 60 ? text.substring(0, 57) + "..." : text;
+          const text = l.args
+            .map((arg) => {
+              if (typeof arg === "object" && arg !== null) {
+                try {
+                  return JSON.stringify(arg);
+                } catch {
+                  return String(arg);
+                }
+              }
+              return String(arg);
+            })
+            .join(" ");
+          const truncatedText = text.length > 1000 ? text.substring(0, 997) + "..." : text;
           return `msgid=${l.id} [${l.type}] ${truncatedText}`;
         })
         .reverse() // Newest first to match Chrome DevTools order
