@@ -1,8 +1,4 @@
-<p align="center">
-  <img src="./assets/logo.svg" alt="DevInspector Logo" width="50" height="50" />
-</p>
-
-# @mcpc-tech/unplugin-dev-inspector-mcp
+# dev-inspector-mcp
 
 [![npm version](https://img.shields.io/npm/v/@mcpc-tech/unplugin-dev-inspector-mcp.svg)](https://www.npmjs.com/package/@mcpc-tech/unplugin-dev-inspector-mcp)
 [![npm downloads](https://img.shields.io/npm/dm/@mcpc-tech/unplugin-dev-inspector-mcp.svg)](https://www.npmjs.com/package/@mcpc-tech/unplugin-dev-inspector-mcp)
@@ -46,17 +42,22 @@ Works with any MCP-compatible AI client. Supports ACP agents: **Claude Code**, *
 
 ## Key Features
 
-### 🎯 Visual Context
+### 🎯 Visual Context & Region Selection
 
-Click any element to instantly send its source code location, computed styles, and DOM hierarchy to AI. No more explaining "it's the blue button in the header".
+Click any element to inspect it, or **drag to select a region**. AI gets the full context: source code location, computed styles, component hierarchy, IDs, classes, text content, and **automatically captures screenshots** for pixel-perfect visual understanding.
 
-### 🛠️ Full DevTools Access
 
-AI can access Chrome DevTools to analyze network requests, console logs, and performance metrics. It sees what you see.
+### 🛠️ Universal DevTools Access
+
+AI can access Network and Console logs from **any browser** (via client-side interception) or full Chrome DevTools (via chrome devtools mcp). It sees what you see, regardless of your environment.
+
+### ✨ Smart Select
+
+Let AI do the heavy lifting. "Smart Select" automatically analyzes recent console errors and failed network requests to construct the perfect context for your debugging session.
 
 ### 🤖 Multi-Agent Workflow
 
-Switch between agents (Claude Code, Goose) and track their debugging progress visually with step-by-step status updates.
+Switch between agents (Claude Code, Codex, Gemini, Opencode...) and track their debugging progress visually with a **floating status bar**.
 
 ## Quick Start
 
