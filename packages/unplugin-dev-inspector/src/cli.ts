@@ -13,22 +13,22 @@ import { setupMcpMiddleware } from "./middleware/mcproute-middleware";
 import { setupInspectorMiddleware } from "./middleware/inspector-middleware";
 import { setupAcpMiddleware } from "./middleware/acp-middleware";
 import { updateMcpConfigs } from "./utils/config-updater";
-import { isEnvTruthy, getPublicBaseUrl } from "./utils/helpers";
+import { getPublicBaseUrl, isEnvTruthy } from "./utils/helpers";
 import {
-  detectConfigs,
+  type BundlerType,
   detectConfig,
   detectConfigByPath,
-  type BundlerType,
+  detectConfigs,
 } from "./utils/config-detector";
 import { transformConfig } from "./utils/codemod-transformer";
-import { writeFileSync, copyFileSync } from "fs";
+import { writeFileSync } from "fs";
 import type { Connect } from "vite";
+import { installPackage } from "./utils/package-manager";
 
 async function runSetupCommand() {
   const args = process.argv.slice(3); // Skip 'node', 'cli.js', 'setup'
 
   let dryRun = false;
-  let noBackup = false;
   let configPath: string | undefined;
   let bundlerType: BundlerType | undefined;
 
@@ -36,8 +36,6 @@ async function runSetupCommand() {
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--dry-run") {
       dryRun = true;
-    } else if (args[i] === "--no-backup") {
-      noBackup = true;
     } else if (args[i] === "--config" && args[i + 1]) {
       configPath = args[i + 1];
       i++;
@@ -61,7 +59,6 @@ Options:
   --config <path>         Specify config file path (auto-detect by default)
   --bundler <type>        Specify bundler type: vite, webpack, nextjs
   --dry-run               Preview changes without applying them
-  --no-backup             Skip creating backup files
   --help, -h              Show this help message
 
 Examples:
@@ -100,7 +97,9 @@ Examples:
     } else if (bundlerType) {
       targetConfig = detectConfig(bundlerType);
       if (!targetConfig) {
-        console.error(`❌ No ${bundlerType} config file found in current directory`);
+        console.error(
+          `❌ No ${bundlerType} config file found in current directory`,
+        );
         process.exit(1);
       }
     } else {
@@ -118,18 +117,26 @@ Examples:
         detected.forEach((config, i) => {
           console.log(`  ${i + 1}. ${config.bundler}: ${config.path}`);
         });
-        console.log("\n💡 Tip: Use --bundler or --config to specify which one to transform");
+        console.log(
+          "\n💡 Tip: Use --bundler or --config to specify which one to transform",
+        );
         targetConfig = detected[0];
-        console.log(`\n🎯 Using: ${targetConfig.bundler} (${targetConfig.path})`);
+        console.log(
+          `\n🎯 Using: ${targetConfig.bundler} (${targetConfig.path})`,
+        );
       } else {
         targetConfig = detected[0];
-        console.log(`🎯 Detected: ${targetConfig.bundler} config at ${targetConfig.path}`);
+        console.log(
+          `🎯 Detected: ${targetConfig.bundler} config at ${targetConfig.path}`,
+        );
       }
     }
 
     // Transform config
     console.log(
-      `\n${dryRun ? "🔍 Previewing" : "🔧 Transforming"} ${targetConfig.bundler} config...`,
+      `\n${
+        dryRun ? "🔍 Previewing" : "🔧 Transforming"
+      } ${targetConfig.bundler} config...`,
     );
 
     const result = transformConfig({
@@ -160,21 +167,29 @@ Examples:
       process.exit(0);
     }
 
-    // Create backup
-    if (!noBackup) {
-      const backupPath = `${targetConfig.path}.bak`;
-      copyFileSync(targetConfig.path, backupPath);
-      console.log(`📦 Backup created: ${backupPath}`);
-    }
-
     // Write transformed code
     writeFileSync(targetConfig.path, result.code!, "utf-8");
 
     console.log(`\n✅ ${result.message}`);
+
+    // Install package
+    const installed = installPackage(
+      "@mcpc-tech/unplugin-dev-inspector-mcp",
+      true,
+    );
+
     console.log(`\n📝 Next steps:`);
-    console.log(`   1. Review the changes in ${targetConfig.path}`);
-    console.log(`   2. Install the package: npm i -D @mcpc-tech/unplugin-dev-inspector-mcp`);
-    console.log(`   3. Start your dev server`);
+    console.log(
+      `   1. Review the changes in ${targetConfig.path} and package.json`,
+    );
+    if (!installed) {
+      console.log(
+        `   2. Install the package: npm i -D @mcpc-tech/unplugin-dev-inspector-mcp`,
+      );
+      console.log(`   3. Start your dev server`);
+    } else {
+      console.log(`   2. Start your dev server`);
+    }
 
     if (targetConfig.bundler === "vite") {
       console.log(
@@ -183,7 +198,10 @@ Examples:
       console.log(`   Please verify the plugin order in your config.`);
     }
   } catch (error) {
-    console.error("❌ Setup failed:", error instanceof Error ? error.message : error);
+    console.error(
+      "❌ Setup failed:",
+      error instanceof Error ? error.message : error,
+    );
     process.exit(1);
   }
 }
@@ -244,7 +262,7 @@ Example:
     const publicBase = getPublicBaseUrl({
       publicBaseUrl: process.env.DEV_INSPECTOR_PUBLIC_BASE_URL,
       host: displayHost,
-      port: actualPort
+      port: actualPort,
     });
     const baseUrl = `${publicBase}/__mcp__/sse`;
 
