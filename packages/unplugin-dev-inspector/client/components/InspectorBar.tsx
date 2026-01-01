@@ -10,6 +10,7 @@ import {
   Inbox,
   Square,
   Info,
+  BoxSelect,
 } from "lucide-react";
 import { Shimmer } from "../../src/components/ai-elements/shimmer";
 import type { UIMessage } from "ai";
@@ -39,6 +40,10 @@ interface InspectorBarProps {
   mcpClient?: Client | null;
   /** Callback when selected agent changes */
   onAgentChange?: (agentName: string) => void;
+  /** Callback for toggling region mode */
+  onToggleRegionMode?: () => void;
+  /** Whether region mode is active */
+  isRegionModeActive?: boolean;
 }
 
 export const InspectorBar = ({
@@ -55,6 +60,8 @@ export const InspectorBar = ({
   toolsReady = true,
   mcpClient = null,
   onAgentChange,
+  onToggleRegionMode,
+  isRegionModeActive = false,
 }: InspectorBarProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [input, setInput] = useState("");
@@ -526,6 +533,20 @@ export const InspectorBar = ({
               </button>
               <div className="w-px h-4 bg-border flex-shrink-0" />
             </>
+
+            {/* Region Mode Button */}
+            <button
+              onClick={onToggleRegionMode}
+              className={cn(
+                "relative flex items-center justify-center w-7 h-7 rounded-full transition-colors flex-shrink-0",
+                isRegionModeActive
+                  ? "bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)]"
+                  : "bg-accent text-muted-foreground hover:bg-accent/80 hover:text-foreground",
+              )}
+              title="Region Select Mode"
+            >
+              <BoxSelect className="w-3.5 h-3.5" />
+            </button>
 
             {/* Toggle Button */}
             <button

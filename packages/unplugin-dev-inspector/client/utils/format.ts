@@ -173,19 +173,93 @@ export function formatCopyContext(options: {
   feedback?: string;
   consoleMessages?: ConsoleMessage[];
   networkRequests?: Array<NetworkRequest & { details?: string | null }>;
+  relatedElements?: InspectedElement[];
+  relatedElementIds?: number[];
 }): string {
-  const { sourceInfo, includeElement, includeStyles, feedback, consoleMessages, networkRequests } =
-    options;
+  const {
+    sourceInfo,
+    includeElement,
+    includeStyles,
+    feedback,
+    consoleMessages,
+    networkRequests,
+    relatedElements,
+    relatedElementIds,
+  } = options;
 
   let output = "# Element Context\n\n";
 
-  // == Code Tab ==
+  const hasRelatedElements =
+    relatedElements &&
+    relatedElements.length > 0 &&
+    relatedElementIds &&
+    relatedElementIds.length > 0;
+
   if (sourceInfo && includeElement) {
     output += "## Code\n\n";
+
+    // For Region Selection, label the primary element
+    if (hasRelatedElements) {
+      output += "### Primary Element (Best Match)\n";
+    }
+
     output += formatSourceInfo(sourceInfo);
     output += "\n";
     output += formatDomElement(sourceInfo.elementInfo);
     output += "\n";
+  }
+
+  // == Related Elements (Region Selection) ==
+  if (
+    relatedElements &&
+    relatedElements.length > 0 &&
+    relatedElementIds &&
+    relatedElementIds.length > 0
+  ) {
+    const selectedElements = relatedElements.filter((_, idx) => relatedElementIds.includes(idx));
+    if (selectedElements.length > 0) {
+      output += "## Related Elements\n\n";
+
+      // Group by file
+      const grouped = selectedElements.reduce(
+        (acc, el) => {
+          const file = el.file || "unknown";
+          if (!acc[file]) acc[file] = [];
+          acc[file].push(el);
+          return acc;
+        },
+        {} as Record<string, InspectedElement[]>,
+      );
+
+      Object.entries(grouped).forEach(([file, elements]) => {
+        output += `### ${file}\n`;
+        elements.forEach((el) => {
+          output += `- **${el.component}** (${el.line}:${el.column})`;
+          if (el.elementInfo?.tagName) {
+            output += ` - \`<${el.elementInfo.tagName}`;
+            // Add className if available
+            if (el.elementInfo.className) {
+              output += ` class="${el.elementInfo.className}"`;
+            }
+            // Add id if available
+            if (el.elementInfo.id) {
+              output += ` id="${el.elementInfo.id}"`;
+            }
+            output += `>`;
+            // Add text content preview if available
+            if (el.elementInfo.textContent) {
+              const preview = el.elementInfo.textContent.trim().slice(0, 30);
+              if (preview) {
+                output += ` "${preview}${el.elementInfo.textContent.length > 30 ? "..." : ""}"`;
+              }
+            }
+            output += "`";
+          }
+          output += "\n";
+        });
+        output += "\n";
+      });
+    }
   }
 
   // == Styles Tab ==

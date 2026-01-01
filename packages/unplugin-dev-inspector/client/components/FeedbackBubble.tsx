@@ -46,12 +46,17 @@ export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
   const plan = usePlanProgress();
   const [feedback, setFeedback] = useState("");
   const [open, setOpen] = useState(true);
-  const [selectedContext, setSelectedContext] = useState<SelectedContext>({
-    includeElement: true,  // Default checked
-    includeStyles: true,   // Default checked
-    includeScreenshot: false, // Default unchecked (clipboard compatibility issues)
-    consoleIds: [],
-    networkIds: [],
+  const [selectedContext, setSelectedContext] = useState<SelectedContext>(() => {
+    // For region selections, default to all related elements selected
+    const relatedCount = sourceInfo?.relatedElements?.length || 0;
+    return {
+      includeElement: true,  // Default checked
+      includeStyles: true,   // Default checked
+      includeScreenshot: false, // Default unchecked (clipboard compatibility issues)
+      consoleIds: [],
+      networkIds: [],
+      relatedElementIds: relatedCount > 0 ? Array.from({ length: relatedCount }, (_, i) => i) : [],
+    };
   });
   const [contextData, setContextData] = useState<{
     consoleMessages: ConsoleMessage[];
@@ -125,6 +130,8 @@ export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
       feedback: feedback || undefined,
       consoleMessages: enrichedContext.consoleMessages.length > 0 ? enrichedContext.consoleMessages : undefined,
       networkRequests: enrichedContext.networkRequests.length > 0 ? enrichedContext.networkRequests : undefined,
+      relatedElements: sourceInfo?.relatedElements,
+      relatedElementIds: enrichedContext.relatedElementIds,
     });
 
     try {
@@ -228,7 +235,7 @@ export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
               value={feedback}
               onChange={(e) => setFeedback(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="What should the AI do with this element?"
+              placeholder="What should the AI do with this?"
               className="w-full min-h-[120px] px-4 py-3 rounded-lg border border-input bg-background text-sm resize-y focus:outline-none focus:ring-2 focus:ring-ring"
             />
 
