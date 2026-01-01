@@ -1,3 +1,4 @@
 {
-    "vitest.disableWorkspaceWarning": true
+    "vitest.disableWorkspaceWarning": true,
+    "deno.enable": false
 }
