@@ -20,6 +20,7 @@ import inspectorStyles from "./styles.css";
 import ReactDOM from "react-dom/client";
 import { InspectorThemeProvider } from "./context/ThemeContext";
 import { InspectorBar } from "./components/InspectorBar";
+import { RegionOverlay } from "./components/RegionOverlay";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { AVAILABLE_AGENTS } from "./constants/agents";
@@ -42,6 +43,7 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
   const { inspections, setInspections } = useInspectionProgress();
   const [currentSessionInspections, setCurrentSessionInspections] = useState<InspectionItem[]>([]);
   const [selectedAgentName, setSelectedAgentName] = useState<string | null>(null);
+  const [regionMode, setRegionMode] = useState(false);
 
   // Agent State
   const { messages, sendMessage, status, stop } = useChat({
@@ -85,6 +87,9 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
     const newActive = !isActive;
     setIsActive(newActive);
 
+    // Reset region mode when toggling inspector
+    setRegionMode(false);
+
     document.body.style.cursor = newActive ? "crosshair" : "";
 
     if (newActive) {
@@ -95,12 +100,13 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
       setBubbleMode(null);
     }
 
-    showNotif(newActive ? "🔍 Inspector ON - Click any element" : "Inspector OFF");
+    showNotif(newActive ? "Inspector ON" : "Inspector OFF");
   }, [isActive, showNotif]);
 
   const handleBubbleClose = useCallback(() => {
     setBubbleMode(null);
     setIsActive(false);
+    setRegionMode(false);
     document.body.style.cursor = "";
 
     if (overlayRef.current) overlayRef.current.style.display = "none";
@@ -138,16 +144,36 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
         setIsActive(true);
         document.body.style.cursor = "crosshair";
         setBubbleMode(null);
-        showNotif("🔍 Inspector ON");
+        showNotif("Inspector ON");
       }
     };
 
     window.addEventListener("activate-inspector", handleActivateInspector);
     return () => window.removeEventListener("activate-inspector", handleActivateInspector);
   }, [isActive, showNotif]);
+  const toggleRegionMode = useCallback(() => {
+    if (!isActive) {
+      // If inspector is off, turn it on and enable region mode
+      setIsActive(true);
+      setRegionMode(true);
+      setBubbleMode(null);
+      showNotif("Region Mode: ON");
+      return;
+    }
+
+    const newMode = !regionMode;
+    setRegionMode(newMode);
+
+    if (newMode) {
+      setBubbleMode(null); // Close any active bubble
+      document.body.style.cursor = "default"; // Region overlay handles cursor
+    } else {
+      document.body.style.cursor = "crosshair"; // Back to element picking
+    }
+  }, [isActive, regionMode, showNotif]);
 
   useInspectorHover({
-    isActive,
+    isActive: isActive && !regionMode, // Disable hover when in region mode
     isWaitingForFeedback: bubbleMode !== null,
     overlayRef,
     tooltipRef,
@@ -207,7 +233,7 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
       document.body.style.cursor = "";
       if (overlayRef.current) overlayRef.current.style.display = "none";
       if (tooltipRef.current) tooltipRef.current.style.display = "none";
-      showNotif("✅ Element captured automatically");
+      // Automated mode - no notification needed
     } else {
       // Manual mode - show input bubble
       setBubbleMode("input");
@@ -234,7 +260,7 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
   }, []); // Dependencies relying on state setters which are stable
 
   useInspectorClick({
-    isActive,
+    isActive: isActive && !regionMode, // Disable click picking in region mode
     isWaitingForFeedback: bubbleMode !== null,
     onElementInspected: handleElementInspected,
     btnRef,
@@ -242,6 +268,12 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
 
   const handleInspectionSubmit = (description: string, continueInspecting = false, context?: SelectedContext) => {
     if (!sourceInfo) return;
+
+    // Detect if we have related elements (Region capture)
+    const isRegionCapture = sourceInfo.relatedElements && sourceInfo.relatedElements.length > 0;
+
+    // Construct description for region capture if not provided
+    const finalDescription = description || (isRegionCapture ? "Region capture" : description);
 
     const inspectionId = `inspection-${Date.now()}`;
     const newItem: InspectionItem = {
@@ -252,8 +284,22 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
         line: sourceInfo.line,
         column: sourceInfo.column,
         elementInfo: sourceInfo.elementInfo,
+
+        relatedElements: sourceInfo.relatedElements?.map(el => ({
+          file: el.file,
+          component: el.component,
+          line: el.line,
+          column: el.column,
+          elementInfo: el.elementInfo ? {
+            tagName: el.elementInfo.tagName,
+            textContent: el.elementInfo.textContent,
+            className: el.elementInfo.className,
+            id: el.elementInfo.id,
+            styles: el.elementInfo.styles || {},
+          } : undefined
+        })),
       },
-      description,
+      description: finalDescription,
       status: "pending",
       timestamp: Date.now(),
       selectedContext: context,
@@ -272,7 +318,7 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
       // Don't dispatch event yet - wait for final submit
       setIsActive(true);
       document.body.style.cursor = "crosshair";
-      showNotif(`✅ Saved (${updatedSessionInspections.length}) - Click next element`);
+      showNotif(`Saved (${updatedSessionInspections.length})`);
     } else {
       // Final submit - dispatch all inspections from this session as an array
       window.dispatchEvent(
@@ -287,7 +333,7 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
       setCurrentSessionInspections([]);
       setIsActive(false);
       document.body.style.cursor = "";
-      showNotif(`✅ ${updatedSessionInspections.length} inspection${updatedSessionInspections.length > 1 ? 's' : ''} saved`);
+      showNotif(`${updatedSessionInspections.length} inspection${updatedSessionInspections.length > 1 ? 's' : ''} saved`);
     }
   };
 
@@ -305,6 +351,25 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
         },
       },
     );
+  };
+
+  const handleRegionSelectionComplete = async (info: InspectedElement) => {
+    // Capture screenshot of the primary element
+    if (info.element && info.element.isConnected) {
+      const dataUrl = await captureElementScreenshot(info.element);
+      setScreenshot(dataUrl);
+    } else {
+      setScreenshot("");
+    }
+
+    setSourceInfo(info);
+    setBubbleMode("input");
+    setRegionMode(false); // Turn off region mode after selection
+    setIsActive(false); // Stop inspector to focus on bubble
+
+    // Show notification
+    const count = (info.relatedElements?.length || 0) + 1;
+    showNotif(`Region: ${count} elements`);
   };
 
   const handleRemoveInspection = (id: string) => {
@@ -335,12 +400,20 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
               inspectionItems={inspections}
               onRemoveInspection={handleRemoveInspection}
               onAgentChange={setSelectedAgentName}
+              onToggleRegionMode={toggleRegionMode}
+              isRegionModeActive={regionMode}
             />
           )}
         </div>
 
-        <Overlay ref={overlayRef} visible={isActive && bubbleMode === null} />
-        <Tooltip ref={tooltipRef} visible={isActive && bubbleMode === null} />
+        <RegionOverlay
+          isActive={isActive && regionMode}
+          onSelectionComplete={handleRegionSelectionComplete}
+          onCancel={() => setRegionMode(false)}
+        />
+
+        <Overlay ref={overlayRef} visible={isActive && bubbleMode === null && !regionMode} />
+        <Tooltip ref={tooltipRef} visible={isActive && bubbleMode === null && !regionMode} />
 
         {notification && <Notification message={notification} />}
 

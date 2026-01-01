@@ -38,13 +38,32 @@ export async function captureElementScreenshot(
       filter: (node) => {
         if (node instanceof HTMLElement) {
           const tagName = node.tagName.toLowerCase();
-          // Skip problematic elements that can cause blank captures
-          if (tagName === "iframe" || tagName === "script" || tagName === "link") {
+          // Skip problematic elements that can cause blank captures or security errors
+          if (
+            tagName === "iframe" ||
+            tagName === "script" ||
+            tagName === "link" ||
+            tagName === "video" ||
+            tagName === "audio" ||
+            tagName === "object" ||
+            tagName === "embed"
+          ) {
             return false;
+          }
+
+          // Skip images that might have CORS issues
+          if (tagName === "img") {
+            const img = node as HTMLImageElement;
+            // Skip if image hasn't loaded yet or has error
+            if (!img.complete || img.naturalWidth === 0) {
+              return false;
+            }
           }
         }
         return true;
       },
+      // Reduce the likelihood of CORS errors from fonts
+      fontEmbedCSS: "",
     });
 
     return dataUrl;

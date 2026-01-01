@@ -16,6 +16,7 @@ export interface SourceInfo {
     id: string;
     styles: Record<string, string>;
   };
+  relatedElements?: SourceInfo[];
 }
 
 export interface InspectionItem {

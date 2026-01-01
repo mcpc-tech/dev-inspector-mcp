@@ -45,6 +45,8 @@ export interface SelectedContext {
     includeScreenshot: boolean;
     consoleIds: number[];
     networkIds: number[];
+    /** Selected related element indices (for region selection) */
+    relatedElementIds: number[];
     /** Actual console message data (enriched at submission time) */
     consoleMessages?: ConsoleMessage[];
     /** Actual network request data with details (enriched at submission time) */
@@ -186,7 +188,8 @@ export const ContextPicker: React.FC<ContextPickerProps> = ({
         (selectedContext.includeStyles ? 1 : 0) +
         (selectedContext.includeScreenshot ? 1 : 0) +
         selectedContext.consoleIds.length +
-        selectedContext.networkIds.length;
+        selectedContext.networkIds.length +
+        selectedContext.relatedElementIds.length;
 
     const toggleElement = () => {
         onSelectionChange({ ...selectedContext, includeElement: !selectedContext.includeElement });
@@ -205,6 +208,13 @@ export const ContextPicker: React.FC<ContextPickerProps> = ({
             ? selectedContext.consoleIds.filter((id) => id !== msgid)
             : [...selectedContext.consoleIds, msgid];
         onSelectionChange({ ...selectedContext, consoleIds: ids });
+    };
+
+    const toggleRelatedElement = (idx: number) => {
+        const ids = selectedContext.relatedElementIds.includes(idx)
+            ? selectedContext.relatedElementIds.filter((id) => id !== idx)
+            : [...selectedContext.relatedElementIds, idx];
+        onSelectionChange({ ...selectedContext, relatedElementIds: ids });
     };
 
     // Chat hook for context inference
@@ -414,27 +424,97 @@ IMPORTANT: For this task, you MUST call the "context_selector" tool to return yo
                         </div>
                     )}
 
-                    {/* Code Tab */}
+                    {/* Code Tab - Unified Element Display */}
                     {activeTab === "code" && (
                         <div className="p-2 space-y-1">
-                            {/* Source Location */}
-                            <label className="flex items-start gap-2 p-2 rounded hover:bg-accent/50 cursor-pointer transition-colors">
-                                <input
-                                    type="checkbox"
-                                    checked={selectedContext.includeElement}
-                                    onChange={toggleElement}
-                                    className="mt-0.5 rounded border-border"
-                                />
-                                <Code className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                                <div className="flex-1 min-w-0">
-                                    <div className="text-xs font-medium text-foreground">Source Location</div>
-                                    {sourceInfo && (
-                                        <div className="text-xs text-muted-foreground font-mono truncate">
-                                            {sourceInfo.component} • {sourceInfo.file}:{sourceInfo.line}:{sourceInfo.column}
+                            {(() => {
+                                // Unified: treat single element as a list of one
+                                const elements = sourceInfo?.relatedElements && sourceInfo.relatedElements.length > 0
+                                    ? sourceInfo.relatedElements
+                                    : sourceInfo ? [sourceInfo] : [];
+
+                                const isRegionSelection = sourceInfo?.relatedElements && sourceInfo.relatedElements.length > 0;
+
+                                // Group elements by file
+                                const grouped = elements.reduce((acc, el, idx) => {
+                                    const file = el.file || 'unknown';
+                                    if (!acc[file]) acc[file] = [];
+                                    acc[file].push({ el, idx });
+                                    return acc;
+                                }, {} as Record<string, Array<{ el: InspectedElement, idx: number }>>);
+
+                                return (
+                                    <div>
+                                        <div className="flex items-center gap-1.5 px-2 mb-2">
+                                            <Code className={isRegionSelection
+                                                ? "w-3.5 h-3.5 text-muted-foreground"
+                                                : "w-4 h-4 text-blue-500"
+                                            } />
+                                            <div className="text-xs font-medium text-muted-foreground">
+                                                {isRegionSelection ? 'Related Elements' : 'Source Location'}
+                                            </div>
+                                            {isRegionSelection && (
+                                                <span className="ml-auto px-1.5 py-0.5 text-[10px] bg-muted text-muted-foreground rounded-full">
+                                                    {elements.length}
+                                                </span>
+                                            )}
                                         </div>
-                                    )}
-                                </div>
-                            </label>
+                                        <div className="space-y-2 max-h-60 overflow-y-auto">
+                                            {Object.entries(grouped).map(([file, fileElements]) => (
+                                                <div key={file} className="space-y-0.5">
+                                                    {/* File header - only show if multiple files or region selection */}
+                                                    {(Object.keys(grouped).length > 1 || isRegionSelection) && (
+                                                        <div className="px-2 py-1 text-[11px] font-medium text-muted-foreground/70 bg-muted/30 rounded sticky top-0">
+                                                            {file} ({fileElements.length})
+                                                        </div>
+                                                    )}
+                                                    {/* Elements */}
+                                                    {fileElements.map(({ el, idx }) => (
+                                                        <label
+                                                            key={idx}
+                                                            className="flex items-start gap-2 pl-4 pr-2 py-1.5 rounded hover:bg-accent/50 cursor-pointer transition-colors"
+                                                        >
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={isRegionSelection
+                                                                    ? selectedContext.relatedElementIds.includes(idx)
+                                                                    : selectedContext.includeElement
+                                                                }
+                                                                onChange={() => isRegionSelection
+                                                                    ? toggleRelatedElement(idx)
+                                                                    : toggleElement()
+                                                                }
+                                                                className="mt-0.5 rounded border-border"
+                                                            />
+                                                            <div className="flex-1 min-w-0 text-xs font-mono">
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <span className="text-foreground/80 font-medium">{el.component}</span>
+                                                                    <span className="text-muted-foreground/50">•</span>
+                                                                    <span className="text-muted-foreground">{el.line}:{el.column}</span>
+                                                                </div>
+                                                                {/* Additional identifying info */}
+                                                                {el.elementInfo && (
+                                                                    <div className="text-[10px] text-muted-foreground/60 mt-0.5 space-x-2">
+                                                                        {el.elementInfo.className && (
+                                                                            <span>.{el.elementInfo.className.split(' ')[0]}</span>
+                                                                        )}
+                                                                        {el.elementInfo.id && (
+                                                                            <span>#{el.elementInfo.id}</span>
+                                                                        )}
+                                                                        {el.elementInfo.textContent && (
+                                                                            <span className="italic">"{el.elementInfo.textContent.trim().slice(0, 20)}{el.elementInfo.textContent.length > 20 ? '...' : ''}"</span>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                );
+                            })()}
                         </div>
                     )}
 
