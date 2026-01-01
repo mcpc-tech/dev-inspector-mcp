@@ -266,6 +266,31 @@ export default function RootLayout({ children }) {
 - **Webpack mode:** `next dev` (uses webpack configuration)
 - **Turbopack mode:** `next dev --turbopack` (uses turbopack configuration, Next.js 16+ default)
 
+
+### React Router v7+
+
+Since React Router handles HTML generation via its own SSR/SPA mechanism, it bypasses the standard Vite HTML transformation hooks. You need to manually import the virtual module in your entry file.
+
+```typescript
+// app/root.tsx or app/entry.client.tsx
+import 'virtual:dev-inspector-mcp';
+```
+
+And ensure your `vite.config.ts` has the plugin:
+
+```typescript
+// vite.config.ts
+import { reactRouter } from "@react-router/dev/vite";
+import DevInspector from '@mcpc-tech/unplugin-dev-inspector-mcp';
+
+export default defineConfig({
+  plugins: [
+    DevInspector.vite({ enabled: true }),
+    reactRouter(),
+  ],
+});
+```
+
 ## Framework Support
 
 ### ✅ Fully Supported
@@ -280,6 +305,8 @@ export default function RootLayout({ children }) {
 ### 🚧 In Progress
 
 - **Angular** - Support coming soon
+
+
 
 ## Configuration
 
