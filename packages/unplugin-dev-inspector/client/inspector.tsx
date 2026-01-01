@@ -105,7 +105,6 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
 
   const handleBubbleClose = useCallback(() => {
     setBubbleMode(null);
-    setBubbleMode(null);
     setIsActive(false);
     setRegionMode(false);
     document.body.style.cursor = "";

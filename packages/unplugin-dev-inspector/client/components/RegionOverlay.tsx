@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef } from "react";
 import { getSourceInfo } from "../sourceDetector";
 import type { InspectedElement } from "../types";
 
+// Performance limit: cap related elements to avoid UI lag
+const MAX_RELATED_ELEMENTS = 50;
+
 interface RegionOverlayProps {
     isActive: boolean;
     onSelectionComplete: (result: InspectedElement) => void;
@@ -144,8 +147,6 @@ export const RegionOverlay: React.FC<RegionOverlayProps> = ({
 
         for (const entry of scoredElements) {
             const info = getSourceInfo(entry.el);
-            // Debug log
-            console.log(`[Inspector] IoU: ${entry.iou.toFixed(3)} | Tag: ${entry.el.tagName} | File: ${info.file}`);
 
             if (info.file && info.file !== 'unknown') {
                 outermostElement = entry.el;
@@ -159,15 +160,13 @@ export const RegionOverlay: React.FC<RegionOverlayProps> = ({
         // Light source info for others (strip heavy styles)
         const related: InspectedElement[] = scoredElements
             .filter(e => e.el !== outermostElement) // Exclude primary
-            .slice(0, 50) // Limit to top 50 matches to avoid perf issues
+            .slice(0, MAX_RELATED_ELEMENTS)
             .map(entry => {
                 const info = getSourceInfo(entry.el);
                 if (info.elementInfo) {
-                    // We strip heavy computed styles for related elements to save performance
-                    // @ts-ignore
-                    delete info.elementInfo.computedStyles;
-                    // @ts-ignore
-                    delete info.elementInfo.styles;
+                    // Strip heavy computed styles for related elements to save performance
+                    const { computedStyles: _, styles: __, ...lightElementInfo } = info.elementInfo;
+                    return { ...info, elementInfo: lightElementInfo as InspectedElement['elementInfo'] };
                 }
                 return info;
             });
