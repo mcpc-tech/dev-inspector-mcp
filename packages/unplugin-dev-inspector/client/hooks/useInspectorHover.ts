@@ -45,28 +45,39 @@ export const useInspectorHover = ({
         const componentName = info.component || target.tagName.toLowerCase();
         const sourceLoc = info.file ? `${info.file.split('/').pop()}:${info.line}` : '';
         
-        const sourceText = `
-          <div class="flex items-center gap-2">
-            <span class="font-bold text-blue-600">${componentName}</span>
-            ${sourceLoc ? `<span class="text-slate-400 text-[10px]">${sourceLoc}</span>` : ''}
-          </div>
-        `;
-
-        tooltipRef.current.innerHTML = sourceText;
+        // Securely create content using DOM API to prevent XSS
+        tooltipRef.current.replaceChildren();
+        
+        const container = document.createElement('div');
+        container.className = "flex items-center gap-2";
+        
+        const nameSpan = document.createElement('span');
+        nameSpan.className = "font-bold text-blue-600";
+        nameSpan.textContent = componentName;
+        container.appendChild(nameSpan);
+        
+        if (sourceLoc) {
+             const locSpan = document.createElement('span');
+             locSpan.className = "text-slate-400 text-[10px]";
+             locSpan.textContent = sourceLoc;
+             container.appendChild(locSpan);
+        }
+        
+        tooltipRef.current.appendChild(container);
+        
+        // Ensure visible before measuring
+        tooltipRef.current.style.display = "block";
         
         // Position logic: prefer top-left, flip if too close to top
-        const tooltipHeight = tooltipRef.current.offsetHeight || 32;
+        const tooltipHeight = tooltipRef.current.offsetHeight;
         const gap = 4;
         const showAbove = rect.top > (tooltipHeight + gap);
 
-        tooltipRef.current.style.display = "block";
         tooltipRef.current.style.left = rect.left + "px";
         
         if (showAbove) {
              tooltipRef.current.style.top = (rect.top - gap) + "px";
              tooltipRef.current.style.transform = "translateY(-100%)";
-             // Optional: Update rounded corners to look "attached" if desired, 
-             // but standard rounded is fine.
         } else {
              tooltipRef.current.style.top = (rect.bottom + gap) + "px";
              tooltipRef.current.style.transform = "none";

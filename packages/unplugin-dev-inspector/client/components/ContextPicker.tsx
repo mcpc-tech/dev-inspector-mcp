@@ -284,7 +284,7 @@ export const ContextPicker: React.FC<ContextPickerProps> = ({
                     includeElement: finalArgs?.includeElement ?? true, // Default to true if not specified
                     includeStyles: finalArgs?.includeStyles ?? false, // Default to false if not specified
                     reasoning: finalArgs?.reasoning,
-                    elementNotes: {}
+                    elementNotes: selectedContext.elementNotes
                 }));
             } catch (e) {
                 console.error("Failed to process context inference args", e);
@@ -600,13 +600,18 @@ IMPORTANT: For this task, you MUST call the "context_selector" tool to return yo
                                                                                 if (e.key === "Enter") {
                                                                                     e.preventDefault();
                                                                                     const val = e.currentTarget.value.trim();
-                                                                                    onSelectionChange(prev => ({
-                                                                                        ...prev,
-                                                                                        elementNotes: {
-                                                                                            ...prev.elementNotes,
-                                                                                            [idx]: val
+                                                                                    onSelectionChange(prev => {
+                                                                                        const newNotes = { ...prev.elementNotes };
+                                                                                        if (val) {
+                                                                                            newNotes[idx] = val;
+                                                                                        } else {
+                                                                                            delete newNotes[idx];
                                                                                         }
-                                                                                    }));
+                                                                                        return {
+                                                                                            ...prev,
+                                                                                            elementNotes: newNotes
+                                                                                        };
+                                                                                    });
                                                                                     setEditingNoteId(null);
                                                                                 } else if (e.key === "Escape") {
                                                                                     setEditingNoteId(null);
@@ -615,13 +620,18 @@ IMPORTANT: For this task, you MUST call the "context_selector" tool to return yo
                                                                             onBlur={(e) => {
                                                                                 const val = e.currentTarget.value.trim();
                                                                                 if (val !== (selectedContext.elementNotes[idx] || "")) {
-                                                                                    onSelectionChange(prev => ({
-                                                                                        ...prev,
-                                                                                        elementNotes: {
-                                                                                            ...prev.elementNotes,
-                                                                                            [idx]: val
+                                                                                    onSelectionChange(prev => {
+                                                                                        const newNotes = { ...prev.elementNotes };
+                                                                                        if (val) {
+                                                                                            newNotes[idx] = val;
+                                                                                        } else {
+                                                                                            delete newNotes[idx];
                                                                                         }
-                                                                                    }));
+                                                                                        return {
+                                                                                            ...prev,
+                                                                                            elementNotes: newNotes
+                                                                                        };
+                                                                                    });
                                                                                 }
                                                                                 setEditingNoteId(null);
                                                                             }}

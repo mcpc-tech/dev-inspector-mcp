@@ -63,12 +63,20 @@ export const RegionOverlay: React.FC<RegionOverlayProps> = ({
         }
     }, [activeNoteIdx]);
 
+    const resetState = () => {
+        setIsAnnotating(false);
+        setSelectionRect(null);
+        setIdentifiedElements([]);
+        setStartPoint(null);
+        setCurrentPoint(null);
+        setIsSelecting(false);
+        setActiveNoteIdx(null);
+        setTempNote("");
+    };
+
     useEffect(() => {
         if (!isActive) {
-            // Reset everything when deactivated
-            setIsAnnotating(false);
-            setSelectionRect(null);
-            setIdentifiedElements([]);
+            resetState();
             return;
         }
 
@@ -77,8 +85,7 @@ export const RegionOverlay: React.FC<RegionOverlayProps> = ({
                 if (activeNoteIdx !== null) {
                     setActiveNoteIdx(null);
                 } else if (isAnnotating) {
-                    setIsAnnotating(false);
-                    setSelectionRect(null);
+                    resetState();
                 } else {
                     onCancel();
                 }
@@ -325,11 +332,7 @@ export const RegionOverlay: React.FC<RegionOverlayProps> = ({
 
                         {isAnnotating && (
                             <button
-                                onClick={() => {
-                                    setIsAnnotating(false);
-                                    setSelectionRect(null);
-                                    setIdentifiedElements([]);
-                                }}
+                                onClick={resetState}
                                 className="bg-white text-zinc-700 hover:bg-zinc-50 border border-zinc-200 text-xs px-3 py-1.5 rounded shadow-sm font-medium transition-colors flex items-center gap-1.5"
                             >
                                 <X className="w-3.5 h-3.5" />
@@ -385,8 +388,9 @@ export const RegionOverlay: React.FC<RegionOverlayProps> = ({
                 <div
                     className="absolute z-50 bg-white rounded-lg shadow-xl border border-slate-200 p-3 w-64 animate-in fade-in zoom-in-95 duration-100"
                     style={{
-                        left: Math.min(window.innerWidth - 270, Math.max(10, identifiedElements[activeNoteIdx].rect.right + 10)),
-                        top: Math.min(window.innerHeight - 150, Math.max(10, identifiedElements[activeNoteIdx].rect.top))
+                        left: Math.min(window.innerWidth - 280, Math.max(10, identifiedElements[activeNoteIdx].rect.right + 10)),
+                        // Ensure it doesn't go off bottom (assuming ~250px height) or top
+                        top: Math.min(window.innerHeight - 250, Math.max(10, identifiedElements[activeNoteIdx].rect.top))
                     }}
                     onClick={e => e.stopPropagation()}
                 >
