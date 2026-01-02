@@ -1,6 +1,6 @@
 {
   "name": "@mcpc-tech/unplugin-dev-inspector-mcp",
-  "version": "0.1.1",
+  "version": "0.1.5",
   "description": "Universal dev inspector plugin for React/Vue - inspect component sources and API calls in any bundler",
   "type": "module",
   "license": "MIT",
@@ -189,7 +189,8 @@
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.14",
     "tsdown": "^0.15.6",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vite": "^7.3.0"
   },
   "publishConfig": {
     "access": "public"

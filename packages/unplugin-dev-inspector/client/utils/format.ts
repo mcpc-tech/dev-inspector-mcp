@@ -3,6 +3,7 @@ import type {
   InspectedElement,
   NetworkRequest,
   StdioMessage,
+  PageInfo,
 } from "../types";
 
 /**
@@ -199,12 +200,26 @@ export function formatTypography(
 }
 
 /**
+ * Format page information
+ */
+export function formatPageInfo(pageInfo: PageInfo): string {
+  return `## Page Information
+- **URL**: ${pageInfo.url}
+- **Title**: ${pageInfo.title}
+- **Viewport**: ${pageInfo.viewport.width} × ${pageInfo.viewport.height}
+- **Language**: ${pageInfo.language}
+`;
+}
+
+/**
  * Format complete context for Copy & Go (matches ContextPicker tab structure)
  */
 export function formatCopyContext(options: {
   sourceInfo?: InspectedElement;
   includeElement?: boolean;
   includeStyles?: boolean;
+  includePageInfo?: boolean;
+  pageInfo?: PageInfo;
   feedback?: string;
   consoleMessages?: ConsoleMessage[];
   networkRequests?: Array<NetworkRequest & { details?: string | null }>;
@@ -216,6 +231,8 @@ export function formatCopyContext(options: {
     sourceInfo,
     includeElement,
     includeStyles,
+    includePageInfo,
+    pageInfo,
     feedback,
     consoleMessages,
     networkRequests,
@@ -306,6 +323,12 @@ export function formatCopyContext(options: {
   if (sourceInfo?.elementInfo && includeStyles) {
     output += "## Styles\n\n";
     output += formatComputedStyles(sourceInfo.elementInfo);
+    output += "\n";
+  }
+
+  // == Page Tab ==
+  if (pageInfo && includePageInfo) {
+    output += formatPageInfo(pageInfo);
     output += "\n";
   }
 

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import type { Client } from "@modelcontextprotocol/sdk/client";
 import type { InspectedElement } from "../types";
 import { useContextData } from "../hooks/useContextData";
-import { Loader2, RefreshCw, Code, Type, Search, X, Sparkles } from "lucide-react";
+import { usePageInfo } from "../hooks/usePageInfo";
+import { Loader2, RefreshCw, Code, Type, Search, X, Sparkles, Globe } from "lucide-react";
 import { cn } from "../lib/utils";
 import type { ConsoleMessage, NetworkRequest, StdioMessage } from "../types";
 import { NetworkRequestItem } from "./NetworkRequestItem";
@@ -43,6 +44,8 @@ export interface SelectedContext {
     includeStyles: boolean;
     /** Include screenshot */
     includeScreenshot: boolean;
+    /** Include page information */
+    includePageInfo: boolean;
     consoleIds: number[];
     networkIds: number[];
     stdioIds: number[];
@@ -93,7 +96,7 @@ interface ContextSelectorArgs {
     reasoning?: string;
 }
 
-type TabType = "code" | "styles" | "screenshot" | "console" | "network" | "stdio";
+type TabType = "code" | "styles" | "screenshot" | "page" | "console" | "network" | "stdio";
 
 interface TabConfig {
     id: TabType;
@@ -144,6 +147,7 @@ export const ContextPicker: React.FC<ContextPickerProps> = ({
     const [consoleSearch, setConsoleSearch] = useState("");
     const [networkSearch, setNetworkSearch] = useState("");
     const [networkDetails, setNetworkDetails] = useState<Record<number, string>>({});
+    const pageInfo = usePageInfo();
     // Always fetch context data regardless of isAutomated - we have fallback logic for Chrome unavailable scenarios
     const { consoleMessages, networkRequests, stdioMessages, loading, error, refresh } = useContextData(client, isClientReady, true);
 
@@ -192,6 +196,7 @@ export const ContextPicker: React.FC<ContextPickerProps> = ({
         (selectedContext.includeElement ? 1 : 0) +
         (selectedContext.includeStyles ? 1 : 0) +
         (selectedContext.includeScreenshot ? 1 : 0) +
+        (selectedContext.includePageInfo ? 1 : 0) +
         selectedContext.consoleIds.length +
         selectedContext.networkIds.length +
         selectedContext.stdioIds.length +
@@ -207,6 +212,10 @@ export const ContextPicker: React.FC<ContextPickerProps> = ({
 
     const toggleScreenshot = () => {
         onSelectionChange({ ...selectedContext, includeScreenshot: !selectedContext.includeScreenshot });
+    };
+
+    const togglePageInfo = () => {
+        onSelectionChange({ ...selectedContext, includePageInfo: !selectedContext.includePageInfo });
     };
 
     const toggleConsole = (msgid: number) => {
@@ -337,6 +346,7 @@ IMPORTANT: For this task, you MUST call the "context_selector" tool to return yo
     const tabs: TabConfig[] = [
         { id: "code", label: "Code", selectedCount: selectedContext.includeElement ? 1 : 0 },
         { id: "styles", label: "Styles", selectedCount: selectedContext.includeStyles ? 1 : 0 },
+        { id: "page", label: "Page", selectedCount: selectedContext.includePageInfo ? 1 : 0 },
         { id: "screenshot", label: "Visual", selectedCount: selectedContext.includeScreenshot ? 1 : 0 },
         { id: "console", label: "Console", totalCount: consoleMessages.length, selectedCount: selectedContext.consoleIds.length },
         { id: "network", label: "Network", totalCount: networkRequests.length, selectedCount: selectedContext.networkIds.length },
@@ -481,12 +491,10 @@ IMPORTANT: For this task, you MUST call the "context_selector" tool to return yo
                                         <div className="space-y-2 max-h-60 overflow-y-auto">
                                             {Object.entries(grouped).map(([file, fileElements]) => (
                                                 <div key={file} className="space-y-0.5">
-                                                    {/* File header - only show if multiple files or region selection */}
-                                                    {(Object.keys(grouped).length > 1 || isRegionSelection) && (
-                                                        <div className="px-2 py-1 text-[11px] font-medium text-muted-foreground/70 bg-muted/30 rounded sticky top-0">
-                                                            {file} ({fileElements.length})
-                                                        </div>
-                                                    )}
+                                                    {/* File header - always show for consistency */}
+                                                    <div className="px-2 py-1 text-[11px] font-medium text-muted-foreground/70 bg-muted/30 rounded sticky top-0">
+                                                        {file} ({fileElements.length})
+                                                    </div>
                                                     {/* Elements */}
                                                     {fileElements.map(({ el, idx }) => (
                                                         <label
@@ -511,6 +519,7 @@ IMPORTANT: For this task, you MUST call the "context_selector" tool to return yo
                                                                     <span className="text-muted-foreground/50">•</span>
                                                                     <span className="text-muted-foreground">{el.line}:{el.column}</span>
                                                                 </div>
+
                                                                 {/* Additional identifying info */}
                                                                 {el.elementInfo && (
                                                                     <div className="text-[10px] text-muted-foreground/60 mt-0.5 space-x-2">
@@ -617,7 +626,49 @@ IMPORTANT: For this task, you MUST call the "context_selector" tool to return yo
                         </div>
                     )}
 
-                    {loading && activeTab !== "code" && activeTab !== "styles" && activeTab !== "screenshot" && (
+                    {/* Page Tab */}
+                    {activeTab === "page" && (
+                        <div className="p-2 space-y-1">
+                            {pageInfo ? (
+                                <label className="flex items-start gap-2 p-2 rounded hover:bg-accent/50 cursor-pointer transition-colors">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedContext.includePageInfo}
+                                        onChange={togglePageInfo}
+                                        className="mt-0.5 rounded border-border"
+                                    />
+                                    <Globe className="w-4 h-4 text-green-500 flex-shrink-0" />
+                                    <div className="flex-1 min-w-0">
+                                        <div className="text-xs font-medium text-foreground mb-1">Page Information</div>
+                                        <div className="text-xs text-muted-foreground space-y-1">
+                                            <div className="flex gap-2">
+                                                <span className="text-muted-foreground/70">URL:</span>
+                                                <span className="font-mono truncate">{pageInfo.url}</span>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <span className="text-muted-foreground/70">Title:</span>
+                                                <span className="truncate">{pageInfo.title}</span>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <span className="text-muted-foreground/70">Viewport:</span>
+                                                <span className="font-mono">{pageInfo.viewport.width} × {pageInfo.viewport.height}</span>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <span className="text-muted-foreground/70">Language:</span>
+                                                <span className="font-mono">{pageInfo.language}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </label>
+                            ) : (
+                                <p className="text-xs text-muted-foreground text-center py-4">
+                                    Loading page info...
+                                </p>
+                            )}
+                        </div>
+                    )}
+
+                    {loading && activeTab !== "code" && activeTab !== "styles" && activeTab !== "screenshot" && activeTab !== "page" && (
                         <div className="flex items-center justify-center py-6">
                             <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                         </div>

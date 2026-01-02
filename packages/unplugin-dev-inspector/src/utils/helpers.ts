@@ -13,7 +13,12 @@ export function isEnvTruthy(value: string | undefined): boolean {
 }
 
 export function isChromeDisabled(disableOption?: boolean): boolean {
-  return Boolean(disableOption) || isEnvTruthy(process.env.DEV_INSPECTOR_DISABLE_CHROME);
+  // Check environment variable first
+  if (isEnvTruthy(process.env.DEV_INSPECTOR_DISABLE_CHROME)) {
+    return true;
+  }
+  // Default to true (Chrome disabled by default)
+  return disableOption ?? true;
 }
 
 export function getPublicBaseUrl(options?: { publicBaseUrl?: string; host?: string; port?: number }): string {

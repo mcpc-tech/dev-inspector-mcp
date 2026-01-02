@@ -175,3 +175,14 @@ export interface StdioMessage {
   data: string;
   timestamp?: number;
 }
+
+// Page context information
+export interface PageInfo {
+  url: string;
+  title: string;
+  viewport: {
+    width: number;
+    height: number;
+  };
+  language: string;
+}

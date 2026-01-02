@@ -1,8 +1,4 @@
-<p align="center">
-  <img src="./assets/logo.svg" alt="DevInspector Logo" width="50" height="50" />
-</p>
-
-# @mcpc-tech/unplugin-dev-inspector-mcp
+# dev-inspector-mcp
 
 [![npm version](https://img.shields.io/npm/v/@mcpc-tech/unplugin-dev-inspector-mcp.svg)](https://www.npmjs.com/package/@mcpc-tech/unplugin-dev-inspector-mcp)
 [![npm downloads](https://img.shields.io/npm/dm/@mcpc-tech/unplugin-dev-inspector-mcp.svg)](https://www.npmjs.com/package/@mcpc-tech/unplugin-dev-inspector-mcp)
@@ -13,10 +9,10 @@ DevInspector connects your web app directly to your AI agent. Click any element 
 
 Works with any MCP-compatible AI client. Supports ACP agents: **Claude Code**, **Codex CLI**, **Gemini CLI**, **OpenCode**, and [more](https://agentclientprotocol.com/overview/agents).
 
-## 📑 Table of Contents
+## Table of Contents
 
-- [Demo Video](#-demo-video)
-- [Social Media](#-social-media)
+- [Demo Video](#demo-video)
+- [Social Media](#social-media)
 - [Key Features](#key-features)
 - [Quick Start](#quick-start)
   - [Installation](#installation)
@@ -34,29 +30,34 @@ Works with any MCP-compatible AI client. Supports ACP agents: **Claude Code**, *
 - [MCP Prompts](#mcp-prompts)
 - [Architecture](#architecture)
 
-## 🎬 Demo Video
+## Demo Video
 
-👉 **Watch the demo:** [https://www.youtube.com/shorts/TCt2oOtPS_k](https://www.youtube.com/shorts/TCt2oOtPS_k)
+**Watch the demo:** [https://www.youtube.com/shorts/TCt2oOtPS_k](https://www.youtube.com/shorts/TCt2oOtPS_k)
 
-## 📢 Social Media
+## Social Media
 
-🐦 **Twittter/X Post:** [https://x.com/yaoandyan/status/1995082020431753600](https://x.com/yaoandyan/status/1995082020431753600?s=20)
+**Twittter/X Post:** [https://x.com/yaoandyan/status/1995082020431753600](https://x.com/yaoandyan/status/1995082020431753600?s=20)
 
 ![Demo: MCP-powered visual debugging in action](https://media.giphy.com/media/sGCk7b783GiGm5vZGl/giphy.gif)
 
 ## Key Features
 
-### 🎯 Visual Context
+### Visual Context & Region Selection
 
-Click any element to instantly send its source code location, computed styles, and DOM hierarchy to AI. No more explaining "it's the blue button in the header".
+Click any element to inspect it, or **drag to select a region**. AI gets the full context: source code location, computed styles, component hierarchy, IDs, classes, text content, and **automatically captures screenshots** for pixel-perfect visual understanding.
 
-### 🛠️ Full DevTools Access
 
-AI can access Chrome DevTools to analyze network requests, console logs, and performance metrics. It sees what you see.
+### Universal DevTools Access
 
-### 🤖 Multi-Agent Workflow
+AI can access Network and Console logs from **any browser** (via client-side interception) or full Chrome DevTools (via chrome devtools mcp). It sees what you see, regardless of your environment.
 
-Switch between agents (Claude Code, Goose) and track their debugging progress visually with step-by-step status updates.
+### Smart Select
+
+Let AI do the heavy lifting. "Smart Select" automatically analyzes recent console errors and failed network requests to construct the perfect context for your debugging session.
+
+### Multi-Agent Workflow
+
+Switch between agents (Claude Code, Codex, Gemini, Opencode...) and track their debugging progress visually with a **floating status bar**.
 
 ## Quick Start
 
@@ -80,7 +81,7 @@ yarn add -D @mcpc-tech/unplugin-dev-inspector-mcp
 > yarn add -D @mcpc-tech/unplugin-dev-inspector-mcp --no-optional
 > ```
 
-### ⚡ Automated Setup (Recommended)
+### Automated Setup (Recommended)
 
 Run the setup command to automatically configure your `vite.config.ts`, `webpack.config.js`, or `next.config.js`:
 
@@ -266,6 +267,31 @@ export default function RootLayout({ children }) {
 - **Webpack mode:** `next dev` (uses webpack configuration)
 - **Turbopack mode:** `next dev --turbopack` (uses turbopack configuration, Next.js 16+ default)
 
+
+### React Router v7+
+
+Since React Router handles HTML generation via its own SSR/SPA mechanism, it bypasses the standard Vite HTML transformation hooks. You need to manually import the virtual module in your entry file.
+
+```typescript
+// app/root.tsx or app/entry.client.tsx
+import 'virtual:dev-inspector-mcp';
+```
+
+And ensure your `vite.config.ts` has the plugin:
+
+```typescript
+// vite.config.ts
+import { reactRouter } from "@react-router/dev/vite";
+import DevInspector from '@mcpc-tech/unplugin-dev-inspector-mcp';
+
+export default defineConfig({
+  plugins: [
+    DevInspector.vite({ enabled: true }),
+    reactRouter(),
+  ],
+});
+```
+
 ## Framework Support
 
 ### ✅ Fully Supported
@@ -280,6 +306,8 @@ export default function RootLayout({ children }) {
 ### 🚧 In Progress
 
 - **Angular** - Support coming soon
+
+
 
 ## Configuration
 
