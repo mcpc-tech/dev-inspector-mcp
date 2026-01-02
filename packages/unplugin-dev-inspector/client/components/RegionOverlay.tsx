@@ -11,6 +11,7 @@ interface RegionOverlayProps {
     isActive: boolean;
     onSelectionComplete: (result: InspectedElement) => void;
     onCancel: () => void;
+    onClose: () => void;
 }
 
 interface IdentifiedElement {
@@ -40,6 +41,7 @@ export const RegionOverlay: React.FC<RegionOverlayProps> = ({
     isActive,
     onSelectionComplete,
     onCancel,
+    onClose,
 }) => {
     // Selection State
     const [startPoint, setStartPoint] = useState<{ x: number; y: number } | null>(null);
@@ -332,7 +334,7 @@ export const RegionOverlay: React.FC<RegionOverlayProps> = ({
 
                         {isAnnotating && (
                             <button
-                                onClick={onCancel}
+                                onClick={onClose}
                                 className="bg-white text-zinc-700 hover:bg-zinc-50 border border-zinc-200 text-xs px-3 py-1.5 rounded shadow-sm font-medium transition-colors flex items-center gap-1.5"
                             >
                                 <X className="w-3.5 h-3.5" />

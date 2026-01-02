@@ -424,6 +424,7 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
             isActive={true}
             onSelectionComplete={handleRegionSelectionComplete}
             onCancel={() => setRegionMode(false)}
+            onClose={toggleInspector}
           />
         )}
 
