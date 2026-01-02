@@ -9,10 +9,10 @@ DevInspector connects your web app directly to your AI agent. Click any element 
 
 Works with any MCP-compatible AI client. Supports ACP agents: **Claude Code**, **Codex CLI**, **Gemini CLI**, **OpenCode**, and [more](https://agentclientprotocol.com/overview/agents).
 
-## 📑 Table of Contents
+## Table of Contents
 
-- [Demo Video](#-demo-video)
-- [Social Media](#-social-media)
+- [Demo Video](#demo-video)
+- [Social Media](#social-media)
 - [Key Features](#key-features)
 - [Quick Start](#quick-start)
   - [Installation](#installation)
@@ -30,32 +30,32 @@ Works with any MCP-compatible AI client. Supports ACP agents: **Claude Code**, *
 - [MCP Prompts](#mcp-prompts)
 - [Architecture](#architecture)
 
-## 🎬 Demo Video
+## Demo Video
 
-👉 **Watch the demo:** [https://www.youtube.com/shorts/TCt2oOtPS_k](https://www.youtube.com/shorts/TCt2oOtPS_k)
+**Watch the demo:** [https://www.youtube.com/shorts/TCt2oOtPS_k](https://www.youtube.com/shorts/TCt2oOtPS_k)
 
-## 📢 Social Media
+## Social Media
 
-🐦 **Twittter/X Post:** [https://x.com/yaoandyan/status/1995082020431753600](https://x.com/yaoandyan/status/1995082020431753600?s=20)
+**Twittter/X Post:** [https://x.com/yaoandyan/status/1995082020431753600](https://x.com/yaoandyan/status/1995082020431753600?s=20)
 
 ![Demo: MCP-powered visual debugging in action](https://media.giphy.com/media/sGCk7b783GiGm5vZGl/giphy.gif)
 
 ## Key Features
 
-### 🎯 Visual Context & Region Selection
+### Visual Context & Region Selection
 
 Click any element to inspect it, or **drag to select a region**. AI gets the full context: source code location, computed styles, component hierarchy, IDs, classes, text content, and **automatically captures screenshots** for pixel-perfect visual understanding.
 
 
-### 🛠️ Universal DevTools Access
+### Universal DevTools Access
 
 AI can access Network and Console logs from **any browser** (via client-side interception) or full Chrome DevTools (via chrome devtools mcp). It sees what you see, regardless of your environment.
 
-### ✨ Smart Select
+### Smart Select
 
 Let AI do the heavy lifting. "Smart Select" automatically analyzes recent console errors and failed network requests to construct the perfect context for your debugging session.
 
-### 🤖 Multi-Agent Workflow
+### Multi-Agent Workflow
 
 Switch between agents (Claude Code, Codex, Gemini, Opencode...) and track their debugging progress visually with a **floating status bar**.
 
@@ -81,7 +81,7 @@ yarn add -D @mcpc-tech/unplugin-dev-inspector-mcp
 > yarn add -D @mcpc-tech/unplugin-dev-inspector-mcp --no-optional
 > ```
 
-### ⚡ Automated Setup (Recommended)
+### Automated Setup (Recommended)
 
 Run the setup command to automatically configure your `vite.config.ts`, `webpack.config.js`, or `next.config.js`:
 
