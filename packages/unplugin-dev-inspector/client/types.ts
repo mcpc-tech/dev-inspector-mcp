@@ -125,6 +125,8 @@ export interface InspectedElement {
   automated?: boolean;
   /** Found related elements when doing a region inspection (lighter versions without heavy styles) */
   relatedElements?: InspectedElement[];
+  /** User annotation note for this specific element */
+  note?: string;
 }
 
 export interface ReactFiber {
