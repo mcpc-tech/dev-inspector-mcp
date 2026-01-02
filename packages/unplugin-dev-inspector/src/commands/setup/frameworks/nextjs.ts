@@ -3,9 +3,8 @@ import traverseModule from "@babel/traverse";
 import type { NodePath } from "@babel/traverse";
 import type * as t from "@babel/types";
 import MagicString from "magic-string";
-import { existsSync } from "fs";
-import { resolve } from "path";
 import type { SetupOptions, TransformResult } from "../types";
+import { detectConfigFile, getInsertPosition, getPluginOptions } from "../utils";
 
 // Handle both ESM and CommonJS default exports
 const traverse = (traverseModule as any).default || traverseModule;
@@ -66,14 +65,10 @@ export function transformNextConfig(code: string, options: SetupOptions): Transf
     });
 
     // Add import statement
-    const lines = code.split("\n");
     const importLine = `import ${PLUGIN_VAR_NAME}, { turbopackDevInspector } from '${PLUGIN_IMPORT}';\n`;
 
     if (lastImportEnd > 0) {
-      let insertPos = 0;
-      for (let i = 0; i < lastImportEnd; i++) {
-        insertPos += lines[i].length + 1;
-      }
+      const insertPos = getInsertPosition(code, lastImportEnd);
       s.appendLeft(insertPos, importLine);
     } else {
       s.prepend(importLine);
@@ -81,10 +76,17 @@ export function transformNextConfig(code: string, options: SetupOptions): Transf
 
     // Add webpack and turbopack configuration
     if (nextConfigStart > -1 && !hasWebpackProperty) {
-      const pluginOptions = options.entryPath 
-        ? `{\n        enabled: true,\n        entry: '${options.entryPath}',\n        autoInject: false,\n      }`
-        : `{ enabled: true }`;
-      const webpackConfig = `\n  webpack: (config) => {\n    config.plugins.push(\n      ${PLUGIN_VAR_NAME}.webpack(${pluginOptions})\n    );\n    return config;\n  },\n  turbopack: {\n    rules: turbopackDevInspector(${pluginOptions}),\n  },`;
+      const pluginOptions = getPluginOptions(options, 8);
+      const webpackConfig = `
+  webpack: (config) => {
+    config.plugins.push(
+      ${PLUGIN_VAR_NAME}.webpack(${pluginOptions})
+    );
+    return config;
+  },
+  turbopack: {
+    rules: turbopackDevInspector(${pluginOptions}),
+  },`;
       s.appendLeft(nextConfigStart + 1, webpackConfig);
     } else if (hasWebpackProperty) {
       return {
@@ -119,12 +121,5 @@ export function transformNextConfig(code: string, options: SetupOptions): Transf
 }
 
 export function detectNextConfig(cwd: string): string | null {
-  const patterns = ["next.config.ts", "next.config.js", "next.config.mjs"];
-  for (const pattern of patterns) {
-    const configPath = resolve(cwd, pattern);
-    if (existsSync(configPath)) {
-      return configPath;
-    }
-  }
-  return null;
+  return detectConfigFile(cwd, ["next.config.ts", "next.config.js", "next.config.mjs"]);
 }

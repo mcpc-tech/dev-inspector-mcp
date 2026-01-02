@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "fs";
+import { readFileSync, writeFileSync, existsSync } from "fs";
 import { installPackage } from "../../utils/package-manager";
 import type { SetupOptions, TransformResult } from "./types";
 import { detectViteConfig, transformViteConfig } from "./frameworks/vite";
@@ -49,6 +49,10 @@ export async function runSetupCommand() {
     ];
 
     if (configPath) {
+      if (!existsSync(configPath)) {
+        console.error(`❌ Provided config file does not exist: ${configPath}`);
+        process.exit(1);
+      }
       selectedConfigPath = configPath;
       if (configPath.includes("vite")) selectedBundler = "vite";
       else if (configPath.includes("webpack")) selectedBundler = "webpack";
@@ -108,7 +112,10 @@ export async function runSetupCommand() {
     }
 
     // Execution
-    installPackage("@mcpc-tech/unplugin-dev-inspector-mcp", true);
+    const installed = installPackage("@mcpc-tech/unplugin-dev-inspector-mcp", true);
+    if (!installed) {
+      console.warn("⚠️  Package installation failed, but setup will continue with config transformation.");
+    }
 
     if (result.modified) {
       writeFileSync(selectedConfigPath, result.code!, "utf-8");

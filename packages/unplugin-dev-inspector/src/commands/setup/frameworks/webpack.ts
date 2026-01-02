@@ -3,9 +3,8 @@ import traverseModule from "@babel/traverse";
 import type { NodePath } from "@babel/traverse";
 import type * as t from "@babel/types";
 import MagicString from "magic-string";
-import { existsSync } from "fs";
-import { resolve } from "path";
 import type { SetupOptions, TransformResult } from "../types";
+import { detectConfigFile, getInsertPosition, getPluginOptions } from "../utils";
 
 // Handle both ESM and CommonJS default exports
 const traverse = (traverseModule as any).default || traverseModule;
@@ -43,7 +42,7 @@ export function transformWebpackConfig(code: string, options: SetupOptions): Tra
         }
       },
       VariableDeclaration(path: NodePath<t.VariableDeclaration>) {
-        // Handle require statements
+        // Handle require statements in CommonJS
         if (path.node.loc && !isESM) {
           lastImportEnd = Math.max(lastImportEnd, path.node.loc.end.line);
         }
@@ -61,17 +60,13 @@ export function transformWebpackConfig(code: string, options: SetupOptions): Tra
       },
     });
 
-    // Add import/require statement
-    const lines = code.split("\n");
+    // Add import statement
     const importLine = isESM
       ? `import ${PLUGIN_VAR_NAME} from '${PLUGIN_IMPORT}';\n`
       : `const ${PLUGIN_VAR_NAME} = require('${PLUGIN_IMPORT}');\n`;
 
     if (lastImportEnd > 0) {
-      let insertPos = 0;
-      for (let i = 0; i < lastImportEnd; i++) {
-        insertPos += lines[i].length + 1;
-      }
+      const insertPos = getInsertPosition(code, lastImportEnd);
       s.appendLeft(insertPos, importLine);
     } else {
       s.prepend(importLine);
@@ -79,9 +74,7 @@ export function transformWebpackConfig(code: string, options: SetupOptions): Tra
 
     // Add DevInspector to plugins array
     if (pluginsArrayStart > -1) {
-      const pluginOptions = options.entryPath 
-        ? `{\n      enabled: true,\n      entry: '${options.entryPath}',\n      autoInject: false,\n    }`
-        : `{ enabled: true }`;
+      const pluginOptions = getPluginOptions(options, 6);
       const pluginCall = `\n    ${PLUGIN_VAR_NAME}.webpack(${pluginOptions}),`;
       s.appendLeft(pluginsArrayStart + 1, pluginCall);
     } else {
@@ -110,12 +103,5 @@ export function transformWebpackConfig(code: string, options: SetupOptions): Tra
 }
 
 export function detectWebpackConfig(cwd: string): string | null {
-  const patterns = ["webpack.config.ts", "webpack.config.js"];
-  for (const pattern of patterns) {
-    const configPath = resolve(cwd, pattern);
-    if (existsSync(configPath)) {
-      return configPath;
-    }
-  }
-  return null;
+  return detectConfigFile(cwd, ["webpack.config.ts", "webpack.config.js", "webpack.config.cjs"]);
 }

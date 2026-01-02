@@ -3,9 +3,8 @@ import traverseModule from "@babel/traverse";
 import type { NodePath } from "@babel/traverse";
 import type * as t from "@babel/types";
 import MagicString from "magic-string";
-import { existsSync } from "fs";
-import { resolve } from "path";
 import type { SetupOptions, TransformResult } from "../types";
+import { detectConfigFile, getInsertPosition, getPluginOptions } from "../utils";
 
 // Handle both ESM and CommonJS default exports
 const traverse = (traverseModule as any).default || traverseModule;
@@ -66,35 +65,23 @@ export function transformViteConfig(code: string, options: SetupOptions): Transf
       },
     });
 
-    // Add import statement after last import
-    const lines = code.split("\n");
+    // Add import statement
     const importLine = `import ${PLUGIN_VAR_NAME} from '${PLUGIN_IMPORT}';\n`;
 
     if (lastImportEnd > 0) {
-      // Insert after last import
-      let insertPos = 0;
-      for (let i = 0; i < lastImportEnd; i++) {
-        insertPos += lines[i].length + 1; // +1 for newline
-      }
+      const insertPos = getInsertPosition(code, lastImportEnd);
       s.appendLeft(insertPos, importLine);
     } else {
-      // No imports found, add at the beginning
       s.prepend(importLine);
     }
 
     // Add DevInspector to plugins array
     if (hasPluginsArray && firstPluginStart > -1) {
-      // Insert before first plugin
-      const pluginOptions = options.entryPath 
-        ? `{\n      enabled: true,\n      entry: '${options.entryPath}',\n      autoInject: false,\n    }`
-        : `{ enabled: true }`;
+      const pluginOptions = getPluginOptions(options, 6);
       const pluginCall = `${PLUGIN_VAR_NAME}.vite(${pluginOptions}),\n    `;
       s.appendLeft(firstPluginStart, pluginCall);
     } else if (hasPluginsArray && pluginsArrayStart > -1) {
-      // Empty plugins array, insert inside
-      const pluginOptions = options.entryPath 
-        ? `{\n      enabled: true,\n      entry: '${options.entryPath}',\n      autoInject: false,\n    }`
-        : `{ enabled: true }`;
+      const pluginOptions = getPluginOptions(options, 6);
       const pluginCall = `\n    ${PLUGIN_VAR_NAME}.vite(${pluginOptions}),\n  `;
       s.appendLeft(pluginsArrayStart + 1, pluginCall);
     } else {
@@ -123,12 +110,5 @@ export function transformViteConfig(code: string, options: SetupOptions): Transf
 }
 
 export function detectViteConfig(cwd: string): string | null {
-  const patterns = ["vite.config.ts", "vite.config.js", "vite.config.mjs"];
-  for (const pattern of patterns) {
-    const configPath = resolve(cwd, pattern);
-    if (existsSync(configPath)) {
-      return configPath;
-    }
-  }
-  return null;
+  return detectConfigFile(cwd, ["vite.config.ts", "vite.config.js", "vite.config.mjs"]);
 }
