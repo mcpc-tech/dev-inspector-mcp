@@ -1,12 +1,20 @@
-import type { InspectedElement, ConsoleMessage, NetworkRequest } from "../types";
+import type {
+  ConsoleMessage,
+  InspectedElement,
+  NetworkRequest,
+  StdioMessage,
+} from "../types";
 
 /**
  * Format DOM element info only (for Code tab)
  */
-export function formatDomElement(elementInfo: InspectedElement["elementInfo"]): string {
+export function formatDomElement(
+  elementInfo: InspectedElement["elementInfo"],
+): string {
   if (!elementInfo) return "";
 
-  const { tagName, textContent, className, id: elemId, domPath, boundingBox } = elementInfo;
+  const { tagName, textContent, className, id: elemId, domPath, boundingBox } =
+    elementInfo;
   const idAttr = elemId ? ` id="${elemId}"` : "";
   const classAttr = className ? ` class="${className}"` : "";
 
@@ -22,7 +30,9 @@ Path: ${domPath || "N/A"}
     output += `
 ### Position & Size
 - **Position**: (${Math.round(boundingBox.x)}, ${Math.round(boundingBox.y)})
-- **Size**: ${Math.round(boundingBox.width)}px × ${Math.round(boundingBox.height)}px
+- **Size**: ${Math.round(boundingBox.width)}px × ${
+      Math.round(boundingBox.height)
+    }px
 `;
   }
 
@@ -32,7 +42,9 @@ Path: ${domPath || "N/A"}
 /**
  * Format computed styles only (for Styles tab)
  */
-export function formatComputedStyles(elementInfo: InspectedElement["elementInfo"]): string {
+export function formatComputedStyles(
+  elementInfo: InspectedElement["elementInfo"],
+): string {
   if (!elementInfo) return "";
 
   const { computedStyles, styles } = elementInfo;
@@ -105,7 +117,11 @@ export function formatConsoleMessages(messages: ConsoleMessage[]): string {
 
   const formatted = messages
     .map((msg) => {
-      const levelIcon = msg.level === "error" ? "❌" : msg.level === "warn" ? "⚠️" : "📝";
+      const levelIcon = msg.level === "error"
+        ? "❌"
+        : msg.level === "warn"
+        ? "⚠️"
+        : "📝";
       return `- ${levelIcon} [${msg.level}] ${msg.text}`;
     })
     .join("\n");
@@ -146,10 +162,29 @@ ${formatted}
 }
 
 /**
+ * Format stdio messages
+ */
+export function formatStdioMessages(messages: StdioMessage[]): string {
+  if (messages.length === 0) return "";
+
+  const formatted = messages
+    .map((msg) => {
+      return `- [${msg.stream}] ${msg.data}`;
+    })
+    .join("\n");
+
+  return `## Terminal Logs (${messages.length})
+${formatted}
+`;
+}
+
+/**
  * Format typography styles only
  */
 export function formatTypography(
-  typography: NonNullable<InspectedElement["elementInfo"]>["computedStyles"]["typography"],
+  typography: NonNullable<
+    InspectedElement["elementInfo"]
+  >["computedStyles"]["typography"],
 ): string {
   if (!typography) return "";
 
@@ -173,6 +208,7 @@ export function formatCopyContext(options: {
   feedback?: string;
   consoleMessages?: ConsoleMessage[];
   networkRequests?: Array<NetworkRequest & { details?: string | null }>;
+  stdioMessages?: StdioMessage[];
   relatedElements?: InspectedElement[];
   relatedElementIds?: number[];
 }): string {
@@ -183,14 +219,14 @@ export function formatCopyContext(options: {
     feedback,
     consoleMessages,
     networkRequests,
+    stdioMessages,
     relatedElements,
     relatedElementIds,
   } = options;
 
   let output = "# Element Context\n\n";
 
-  const hasRelatedElements =
-    relatedElements &&
+  const hasRelatedElements = relatedElements &&
     relatedElements.length > 0 &&
     relatedElementIds &&
     relatedElementIds.length > 0;
@@ -216,7 +252,9 @@ export function formatCopyContext(options: {
     relatedElementIds &&
     relatedElementIds.length > 0
   ) {
-    const selectedElements = relatedElements.filter((_, idx) => relatedElementIds.includes(idx));
+    const selectedElements = relatedElements.filter((_, idx) =>
+      relatedElementIds.includes(idx)
+    );
     if (selectedElements.length > 0) {
       output += "## Related Elements\n\n";
 
@@ -250,7 +288,9 @@ export function formatCopyContext(options: {
             if (el.elementInfo.textContent) {
               const preview = el.elementInfo.textContent.trim().slice(0, 30);
               if (preview) {
-                output += ` "${preview}${el.elementInfo.textContent.length > 30 ? "..." : ""}"`;
+                output += ` "${preview}${
+                  el.elementInfo.textContent.length > 30 ? "..." : ""
+                }"`;
               }
             }
             output += "`";
@@ -283,6 +323,12 @@ export function formatCopyContext(options: {
   // == Network Tab ==
   if (networkRequests && networkRequests.length > 0) {
     output += formatNetworkRequests(networkRequests);
+    output += "\n";
+  }
+
+  // == Stdio Tab ==
+  if (stdioMessages && stdioMessages.length > 0) {
+    output += formatStdioMessages(stdioMessages);
   }
 
   return output.trim();

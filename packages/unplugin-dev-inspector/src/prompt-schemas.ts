@@ -7,7 +7,8 @@ export const PROMPT_SCHEMAS = {
   capture_element: {
     name: "capture_element",
     title: "Capture Element Context",
-    description: "Capture context about a UI element for troubleshooting and investigation.",
+    description:
+      "Capture context about a UI element for troubleshooting and investigation.",
     arguments: [
       {
         name: "automated",
@@ -53,6 +54,15 @@ export const PROMPT_SCHEMAS = {
     title: "Get Console Messages",
     description:
       "List console messages or get details of a specific one. Always refreshes the list first.",
+    // Arguments will be dynamically populated based on available messages
+    arguments: [],
+  },
+
+  get_stdio_messages: {
+    name: "get_stdio_messages",
+    title: "Get Stdio Messages",
+    description:
+      "List stdio (stdout/stderr) messages from the server process. Always refreshes the list first.",
     // Arguments will be dynamically populated based on available messages
     arguments: [],
   },

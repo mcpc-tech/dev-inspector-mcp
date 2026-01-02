@@ -17,7 +17,7 @@ interface ContextDialogProps {
     isClientReady: boolean;
 }
 
-type TabType = "inspections" | "console" | "network";
+type TabType = "inspections" | "console" | "network" | "stdio";
 
 // Network request item component with expandable details
 const NetworkRequestItem: React.FC<{
@@ -216,7 +216,7 @@ export const ContextDialog: React.FC<ContextDialogProps> = ({
     isClientReady,
 }) => {
     const [activeTab, setActiveTab] = useState<TabType>("inspections");
-    const { consoleMessages, networkRequests, loading, error, refresh } = useContextData(client, isClientReady);
+    const { consoleMessages, networkRequests, stdioMessages, loading, error, refresh } = useContextData(client, isClientReady);
 
     // Fetch data when dialog opens
     useEffect(() => {
@@ -229,6 +229,7 @@ export const ContextDialog: React.FC<ContextDialogProps> = ({
         { id: "inspections", label: "Inspections", count: inspectionItems.length },
         { id: "console", label: "Console", count: consoleMessages.length },
         { id: "network", label: "Network", count: networkRequests.length },
+        { id: "stdio", label: "Terminal", count: stdioMessages.length },
     ];
 
     return (
@@ -361,6 +362,44 @@ export const ContextDialog: React.FC<ContextDialogProps> = ({
                                         client={client}
                                         isClientReady={isClientReady}
                                     />
+                                ))}
+                        </div>
+                    )}
+
+                    {activeTab === "stdio" && (
+                        <div className="p-4 space-y-2 h-full overflow-auto">
+                            {loading && (
+                                <div className="flex items-center justify-center py-12">
+                                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                                </div>
+                            )}
+                            {!loading && stdioMessages.length === 0 && (
+                                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                                    <p className="text-sm">No stdio messages</p>
+                                </div>
+                            )}
+                            {!loading &&
+                                stdioMessages.map((msg) => (
+                                    <div
+                                        key={msg.stdioid}
+                                        className="p-3 rounded-md bg-muted/50 hover:bg-muted transition-colors"
+                                    >
+                                        <div className="flex items-start gap-2">
+                                            <span
+                                                className={cn(
+                                                    "px-2 py-0.5 text-xs font-medium rounded flex-shrink-0 uppercase",
+                                                    msg.stream === "stderr"
+                                                        ? "bg-red-500/20 text-red-500"
+                                                        : "bg-blue-500/20 text-blue-500"
+                                                )}
+                                            >
+                                                {msg.stream}
+                                            </span>
+                                            <pre className="text-sm text-foreground/90 flex-1 font-mono break-all overflow-hidden whitespace-pre-wrap">
+                                                {msg.data}
+                                            </pre>
+                                        </div>
+                                    </div>
                                 ))}
                         </div>
                     )}

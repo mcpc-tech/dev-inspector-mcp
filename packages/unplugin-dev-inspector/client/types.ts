@@ -168,3 +168,10 @@ export interface NetworkRequest {
   status: string;
   timestamp?: number;
 }
+
+export interface StdioMessage {
+  stdioid: number;
+  stream: "stdout" | "stderr";
+  data: string;
+  timestamp?: number;
+}
