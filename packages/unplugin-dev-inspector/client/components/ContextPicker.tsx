@@ -293,9 +293,29 @@ export const ContextPicker: React.FC<ContextPickerProps> = ({
         if (!sourceInfo || isProcessing) return;
         setMessages([]);
 
-        const recentConsole = consoleMessages.slice(-MAX_RECENT_ITEMS).map(m => `[${m.msgid}] ${m.level}: ${m.text}`).join('\n');
-        const recentNetwork = networkRequests.slice(-MAX_RECENT_ITEMS).map(r => `[${r.reqid}] ${r.method} ${r.url}`).join('\n');
-        const recentStdio = stdioMessages.slice(-MAX_RECENT_ITEMS).map(m => `[${m.stdioid}] ${m.stream}: ${m.data}`).join('\n');
+        // Helper to truncate text
+        const truncate = (text: string, maxLength: number) =>
+            text.length > maxLength ? text.slice(0, maxLength) + "..." : text;
+
+        // Process recent logs (truncated and limited count)
+        const MAX_MSG_LEN = 200;
+
+        const recentConsole = consoleMessages
+            .slice(-MAX_RECENT_ITEMS)
+            .map(m => `[${m.msgid}] ${m.level}: ${truncate(m.text, MAX_MSG_LEN)}`)
+            .join('\n');
+
+        // Network: Only method, URL, status (no bodies/headers)
+        const recentNetwork = networkRequests
+            .slice(-MAX_RECENT_ITEMS)
+            .map(r => `[${r.reqid}] ${r.method} ${r.url} (${r.status})`)
+            .join('\n');
+
+        // Terminal: Truncated data
+        const recentStdio = stdioMessages
+            .slice(-MAX_RECENT_ITEMS)
+            .map(m => `[${m.stdioid}] ${m.stream}: ${truncate(m.data, MAX_MSG_LEN)}`)
+            .join('\n');
 
         const prompt = `
 I am inspecting the following element:
@@ -305,15 +325,15 @@ File: ${sourceInfo.file}:${sourceInfo.line}
 Component: ${sourceInfo.component}
 
 Available Console Logs (Recent ${MAX_RECENT_ITEMS}):
-${recentConsole}
+${recentConsole || "None"}
 
 Available Network Requests (Recent ${MAX_RECENT_ITEMS}):
-${recentNetwork}
+${recentNetwork || "None"}
 
 Available Terminal Logs (Recent ${MAX_RECENT_ITEMS}):
-${recentStdio}
+${recentStdio || "None"}
 
-IMPORTANT: For this task, you MUST call the "context_selector" tool to return your selection. Do NOT use inspector tools like list_inspections, capture_element_context, update_inspection_status, or execute_page_script - the context is already provided above. You may read files if needed to understand the context better. Even if you select nothing, still call context_selector with empty arrays. Do not reply with text only.
+IMPORTANT: For this task, you MUST call the "context_selector" tool to return your selection. Do NOT use inspector tools like list_inspections, capture_element_context, update_inspection_status, or execute_page_script - the context is already provided above. You may read files if needed to understand the context better. Even if you select nothing, still call context_selector with empty arrays. Do not reply with text only. Note: You can ignore logs from dev-inspector itself.
 `;
         const currentAgent = AVAILABLE_AGENTS.find(a => a.name === selectedAgent) || AVAILABLE_AGENTS[0];
         await sendMessage(
@@ -346,11 +366,11 @@ IMPORTANT: For this task, you MUST call the "context_selector" tool to return yo
     const tabs: TabConfig[] = [
         { id: "code", label: "Code", selectedCount: selectedContext.includeElement ? 1 : 0 },
         { id: "styles", label: "Styles", selectedCount: selectedContext.includeStyles ? 1 : 0 },
-        { id: "page", label: "Page", selectedCount: selectedContext.includePageInfo ? 1 : 0 },
+        { id: "stdio", label: "Terminal", totalCount: stdioMessages.length, selectedCount: selectedContext.stdioIds.length },
         { id: "screenshot", label: "Visual", selectedCount: selectedContext.includeScreenshot ? 1 : 0 },
         { id: "console", label: "Console", totalCount: consoleMessages.length, selectedCount: selectedContext.consoleIds.length },
         { id: "network", label: "Network", totalCount: networkRequests.length, selectedCount: selectedContext.networkIds.length },
-        { id: "stdio", label: "Terminal", totalCount: stdioMessages.length, selectedCount: selectedContext.stdioIds.length },
+        { id: "page", label: "Page", selectedCount: selectedContext.includePageInfo ? 1 : 0 },
     ];
 
     return (
