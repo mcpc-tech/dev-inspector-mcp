@@ -103,5 +103,5 @@ export function transformWebpackConfig(code: string, options: SetupOptions): Tra
 }
 
 export function detectWebpackConfig(cwd: string): string | null {
-  return detectConfigFile(cwd, ["webpack.config.ts", "webpack.config.js", "webpack.config.cjs"]);
+  return detectConfigFile(cwd, ["webpack.config.ts", "webpack.config.js", "webpack.config.cjs", "webpack.config.mjs"]);
 }

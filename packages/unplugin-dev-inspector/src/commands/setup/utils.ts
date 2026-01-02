@@ -31,7 +31,7 @@ export function getInsertPosition(code: string, lastImportLine: number): number 
  * Sanitizes a path string to prevent syntax errors in generated code.
  */
 export function sanitizePath(path: string): string {
-  return path.replace(/'/g, "\\'").replace(/\n/g, "");
+  return path.replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/\n/g, "");
 }
 
 /**
@@ -42,12 +42,12 @@ export function getPluginOptions(options: SetupOptions, indent: number = 6): str
     return "{ enabled: true }";
   }
 
-  const s = " ".repeat(indent);
+  const baseIndent = " ".repeat(indent);
   const entry = sanitizePath(options.entryPath);
-  
+
   return `{
-${s}  enabled: true,
-${s}  entry: '${entry}',
-${s}  autoInject: false,
-${s}}`;
+${baseIndent}enabled: true,
+${baseIndent}entry: '${entry}',
+${baseIndent}autoInject: false,
+${baseIndent.slice(2)}}`;
 }

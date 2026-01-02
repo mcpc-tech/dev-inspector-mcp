@@ -3,7 +3,8 @@ import { installPackage } from "../../utils/package-manager";
 import type { SetupOptions, TransformResult } from "./types";
 import { detectViteConfig, transformViteConfig } from "./frameworks/vite";
 import { detectWebpackConfig, transformWebpackConfig } from "./frameworks/webpack";
-import { detectNextConfig, transformNextConfig } from "./frameworks/nextjs";
+import { detectNextConfig, transformNextConfig, transformNextLayout } from "./frameworks/nextjs";
+import { resolve } from "path";
 
 export async function runSetupCommand() {
   const args = process.argv.slice(3); // Skip 'node', 'cli.js', 'setup'
@@ -48,16 +49,37 @@ export async function runSetupCommand() {
       { type: "nextjs", detect: detectNextConfig, transform: transformNextConfig },
     ];
 
+    const validBundlers = ["vite", "webpack", "nextjs"];
+
     if (configPath) {
       if (!existsSync(configPath)) {
         console.error(`❌ Provided config file does not exist: ${configPath}`);
         process.exit(1);
       }
       selectedConfigPath = configPath;
-      if (configPath.includes("vite")) selectedBundler = "vite";
-      else if (configPath.includes("webpack")) selectedBundler = "webpack";
-      else if (configPath.includes("next")) selectedBundler = "nextjs";
+      
+      // More precise bundler detection using file endings
+      const filename = configPath.toLowerCase();
+      if (/vite\.config\.(ts|js|mjs)$/i.test(filename)) {
+        selectedBundler = "vite";
+      } else if (/webpack\.config\.(ts|js|cjs|mjs)$/i.test(filename)) {
+        selectedBundler = "webpack";
+      } else if (/next\.config\.(ts|js|mjs)$/i.test(filename)) {
+        selectedBundler = "nextjs";
+      }
+
+      if (!selectedBundler) {
+        console.error(`❌ Could not determine bundler type from config path: ${configPath}`);
+        console.error(`💡 Use --bundler flag to specify: ${validBundlers.join(", ")}`);
+        process.exit(1);
+      }
     } else if (bundlerType) {
+      // Validate bundler type
+      if (!validBundlers.includes(bundlerType)) {
+        console.error(`❌ Invalid bundler type: ${bundlerType}`);
+        console.error(`💡 Valid options: ${validBundlers.join(", ")}`);
+        process.exit(1);
+      }
       selectedBundler = bundlerType;
       const fw = frameworks.find(f => f.type === bundlerType);
       if (fw) selectedConfigPath = fw.detect(cwd);
@@ -124,7 +146,32 @@ export async function runSetupCommand() {
       console.log(`\n✅ ${result.message}`);
     }
 
-    printNextSteps(selectedConfigPath, entryPath, selectedBundler);
+    // Handle Next.js layout transformation if entry is provided
+    if (selectedBundler === "nextjs" && entryPath) {
+      const layoutPath = resolve(cwd, entryPath);
+      if (!existsSync(layoutPath)) {
+        console.warn(`\n⚠️  Layout file not found: ${layoutPath}`);
+        console.warn(`   Skipping layout transformation. Please add <DevInspector /> manually.`);
+      } else {
+        console.log(`\n🔧 Transforming layout file...`);
+        const layoutCode = readFileSync(layoutPath, "utf-8");
+        const layoutResult = transformNextLayout(layoutCode);
+
+        if (layoutResult.success && layoutResult.modified) {
+          if (!dryRun) {
+            writeFileSync(layoutPath, layoutResult.code!, "utf-8");
+          }
+          console.log(`✅ ${layoutResult.message}`);
+        } else if (!layoutResult.success) {
+          console.warn(`⚠️  ${layoutResult.message}`);
+          if (layoutResult.error) console.warn(`   ${layoutResult.error}`);
+        } else {
+          console.log(`ℹ️  ${layoutResult.message}`);
+        }
+      }
+    }
+
+    printNextSteps(selectedConfigPath, entryPath, selectedBundler, installed);
 
   } catch (error) {
     console.error("❌ Setup failed:", error instanceof Error ? error.message : error);
@@ -159,10 +206,23 @@ function showPreview(result: TransformResult) {
   console.log("\n💡 Run without --dry-run to apply these changes");
 }
 
-function printNextSteps(configPath: string, entryPath: string | undefined, bundler: string) {
+function printNextSteps(configPath: string, entryPath: string | undefined, bundler: string, installed: boolean) {
   console.log(`\n📝 Next steps:`);
-  console.log(`   1. Review the changes in ${configPath}${entryPath ? ` and ${entryPath}` : ""} and package.json`);
-  console.log(`   2. Start your dev server`);
+  
+  if (!installed) {
+    console.log(`   1. Install the package manually: npm install -D @mcpc-tech/unplugin-dev-inspector-mcp`);
+    console.log(`   2. Review the changes in ${configPath} and package.json`);
+    console.log(`   3. Start your dev server`);
+  } else {
+    console.log(`   1. Review the changes in ${configPath} and package.json`);
+    console.log(`   2. Start your dev server`);
+  }
+
+  if (entryPath) {
+    console.log(`\n💡 Entry file specified: ${entryPath}`);
+    console.log(`   This has been added to your config with autoInject: false`);
+    console.log(`   No modifications were made to your entry file`);
+  }
 
   if (bundler === "vite") {
     console.log(`\n⚠️  Important: DevInspector should be placed BEFORE framework plugins (react/vue/svelte)`);

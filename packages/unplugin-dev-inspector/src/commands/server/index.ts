@@ -7,7 +7,7 @@ import { getPublicBaseUrl, isEnvTruthy } from "../../utils/helpers";
 import type { Connect } from "vite";
 
 export async function runServerCommand() {
-  const args = process.argv.slice(2);
+  const args = process.argv.slice(3); // Skip 'node', 'cli.js', 'server'
 
   // Parse CLI arguments
   let port = 8888;
