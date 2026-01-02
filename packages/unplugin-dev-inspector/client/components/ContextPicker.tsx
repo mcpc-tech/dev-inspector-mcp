@@ -139,7 +139,6 @@ export const ContextPicker: React.FC<ContextPickerProps> = ({
     onSelectionChange,
     screenshot,
     onDataReady,
-    isAutomated: _isAutomated = false,
     userInput,
     selectedAgent = DEFAULT_AGENT
 }) => {

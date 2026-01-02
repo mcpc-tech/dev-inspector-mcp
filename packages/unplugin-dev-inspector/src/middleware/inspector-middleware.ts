@@ -13,7 +13,6 @@ import {
   getStdioById,
   getStdioLogs,
 } from "../utils/log-storage";
-import { initStdioInterceptor } from "../utils/stdio-interceptor";
 
 // ESM equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -113,9 +112,6 @@ export function setupInspectorMiddleware(
   let cachedScript: string | null = null;
   let cachedCSS: string | null = null;
   let filesChecked = false;
-
-  // Initialize stdio interception (always enabled)
-  initStdioInterceptor();
 
   middlewares.use(
     (req: IncomingMessage, res: ServerResponse, next: () => void) => {

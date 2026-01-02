@@ -763,7 +763,16 @@ Default dev server URL: ${
 
         // If specific ID requested, return that log
         if (stdioIdStr) {
-          const log = getStdioById(parseInt(stdioIdStr));
+          const stdioId = parseInt(stdioIdStr);
+          if (isNaN(stdioId)) {
+            return {
+              messages: [{
+                role: "user",
+                content: { type: "text", text: "Invalid stdio ID" },
+              }],
+            } as GetPromptResult;
+          }
+          const log = getStdioById(stdioId);
           if (log) {
             return {
               messages: [{
