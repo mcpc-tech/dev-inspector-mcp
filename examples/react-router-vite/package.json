@@ -17,7 +17,7 @@
     "react-router": "7.10.1"
   },
   "devDependencies": {
-    "@mcpc-tech/unplugin-dev-inspector-mcp": "^0.1.2",
+    "@mcpc-tech/unplugin-dev-inspector-mcp": "workspace:*",
     "@react-router/dev": "7.10.1",
     "@tailwindcss/vite": "^4.1.13",
     "@types/node": "^22",
