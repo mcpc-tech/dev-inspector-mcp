@@ -11,9 +11,19 @@ interface DevInspectorProps {
    * @example "https://your-domain.com"
    */
   baseUrl?: string;
+  /**
+   * Disable Chrome DevTools integration
+   * @default true
+   */
+  disableChrome?: boolean;
 }
 
-export function DevInspector({ host = "localhost", port = "8888", baseUrl }: DevInspectorProps) {
+export function DevInspector({
+  host = "localhost",
+  port = "8888",
+  baseUrl,
+  disableChrome = true
+}: DevInspectorProps) {
   useEffect(() => {
     if (typeof window === "undefined") return;
     if ((window as any).__DEV_INSPECTOR_LOADED__) return;
@@ -27,6 +37,7 @@ export function DevInspector({ host = "localhost", port = "8888", baseUrl }: Dev
       port: String(port),
       base: "/",
       baseUrl: baseUrl,
+      disableChrome: disableChrome,
     };
 
     const resolvedBaseUrl = (baseUrl || `http://${host}:${port}`).replace(/\/$/, "");
@@ -35,7 +46,7 @@ export function DevInspector({ host = "localhost", port = "8888", baseUrl }: Dev
     script.src = `${resolvedBaseUrl}/__inspector__/inspector.js`;
     script.type = "module";
     document.head.appendChild(script);
-  }, [host, port, baseUrl]);
+  }, [host, port, baseUrl, disableChrome]);
 
   return null;
 }
