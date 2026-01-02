@@ -366,11 +366,11 @@ IMPORTANT: For this task, you MUST call the "context_selector" tool to return yo
     const tabs: TabConfig[] = [
         { id: "code", label: "Code", selectedCount: selectedContext.includeElement ? 1 : 0 },
         { id: "styles", label: "Styles", selectedCount: selectedContext.includeStyles ? 1 : 0 },
-        { id: "stdio", label: "Terminal", totalCount: stdioMessages.length, selectedCount: selectedContext.stdioIds.length },
+        { id: "page", label: "Page", selectedCount: selectedContext.includePageInfo ? 1 : 0 },
         { id: "screenshot", label: "Visual", selectedCount: selectedContext.includeScreenshot ? 1 : 0 },
         { id: "console", label: "Console", totalCount: consoleMessages.length, selectedCount: selectedContext.consoleIds.length },
         { id: "network", label: "Network", totalCount: networkRequests.length, selectedCount: selectedContext.networkIds.length },
-        { id: "page", label: "Page", selectedCount: selectedContext.includePageInfo ? 1 : 0 },
+        { id: "stdio", label: "Terminal", totalCount: stdioMessages.length, selectedCount: selectedContext.stdioIds.length },
     ];
 
     return (

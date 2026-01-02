@@ -231,8 +231,8 @@ export const ContextDialog: React.FC<ContextDialogProps> = ({
         { id: "inspections", label: "Inspections", count: inspectionItems.length },
         { id: "console", label: "Console", count: consoleMessages.length },
         { id: "network", label: "Network", count: networkRequests.length },
-        { id: "stdio", label: "Terminal", count: stdioMessages.length },
         { id: "page", label: "Page" },
+        { id: "stdio", label: "Terminal", count: stdioMessages.length },
     ];
 
     return (
