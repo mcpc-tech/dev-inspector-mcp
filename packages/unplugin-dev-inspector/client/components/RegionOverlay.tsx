@@ -332,7 +332,7 @@ export const RegionOverlay: React.FC<RegionOverlayProps> = ({
 
                         {isAnnotating && (
                             <button
-                                onClick={resetState}
+                                onClick={onCancel}
                                 className="bg-white text-zinc-700 hover:bg-zinc-50 border border-zinc-200 text-xs px-3 py-1.5 rounded shadow-sm font-medium transition-colors flex items-center gap-1.5"
                             >
                                 <X className="w-3.5 h-3.5" />
