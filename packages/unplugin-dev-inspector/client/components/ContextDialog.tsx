@@ -3,7 +3,8 @@ import type { Client } from "@modelcontextprotocol/sdk/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { InspectionQueue, type InspectionItem } from "./InspectionQueue";
 import { useContextData } from "../hooks/useContextData";
-import { Loader2, RefreshCw, AlertCircle, ChevronDown, ChevronRight } from "lucide-react";
+import { usePageInfo } from "../hooks/usePageInfo";
+import { Loader2, RefreshCw, AlertCircle, ChevronDown, ChevronRight, Globe } from "lucide-react";
 import { cn } from "../lib/utils";
 import type { NetworkRequest } from "../types";
 import { MessageResponse } from "../../src/components/ai-elements/message";
@@ -17,7 +18,7 @@ interface ContextDialogProps {
     isClientReady: boolean;
 }
 
-type TabType = "inspections" | "console" | "network";
+type TabType = "inspections" | "console" | "network" | "page";
 
 // Network request item component with expandable details
 const NetworkRequestItem: React.FC<{
@@ -216,6 +217,7 @@ export const ContextDialog: React.FC<ContextDialogProps> = ({
     isClientReady,
 }) => {
     const [activeTab, setActiveTab] = useState<TabType>("inspections");
+    const pageInfo = usePageInfo();
     const { consoleMessages, networkRequests, loading, error, refresh } = useContextData(client, isClientReady);
 
     // Fetch data when dialog opens
@@ -229,6 +231,7 @@ export const ContextDialog: React.FC<ContextDialogProps> = ({
         { id: "inspections", label: "Inspections", count: inspectionItems.length },
         { id: "console", label: "Console", count: consoleMessages.length },
         { id: "network", label: "Network", count: networkRequests.length },
+        { id: "page", label: "Page" },
     ];
 
     return (
@@ -244,11 +247,10 @@ export const ContextDialog: React.FC<ContextDialogProps> = ({
                             type="button"
                             onClick={() => refresh()}
                             disabled={loading}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-border bg-background hover:bg-accent rounded-md transition-colors disabled:opacity-50"
+                            className="flex items-center justify-center w-8 h-8 text-sm border border-border bg-background hover:bg-accent rounded-md transition-colors disabled:opacity-50"
                             title="Refresh Data"
                         >
                             <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} />
-                            <span>Refresh</span>
                         </button>
                     </div>
                 </DialogHeader>
@@ -362,6 +364,36 @@ export const ContextDialog: React.FC<ContextDialogProps> = ({
                                         isClientReady={isClientReady}
                                     />
                                 ))}
+                        </div>
+                    )}
+
+                    {activeTab === "page" && pageInfo && (
+                        <div className="p-4 h-full overflow-auto">
+                            <div className="space-y-4">
+                                <div className="flex items-start gap-3 p-3 rounded-md bg-muted/50">
+                                    <Globe className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                                    <div className="flex-1 min-w-0 space-y-3">
+                                        <div>
+                                            <div className="text-xs font-medium text-muted-foreground mb-1">URL</div>
+                                            <div className="text-sm text-foreground font-mono break-all">{pageInfo.url}</div>
+                                        </div>
+                                        <div>
+                                            <div className="text-xs font-medium text-muted-foreground mb-1">Title</div>
+                                            <div className="text-sm text-foreground">{pageInfo.title}</div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <div className="text-xs font-medium text-muted-foreground mb-1">Viewport</div>
+                                                <div className="text-sm text-foreground">{pageInfo.viewport.width} × {pageInfo.viewport.height}</div>
+                                            </div>
+                                            <div>
+                                                <div className="text-xs font-medium text-muted-foreground mb-1">Language</div>
+                                                <div className="text-sm text-foreground">{pageInfo.language}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>

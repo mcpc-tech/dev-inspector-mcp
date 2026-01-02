@@ -14,6 +14,7 @@ import { Loader2, CheckCircle2, XCircle, Copy } from "lucide-react";
 import { PlanProgress } from "./PlanProgress";
 import { usePlanProgress } from "../hooks/usePlanProgress";
 import { ContextPicker, type SelectedContext } from "./ContextPicker";
+import { usePageInfo } from "../hooks/usePageInfo";
 import { formatCopyContext } from "../utils/format";
 import type { ConsoleMessage, NetworkRequest } from "../types";
 
@@ -46,6 +47,7 @@ export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
   const plan = usePlanProgress();
   const [feedback, setFeedback] = useState("");
   const [open, setOpen] = useState(true);
+  const pageInfo = usePageInfo();
   const [selectedContext, setSelectedContext] = useState<SelectedContext>(() => {
     // For region selections, default to all related elements selected
     const relatedCount = sourceInfo?.relatedElements?.length || 0;
@@ -53,6 +55,7 @@ export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
       includeElement: true,  // Default checked
       includeStyles: true,   // Default checked
       includeScreenshot: false, // Default unchecked (clipboard compatibility issues)
+      includePageInfo: true, // Default checked - page context is helpful
       consoleIds: [],
       networkIds: [],
       relatedElementIds: relatedCount > 0 ? Array.from({ length: relatedCount }, (_, i) => i) : [],
@@ -127,6 +130,8 @@ export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
       sourceInfo: enrichedContext.includeElement || enrichedContext.includeStyles ? sourceInfo : undefined,
       includeElement: enrichedContext.includeElement,
       includeStyles: enrichedContext.includeStyles,
+      includePageInfo: enrichedContext.includePageInfo,
+      pageInfo: enrichedContext.includePageInfo && pageInfo ? pageInfo : undefined,
       feedback: feedback || undefined,
       consoleMessages: enrichedContext.consoleMessages.length > 0 ? enrichedContext.consoleMessages : undefined,
       networkRequests: enrichedContext.networkRequests.length > 0 ? enrichedContext.networkRequests : undefined,
