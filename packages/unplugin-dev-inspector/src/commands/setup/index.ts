@@ -224,6 +224,17 @@ function printNextSteps(configPath: string, entryPath: string | undefined, bundl
     console.log(`   No modifications were made to your entry file`);
   }
 
+  if (bundler === "nextjs") {
+    console.log(`\n⚠️  Next.js 16+ uses Turbopack by default`);
+    console.log(`   Turbopack mode requires running a standalone MCP server:`);
+    console.log(`   `);
+    console.log(`   Terminal 1: npm run dev`);
+    console.log(`   Terminal 2: npx dev-inspector-server`);
+    console.log(`   `);
+    console.log(`   Or use concurrently: npx concurrently "npm run dev" "npx dev-inspector-server"`);
+    console.log(`   (Webpack mode works without standalone server: npm run dev -- --webpack)`);
+  }
+
   if (bundler === "vite") {
     console.log(`\n⚠️  Important: DevInspector should be placed BEFORE framework plugins (react/vue/svelte)`);
     console.log(`   Please verify the plugin order in your config.`);
