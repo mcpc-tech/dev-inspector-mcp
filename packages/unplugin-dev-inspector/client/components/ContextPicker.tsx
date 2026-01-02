@@ -3,7 +3,7 @@ import type { Client } from "@modelcontextprotocol/sdk/client";
 import type { InspectedElement } from "../types";
 import { useContextData } from "../hooks/useContextData";
 import { usePageInfo } from "../hooks/usePageInfo";
-import { Loader2, RefreshCw, Code, Type, Search, X, Sparkles, Globe } from "lucide-react";
+import { Loader2, RefreshCw, Code, Type, Search, X, Sparkles, Globe, MessageSquare } from "lucide-react";
 import { cn } from "../lib/utils";
 import type { ConsoleMessage, NetworkRequest, StdioMessage } from "../types";
 import { NetworkRequestItem } from "./NetworkRequestItem";
@@ -61,6 +61,8 @@ export interface SelectedContext {
     screenshot?: string;
     /** AI reasoning for the selection */
     reasoning?: string;
+    /** User notes for specific elements (key is element index) */
+    elementNotes: Record<number, string>;
 }
 
 interface ContextPickerProps {
@@ -146,6 +148,7 @@ export const ContextPicker: React.FC<ContextPickerProps> = ({
     const [consoleSearch, setConsoleSearch] = useState("");
     const [networkSearch, setNetworkSearch] = useState("");
     const [networkDetails, setNetworkDetails] = useState<Record<number, string>>({});
+    const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
     const pageInfo = usePageInfo();
     // Always fetch context data regardless of isAutomated - we have fallback logic for Chrome unavailable scenarios
     const { consoleMessages, networkRequests, stdioMessages, loading, error, refresh } = useContextData(client, isClientReady, true);
@@ -280,7 +283,8 @@ export const ContextPicker: React.FC<ContextPickerProps> = ({
                     stdioIds: finalArgs?.stdioIds || [],
                     includeElement: finalArgs?.includeElement ?? true, // Default to true if not specified
                     includeStyles: finalArgs?.includeStyles ?? false, // Default to false if not specified
-                    reasoning: finalArgs?.reasoning
+                    reasoning: finalArgs?.reasoning,
+                    elementNotes: selectedContext.elementNotes
                 }));
             } catch (e) {
                 console.error("Failed to process context inference args", e);
@@ -516,45 +520,132 @@ IMPORTANT: For this task, you MUST call the "context_selector" tool to return yo
                                                     </div>
                                                     {/* Elements */}
                                                     {fileElements.map(({ el, idx }) => (
-                                                        <label
-                                                            key={idx}
-                                                            className="flex items-start gap-2 pl-4 pr-2 py-1.5 rounded hover:bg-accent/50 cursor-pointer transition-colors"
-                                                        >
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={isRegionSelection
-                                                                    ? selectedContext.relatedElementIds.includes(idx)
-                                                                    : selectedContext.includeElement
-                                                                }
-                                                                onChange={() => isRegionSelection
-                                                                    ? toggleRelatedElement(idx)
-                                                                    : toggleElement()
-                                                                }
-                                                                className="mt-0.5 rounded border-border"
-                                                            />
-                                                            <div className="flex-1 min-w-0 text-xs font-mono">
-                                                                <div className="flex items-center gap-1.5">
-                                                                    <span className="text-foreground/80 font-medium">{el.component}</span>
-                                                                    <span className="text-muted-foreground/50">•</span>
-                                                                    <span className="text-muted-foreground">{el.line}:{el.column}</span>
-                                                                </div>
-
-                                                                {/* Additional identifying info */}
-                                                                {el.elementInfo && (
-                                                                    <div className="text-[10px] text-muted-foreground/60 mt-0.5 space-x-2">
-                                                                        {el.elementInfo.className && (
-                                                                            <span>.{el.elementInfo.className.split(' ')[0]}</span>
-                                                                        )}
-                                                                        {el.elementInfo.id && (
-                                                                            <span>#{el.elementInfo.id}</span>
-                                                                        )}
-                                                                        {el.elementInfo.textContent && (
-                                                                            <span className="italic">"{el.elementInfo.textContent.trim().slice(0, 20)}{el.elementInfo.textContent.length > 20 ? '...' : ''}"</span>
-                                                                        )}
+                                                        <div key={idx} className="group relative">
+                                                            <label
+                                                                className="flex items-start gap-2 pl-4 pr-8 py-1.5 rounded hover:bg-accent/50 cursor-pointer transition-colors relative"
+                                                            >
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={isRegionSelection
+                                                                        ? selectedContext.relatedElementIds.includes(idx)
+                                                                        : selectedContext.includeElement
+                                                                    }
+                                                                    onChange={() => isRegionSelection
+                                                                        ? toggleRelatedElement(idx)
+                                                                        : toggleElement()
+                                                                    }
+                                                                    className="mt-0.5 rounded border-border"
+                                                                />
+                                                                <div className="flex-1 min-w-0 text-xs font-mono">
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <span className="text-foreground/80 font-medium">{el.component}</span>
+                                                                        <span className="text-muted-foreground/50">•</span>
+                                                                        <span className="text-muted-foreground">{el.line}:{el.column}</span>
                                                                     </div>
+
+                                                                    {/* Additional identifying info */}
+                                                                    {el.elementInfo && (
+                                                                        <div className="text-[10px] text-muted-foreground/60 mt-0.5 space-x-2">
+                                                                            {el.elementInfo.className && (
+                                                                                <span>.{el.elementInfo.className.split(' ')[0]}</span>
+                                                                            )}
+                                                                            {el.elementInfo.id && (
+                                                                                <span>#{el.elementInfo.id}</span>
+                                                                            )}
+                                                                            {el.elementInfo.textContent && (
+                                                                                <span className="italic">"{el.elementInfo.textContent.trim().slice(0, 20)}{el.elementInfo.textContent.length > 20 ? '...' : ''}"</span>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
+
+                                                                    {/* Note Display */}
+                                                                    {selectedContext.elementNotes[idx] && (
+                                                                        <div className="mt-1.5 text-[11px] text-yellow-600 dark:text-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 px-1.5 py-0.5 rounded border border-yellow-200 dark:border-yellow-900/40 flex items-start gap-1">
+                                                                            <MessageSquare className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                                                                            <span className="break-words">{selectedContext.elementNotes[idx]}</span>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </label>
+
+                                                            {/* Add/Edit Note Button - Visible on hover or when has note */}
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    e.preventDefault();
+                                                                    setEditingNoteId(idx);
+                                                                }}
+                                                                className={cn(
+                                                                    "absolute right-1 top-1.5 p-1 rounded transition-colors",
+                                                                    selectedContext.elementNotes[idx]
+                                                                        ? "text-yellow-600 hover:bg-yellow-100 opacity-100"
+                                                                        : "text-muted-foreground/40 hover:text-foreground hover:bg-accent opacity-0 group-hover:opacity-100"
                                                                 )}
-                                                            </div>
-                                                        </label>
+                                                                title="Add note to element"
+                                                            >
+                                                                <MessageSquare className="w-3.5 h-3.5" />
+                                                            </button>
+
+                                                            {/* Inline Note Editor */}
+                                                            {editingNoteId === idx && (
+                                                                <div className="px-4 py-2 bg-muted/30 border-t border-b border-border">
+                                                                    <div className="flex gap-2">
+                                                                        <input
+                                                                            type="text"
+                                                                            autoFocus
+                                                                            placeholder="Describe issue with this element..."
+                                                                            className="flex-1 text-xs bg-background border border-input rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary"
+                                                                            defaultValue={selectedContext.elementNotes[idx] || ""}
+                                                                            onKeyDown={(e) => {
+                                                                                if (e.key === "Enter") {
+                                                                                    e.preventDefault();
+                                                                                    const val = e.currentTarget.value.trim();
+                                                                                    onSelectionChange(prev => {
+                                                                                        const newNotes = { ...prev.elementNotes };
+                                                                                        if (val) {
+                                                                                            newNotes[idx] = val;
+                                                                                        } else {
+                                                                                            delete newNotes[idx];
+                                                                                        }
+                                                                                        return {
+                                                                                            ...prev,
+                                                                                            elementNotes: newNotes
+                                                                                        };
+                                                                                    });
+                                                                                    setEditingNoteId(null);
+                                                                                } else if (e.key === "Escape") {
+                                                                                    setEditingNoteId(null);
+                                                                                }
+                                                                            }}
+                                                                            onBlur={(e) => {
+                                                                                const val = e.currentTarget.value.trim();
+                                                                                if (val !== (selectedContext.elementNotes[idx] || "")) {
+                                                                                    onSelectionChange(prev => {
+                                                                                        const newNotes = { ...prev.elementNotes };
+                                                                                        if (val) {
+                                                                                            newNotes[idx] = val;
+                                                                                        } else {
+                                                                                            delete newNotes[idx];
+                                                                                        }
+                                                                                        return {
+                                                                                            ...prev,
+                                                                                            elementNotes: newNotes
+                                                                                        };
+                                                                                    });
+                                                                                }
+                                                                                setEditingNoteId(null);
+                                                                            }}
+                                                                        />
+                                                                        <button
+                                                                            onClick={() => setEditingNoteId(null)}
+                                                                            className="text-muted-foreground hover:text-foreground"
+                                                                        >
+                                                                            <X className="w-3.5 h-3.5" />
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     ))}
                                                 </div>
                                             ))}

@@ -9,7 +9,7 @@ export const Overlay = React.forwardRef<HTMLDivElement, OverlayProps>(({ visible
   <div
     ref={ref}
     className={cn(
-      "fixed pointer-events-none border-2 border-black dark:border-blue-500 bg-black/[0.06] dark:bg-blue-500/10 z-[999997]",
+      "fixed pointer-events-none border-2 border-blue-500 bg-blue-500/10 z-[999997]",
       visible ? "block" : "hidden",
     )}
   />
@@ -25,8 +25,8 @@ export const Tooltip = React.forwardRef<HTMLDivElement, TooltipProps>(({ visible
   <div
     ref={ref}
     className={cn(
-      "fixed bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 py-2.5 px-3.5 rounded-lg text-xs z-[999999]",
-      "pointer-events-none shadow-lg font-medium border border-transparent dark:border-gray-300",
+      "fixed bg-white text-slate-700 py-2 px-3 rounded-md text-xs z-[999999]",
+      "pointer-events-none shadow-xl font-medium border border-blue-500",
       visible ? "block" : "hidden",
     )}
   />

@@ -226,6 +226,7 @@ export function formatCopyContext(options: {
   stdioMessages?: StdioMessage[];
   relatedElements?: InspectedElement[];
   relatedElementIds?: number[];
+  elementNotes?: Record<number, string>;
 }): string {
   const {
     sourceInfo,
@@ -239,6 +240,7 @@ export function formatCopyContext(options: {
     stdioMessages,
     relatedElements,
     relatedElementIds,
+    elementNotes,
   } = options;
 
   let output = "# Element Context\n\n";
@@ -286,9 +288,14 @@ export function formatCopyContext(options: {
         {} as Record<string, InspectedElement[]>,
       );
 
-      Object.entries(grouped).forEach(([file, elements]) => {
+       Object.entries(grouped).forEach(([file, elements]) => {
         output += `### ${file}\n`;
         elements.forEach((el) => {
+            // Find the original index for this element to look up notes
+            // This relies on relatedElements being preserved in order
+            const originalIndex = relatedElements.indexOf(el);
+            const note = elementNotes ? elementNotes[originalIndex] : null;
+
           output += `- **${el.component}** (${el.line}:${el.column})`;
           if (el.elementInfo?.tagName) {
             output += ` - \`<${el.elementInfo.tagName}`;
@@ -311,6 +318,10 @@ export function formatCopyContext(options: {
               }
             }
             output += "`";
+          }
+          
+          if (note) {
+              output += `\n  - **USER NOTE**: "${note}"`;
           }
           output += "\n";
         });

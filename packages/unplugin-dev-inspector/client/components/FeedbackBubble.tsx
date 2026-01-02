@@ -54,12 +54,16 @@ export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
     return {
       includeElement: true,  // Default checked
       includeStyles: true,   // Default checked
-      includeScreenshot: false, // Default unchecked (clipboard compatibility issues)
+      includeScreenshot: relatedCount > 0, // Default checked for region selection
       includePageInfo: true, // Default checked - page context is helpful
       consoleIds: [],
       networkIds: [],
       stdioIds: [],
       relatedElementIds: relatedCount > 0 ? Array.from({ length: relatedCount }, (_, i) => i) : [],
+      elementNotes: sourceInfo.relatedElements?.reduce((acc, el, idx) => {
+        if (el.note) acc[idx] = el.note;
+        return acc;
+      }, {} as Record<number, string>) || {},
     };
   });
   const [contextData, setContextData] = useState<{
@@ -148,6 +152,7 @@ export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
       stdioMessages: enrichedContext.stdioMessages?.length ? enrichedContext.stdioMessages : undefined,
       relatedElements: sourceInfo?.relatedElements,
       relatedElementIds: enrichedContext.relatedElementIds,
+      elementNotes: enrichedContext.elementNotes,
     });
 
     try {

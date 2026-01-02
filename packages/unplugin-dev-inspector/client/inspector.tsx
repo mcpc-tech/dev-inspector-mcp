@@ -113,44 +113,6 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
     if (tooltipRef.current) tooltipRef.current.style.display = "none";
   }, []);
 
-  // KISS: Simplified keyboard shortcut handling - standard React pattern
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Escape to close inspector
-      if (e.key === "Escape" && isActive) {
-        handleBubbleClose();
-        return;
-      }
-
-      // Alt/Option + I to toggle inspector
-      const isToggleShortcut =
-        e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.code === "KeyI";
-
-      if (isToggleShortcut) {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        toggleInspector();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown, true);
-    return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [isActive, toggleInspector, handleBubbleClose]);
-
-  useEffect(() => {
-    const handleActivateInspector = () => {
-      if (!isActive) {
-        setIsActive(true);
-        document.body.style.cursor = "crosshair";
-        setBubbleMode(null);
-        showNotif("Inspector ON");
-      }
-    };
-
-    window.addEventListener("activate-inspector", handleActivateInspector);
-    return () => window.removeEventListener("activate-inspector", handleActivateInspector);
-  }, [isActive, showNotif]);
   const toggleRegionMode = useCallback(() => {
     if (!isActive) {
       // If inspector is off, turn it on and enable region mode
@@ -171,6 +133,57 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
       document.body.style.cursor = "crosshair"; // Back to element picking
     }
   }, [isActive, regionMode, showNotif]);
+
+  // KISS: Simplified keyboard shortcut handling - standard React pattern
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Escape to close inspector
+      if (e.key === "Escape" && isActive) {
+        handleBubbleClose();
+        return;
+      }
+
+      // Alt/Option + I to toggle inspector
+      const isToggleShortcut =
+        e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.code === "KeyI";
+
+      if (isToggleShortcut) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        toggleInspector();
+      }
+
+      // Alt/Option + S to toggle region mode
+      const isRegionShortcut =
+        e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.code === "KeyS";
+
+      if (isRegionShortcut) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        toggleRegionMode();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown, true);
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
+  }, [isActive, toggleInspector, handleBubbleClose, toggleRegionMode]);
+
+  useEffect(() => {
+    const handleActivateInspector = () => {
+      if (!isActive) {
+        setIsActive(true);
+        document.body.style.cursor = "crosshair";
+        setBubbleMode(null);
+        showNotif("Inspector ON");
+      }
+    };
+
+    window.addEventListener("activate-inspector", handleActivateInspector);
+    return () => window.removeEventListener("activate-inspector", handleActivateInspector);
+  }, [isActive, showNotif]);
+
 
   useInspectorHover({
     isActive: isActive && !regionMode, // Disable hover when in region mode
@@ -406,11 +419,14 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
           )}
         </div>
 
-        <RegionOverlay
-          isActive={isActive && regionMode}
-          onSelectionComplete={handleRegionSelectionComplete}
-          onCancel={() => setRegionMode(false)}
-        />
+        {isActive && regionMode && (
+          <RegionOverlay
+            isActive={true}
+            onSelectionComplete={handleRegionSelectionComplete}
+            onCancel={() => setRegionMode(false)}
+            onClose={toggleInspector}
+          />
+        )}
 
         <Overlay ref={overlayRef} visible={isActive && bubbleMode === null && !regionMode} />
         <Tooltip ref={tooltipRef} visible={isActive && bubbleMode === null && !regionMode} />
