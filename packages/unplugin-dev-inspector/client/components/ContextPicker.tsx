@@ -648,7 +648,7 @@ IMPORTANT: For this task, you MUST call the "context_selector" tool to return yo
                         </div>
                     )}
 
-                    {loading && activeTab !== "code" && activeTab !== "styles" && activeTab !== "screenshot" && (
+                    {loading && activeTab !== "code" && activeTab !== "styles" && activeTab !== "screenshot" && activeTab !== "page" && (
                         <div className="flex items-center justify-center py-6">
                             <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                         </div>

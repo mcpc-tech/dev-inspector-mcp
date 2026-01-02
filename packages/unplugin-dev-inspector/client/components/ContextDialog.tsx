@@ -367,33 +367,39 @@ export const ContextDialog: React.FC<ContextDialogProps> = ({
                         </div>
                     )}
 
-                    {activeTab === "page" && pageInfo && (
+                    {activeTab === "page" && (
                         <div className="p-4 h-full overflow-auto">
-                            <div className="space-y-4">
-                                <div className="flex items-start gap-3 p-3 rounded-md bg-muted/50">
-                                    <Globe className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                                    <div className="flex-1 min-w-0 space-y-3">
-                                        <div>
-                                            <div className="text-xs font-medium text-muted-foreground mb-1">URL</div>
-                                            <div className="text-sm text-foreground font-mono break-all">{pageInfo.url}</div>
-                                        </div>
-                                        <div>
-                                            <div className="text-xs font-medium text-muted-foreground mb-1">Title</div>
-                                            <div className="text-sm text-foreground">{pageInfo.title}</div>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-3">
+                            {!pageInfo ? (
+                                <div className="flex items-center justify-center py-12">
+                                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    <div className="flex items-start gap-3 p-3 rounded-md bg-muted/50">
+                                        <Globe className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                                        <div className="flex-1 min-w-0 space-y-3">
                                             <div>
-                                                <div className="text-xs font-medium text-muted-foreground mb-1">Viewport</div>
-                                                <div className="text-sm text-foreground">{pageInfo.viewport.width} × {pageInfo.viewport.height}</div>
+                                                <div className="text-xs font-medium text-muted-foreground mb-1">URL</div>
+                                                <div className="text-sm text-foreground font-mono break-all">{pageInfo.url}</div>
                                             </div>
                                             <div>
-                                                <div className="text-xs font-medium text-muted-foreground mb-1">Language</div>
-                                                <div className="text-sm text-foreground">{pageInfo.language}</div>
+                                                <div className="text-xs font-medium text-muted-foreground mb-1">Title</div>
+                                                <div className="text-sm text-foreground">{pageInfo.title}</div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <div className="text-xs font-medium text-muted-foreground mb-1">Viewport</div>
+                                                    <div className="text-sm text-foreground">{pageInfo.viewport.width} × {pageInfo.viewport.height}</div>
+                                                </div>
+                                                <div>
+                                                    <div className="text-xs font-medium text-muted-foreground mb-1">Language</div>
+                                                    <div className="text-sm text-foreground">{pageInfo.language}</div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
                     )}
                 </div>
