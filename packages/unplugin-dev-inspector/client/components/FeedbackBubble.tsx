@@ -54,7 +54,7 @@ export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
     return {
       includeElement: true,  // Default checked
       includeStyles: true,   // Default checked
-      includeScreenshot: false, // Default unchecked (clipboard compatibility issues)
+      includeScreenshot: relatedCount > 0, // Default checked for region selection
       includePageInfo: true, // Default checked - page context is helpful
       consoleIds: [],
       networkIds: [],
