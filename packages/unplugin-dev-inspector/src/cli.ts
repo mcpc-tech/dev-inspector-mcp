@@ -31,6 +31,7 @@ async function runSetupCommand() {
   let dryRun = false;
   let configPath: string | undefined;
   let bundlerType: BundlerType | undefined;
+  let entryPath: string | undefined;
 
   // Parse flags
   for (let i = 0; i < args.length; i++) {
@@ -39,6 +40,9 @@ async function runSetupCommand() {
     } else if (args[i] === "--config" && args[i + 1]) {
       configPath = args[i + 1];
       i++;
+    } else if (args[i] === "--entry" && args[i + 1]) {
+      entryPath = args[i + 1];
+      i++;
     } else if (args[i] === "--bundler" && args[i + 1]) {
       bundlerType = args[i + 1] as BundlerType;
       i++;
@@ -46,10 +50,6 @@ async function runSetupCommand() {
       console.log(`
 ╔══════════════════════════════════════════════════════════╗
 ║           🔧 DevInspector Setup Command                  ║
-╠══════════════════════════════════════════════════════════╣
-║                                                          ║
-║  Automatically add DevInspector to your bundler config   ║
-║                                                          ║
 ╚══════════════════════════════════════════════════════════╝
 
 Usage:
@@ -57,6 +57,7 @@ Usage:
 
 Options:
   --config <path>         Specify config file path (auto-detect by default)
+  --entry <path>          Specify entry file path to add import (optional)
   --bundler <type>        Specify bundler type: vite, webpack, nextjs
   --dry-run               Preview changes without applying them
   --help, -h              Show this help message
@@ -65,14 +66,11 @@ Examples:
   # Auto-detect and setup
   npx @mcpc-tech/unplugin-dev-inspector-mcp setup
 
+  # Setup defining entry file (for React Router v7 / non-HTML apps)
+  npx @mcpc-tech/unplugin-dev-inspector-mcp setup --entry src/main.tsx
+
   # Preview changes without applying
   npx @mcpc-tech/unplugin-dev-inspector-mcp setup --dry-run
-
-  # Setup specific config
-  npx @mcpc-tech/unplugin-dev-inspector-mcp setup --config vite.config.ts
-
-  # Setup for specific bundler
-  npx @mcpc-tech/unplugin-dev-inspector-mcp setup --bundler vite
 `);
       process.exit(0);
     }
@@ -132,7 +130,7 @@ Examples:
       }
     }
 
-    // Transform config
+    // Transform config (Prepare)
     console.log(
       `\n${
         dryRun ? "🔍 Previewing" : "🔧 Transforming"
@@ -153,34 +151,86 @@ Examples:
       process.exit(1);
     }
 
-    if (!result.modified) {
-      console.log(`\n✅ ${result.message}`);
-      process.exit(0);
+    // Handle Entry File Transformation (Prepare)
+    let entryResult;
+    if (entryPath) {
+      console.log(
+        `\n${
+          dryRun ? "🔍 Previewing" : "🔧 Transforming"
+        } entry file: ${entryPath}...`,
+      );
+      
+      const { transformEntryFile } = await import("./utils/codemod-transformer");
+      entryResult = transformEntryFile({
+        entryPath,
+        dryRun,
+      });
+
+      if (!entryResult.success) {
+        console.error(`\n❌ ${entryResult.message}`);
+        if (entryResult.error) {
+          console.error(`   Error: ${entryResult.error}`);
+        }
+        // Proceeding to show what failed or exit? If entry transform fails, likely shouldn't proceed.
+        // But logic below handles previews.
+      }
     }
 
+    // DRY RUN: Show previews and exit
     if (dryRun) {
-      console.log("\n📄 Preview of changes:");
-      console.log("─".repeat(60));
-      console.log(result.code);
-      console.log("─".repeat(60));
+      if (result.modified) {
+        console.log("\n📄 Preview of config changes:");
+        console.log("─".repeat(60));
+        console.log(result.code);
+        console.log("─".repeat(60));
+      } else {
+        console.log(`\n✅ Config: ${result.message}`);
+      }
+
+      if (entryPath && entryResult) {
+        if (entryResult.modified) {
+          console.log("\n📄 Preview of entry file changes:");
+          console.log("─".repeat(60));
+          console.log(entryResult.code);
+          console.log("─".repeat(60));
+        } else if (entryResult.success) {
+          console.log(`\n✅ Entry file: ${entryResult.message}`);
+        }
+      }
+
       console.log("\n💡 Run without --dry-run to apply these changes");
       process.exit(0);
     }
 
-    // Write transformed code
-    writeFileSync(targetConfig.path, result.code!, "utf-8");
+    // EXECUTION: Install -> Write
 
-    console.log(`\n✅ ${result.message}`);
-
-    // Install package
+    // 1. Install package
     const installed = installPackage(
       "@mcpc-tech/unplugin-dev-inspector-mcp",
       true,
     );
 
+    // 2. Write Config
+    if (result.modified) {
+        writeFileSync(targetConfig.path, result.code!, "utf-8");
+        console.log(`\n✅ ${result.message}`);
+    } else {
+        console.log(`\n✅ ${result.message}`);
+    }
+
+    // 3. Write Entry File
+    if (entryPath && entryResult && entryResult.success) {
+       if (entryResult.modified) {
+          writeFileSync(entryPath, entryResult.code!, "utf-8");
+          console.log(`✅ ${entryResult.message}`);
+       } else {
+          console.log(`✅ ${entryResult.message}`);
+       }
+    }
+
     console.log(`\n📝 Next steps:`);
     console.log(
-      `   1. Review the changes in ${targetConfig.path} and package.json`,
+      `   1. Review the changes in ${targetConfig.path}${entryPath ? ` and ${entryPath}` : ""} and package.json`,
     );
     if (!installed) {
       console.log(

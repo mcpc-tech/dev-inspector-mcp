@@ -546,7 +546,7 @@ IMPORTANT: For this task, you MUST call the "context_selector" tool to return yo
                                                                     {/* Additional identifying info */}
                                                                     {el.elementInfo && (
                                                                         <div className="text-[10px] text-muted-foreground/60 mt-0.5 space-x-2">
-                                                                            {el.elementInfo.className && (
+                                                                            {typeof el.elementInfo.className === 'string' && el.elementInfo.className && (
                                                                                 <span>.{el.elementInfo.className.split(' ')[0]}</span>
                                                                             )}
                                                                             {el.elementInfo.id && (

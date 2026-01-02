@@ -1,5 +1,7 @@
 import { parse } from "@babel/parser";
 import traverseModule from "@babel/traverse";
+import type { NodePath } from "@babel/traverse";
+import type * as t from "@babel/types";
 import MagicString from "magic-string";
 import { readFileSync } from "fs";
 import type { BundlerType } from "./config-detector";
@@ -62,12 +64,12 @@ export function transformViteConfig(options: TransformOptions): TransformResult 
 
     // Find last import and plugins array
     traverse(ast, {
-      ImportDeclaration(path) {
+      ImportDeclaration(path: NodePath<t.ImportDeclaration>) {
         if (path.node.loc) {
           lastImportEnd = Math.max(lastImportEnd, path.node.loc.end.line);
         }
       },
-      ObjectProperty(path) {
+      ObjectProperty(path: NodePath<t.ObjectProperty>) {
         if (
           path.node.key.type === "Identifier" &&
           path.node.key.name === "plugins" &&
@@ -172,18 +174,18 @@ export function transformWebpackConfig(options: TransformOptions): TransformResu
 
     // Find last import/require and plugins array
     traverse(ast, {
-      ImportDeclaration(path) {
+      ImportDeclaration(path: NodePath<t.ImportDeclaration>) {
         if (path.node.loc) {
           lastImportEnd = Math.max(lastImportEnd, path.node.loc.end.line);
         }
       },
-      VariableDeclaration(path) {
+      VariableDeclaration(path: NodePath<t.VariableDeclaration>) {
         // Handle require statements
         if (path.node.loc && !isESM) {
           lastImportEnd = Math.max(lastImportEnd, path.node.loc.end.line);
         }
       },
-      ObjectProperty(path) {
+      ObjectProperty(path: NodePath<t.ObjectProperty>) {
         if (
           path.node.key.type === "Identifier" &&
           path.node.key.name === "plugins" &&
@@ -271,12 +273,12 @@ export function transformNextConfig(options: TransformOptions): TransformResult 
 
     // Find last import and nextConfig object
     traverse(ast, {
-      ImportDeclaration(path) {
+      ImportDeclaration(path: NodePath<t.ImportDeclaration>) {
         if (path.node.loc) {
           lastImportEnd = Math.max(lastImportEnd, path.node.loc.end.line);
         }
       },
-      VariableDeclarator(path) {
+      VariableDeclarator(path: NodePath<t.VariableDeclarator>) {
         if (
           path.node.id.type === "Identifier" &&
           path.node.id.name === "nextConfig" &&
@@ -368,5 +370,74 @@ export function transformConfig(options: TransformOptions): TransformResult {
         error: `Unknown bundler type: ${options.bundler}`,
         message: "Unsupported bundler type",
       };
+  }
+}
+
+/**
+ * Transform entry file to add DevInspector import
+ */
+export function transformEntryFile(options: {
+  entryPath: string;
+  dryRun?: boolean;
+}): TransformResult {
+  const { entryPath } = options;
+
+  try {
+    const code = readFileSync(entryPath, "utf-8");
+
+    // Check if already configured
+    if (code.includes("virtual:dev-inspector-mcp")) {
+      return {
+        success: true,
+        modified: false,
+        message: "DevInspector is already imported in this file",
+      };
+    }
+
+    const s = new MagicString(code);
+    const ast = parse(code, {
+      sourceType: "module",
+      plugins: ["typescript", "jsx"],
+    });
+
+    let lastImportEnd = 0;
+
+    // Find last import
+    traverse(ast, {
+      ImportDeclaration(path: NodePath<t.ImportDeclaration>) {
+        if (path.node.loc) {
+          lastImportEnd = Math.max(lastImportEnd, path.node.loc.end.line);
+        }
+      },
+    });
+
+    const lines = code.split("\n");
+    const importLine = "import 'virtual:dev-inspector-mcp';\n";
+
+    if (lastImportEnd > 0) {
+      // Insert after last import
+      let insertPos = 0;
+      for (let i = 0; i < lastImportEnd; i++) {
+        insertPos += lines[i].length + 1; // +1 for newline
+      }
+      s.appendLeft(insertPos, importLine);
+    } else {
+      // No imports found, add at the beginning
+      s.prepend(importLine);
+    }
+
+    return {
+      success: true,
+      modified: true,
+      code: s.toString(),
+      message: "Successfully added DevInspector import to entry file",
+    };
+  } catch (error) {
+    return {
+      success: false,
+      modified: false,
+      error: error instanceof Error ? error.message : String(error),
+      message: "Failed to transform entry file",
+    };
   }
 }
