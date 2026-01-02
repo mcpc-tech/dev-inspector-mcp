@@ -3,10 +3,15 @@ import type { Connect } from "vite";
 import { setupMcpMiddleware } from "../middleware/mcproute-middleware";
 import { setupInspectorMiddleware } from "../middleware/inspector-middleware";
 import { setupAcpMiddleware } from "../middleware/acp-middleware";
-import { updateMcpConfigs, type McpConfigOptions } from "./config-updater";
+import { type McpConfigOptions, updateMcpConfigs } from "./config-updater";
 import { launchBrowserWithDevTools } from "./browser-launcher";
-import { stripTrailingSlash, isChromeDisabled, getPublicBaseUrl } from "./helpers";
-import type { Agent, AcpOptions } from "../../client/constants/types";
+import {
+  getPublicBaseUrl,
+  isChromeDisabled,
+  stripTrailingSlash,
+} from "./helpers";
+import type { AcpOptions, Agent } from "../../client/constants/types";
+import { initStdioInterceptor } from "./stdio-interceptor";
 
 export interface DevInspectorOptions extends McpConfigOptions, AcpOptions {
   /**
@@ -124,7 +129,8 @@ export const createDevInspectorPlugin = (
 ) => {
   return createUnplugin<DevInspectorOptions | undefined>((options = {}) => {
     const enabled = options.enabled ?? process.env.NODE_ENV !== "production";
-    const virtualModuleName = options.virtualModuleName ?? "virtual:dev-inspector-mcp";
+    const virtualModuleName = options.virtualModuleName ??
+      "virtual:dev-inspector-mcp";
     // Alternative module name for Webpack (doesn't support virtual: scheme)
     const webpackModuleName = virtualModuleName.replace("virtual:", "");
 
@@ -179,8 +185,11 @@ export function registerInspectorTool(_tool) {
           const host = resolvedHost;
           const port = resolvedPort;
           const showInspectorBar = options.showInspectorBar ?? true;
-          const publicBaseUrl = options.publicBaseUrl || process.env.DEV_INSPECTOR_PUBLIC_BASE_URL;
-          const injectedBaseUrl = publicBaseUrl ? stripTrailingSlash(publicBaseUrl) : undefined;
+          const publicBaseUrl = options.publicBaseUrl ||
+            process.env.DEV_INSPECTOR_PUBLIC_BASE_URL;
+          const injectedBaseUrl = publicBaseUrl
+            ? stripTrailingSlash(publicBaseUrl)
+            : undefined;
 
           // Return dev-only code that works in both Vite and Webpack
           // Uses typeof check to avoid SSR issues and works with both bundlers
@@ -225,7 +234,11 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
       host: '${host}',
       port: '${port}',
       base: '/',
-      baseUrl: ${injectedBaseUrl ? `'${injectedBaseUrl.replace(/'/g, "\\'")}'` : "undefined"},
+      baseUrl: ${
+            injectedBaseUrl
+              ? `'${injectedBaseUrl.replace(/'/g, "\\'")}'`
+              : "undefined"
+          },
       showInspectorBar: ${showInspectorBar},
       disableChrome: ${chromeDisabled}
     };
@@ -256,9 +269,12 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
         configResolved(config) {
           // Capture resolved Vite config for virtual module
           const viteHost = config.server.host;
-          resolvedHost =
-            options.host ??
-            (typeof viteHost === "string" ? viteHost : viteHost === true ? "0.0.0.0" : "localhost");
+          resolvedHost = options.host ??
+            (typeof viteHost === "string"
+              ? viteHost
+              : viteHost === true
+              ? "0.0.0.0"
+              : "localhost");
           resolvedPort = options.port ?? config.server.port ?? 5173;
           // Use 'localhost' for display when host is '0.0.0.0'
           if (resolvedHost === "0.0.0.0") {
@@ -277,18 +293,17 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
             // Get server config from context
             const server = ctx.server;
             const viteHost = server?.config.server.host;
-            const host =
-              options.host ??
+            const host = options.host ??
               (typeof viteHost === "string"
                 ? viteHost
                 : viteHost === true
-                  ? "0.0.0.0"
-                  : "localhost");
+                ? "0.0.0.0"
+                : "localhost");
             const port = options.port ?? server?.config.server.port ?? 5173;
             const base = server?.config.base ?? "/";
             const showInspectorBar = options.showInspectorBar ?? true;
-            const publicBaseUrl =
-              options.publicBaseUrl || process.env.DEV_INSPECTOR_PUBLIC_BASE_URL;
+            const publicBaseUrl = options.publicBaseUrl ||
+              process.env.DEV_INSPECTOR_PUBLIC_BASE_URL;
 
             // Use 'localhost' for display when host is '0.0.0.0'
             const displayHost = host === "0.0.0.0" ? "localhost" : host;
@@ -307,7 +322,11 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
       host: '${displayHost}',
       port: '${port}',
       base: '${base}',
-      baseUrl: ${publicBaseUrl ? `'${publicBaseUrl.replace(/'/g, "\\'")}'` : "undefined"},
+      baseUrl: ${
+                publicBaseUrl
+                  ? `'${publicBaseUrl.replace(/'/g, "\\'")}'`
+                  : "undefined"
+              },
       showInspectorBar: ${showInspectorBar},
       disableChrome: ${chromeDisabled}
     };
@@ -334,18 +353,19 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
           if (!enabled) return;
           const viteHost = server.config.server.host;
           const serverContext = {
-            host:
-              options.host ??
+            host: options.host ??
               (typeof viteHost === "string"
                 ? viteHost
                 : viteHost === true
-                  ? "0.0.0.0"
-                  : "localhost"),
+                ? "0.0.0.0"
+                : "localhost"),
             port: options.port ?? server.config.server.port ?? 5173,
             disableChrome: chromeDisabled,
           };
 
-          const displayHost = serverContext.host === "0.0.0.0" ? "localhost" : serverContext.host;
+          const displayHost = serverContext.host === "0.0.0.0"
+            ? "localhost"
+            : serverContext.host;
           const publicBase = getPublicBaseUrl({
             publicBaseUrl: options.publicBaseUrl,
             host: displayHost,
@@ -353,6 +373,9 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
           });
           const baseUrl = `${publicBase}/__mcp__/sse`;
           console.log(`[dev-inspector] 📡 MCP: ${baseUrl}\n`);
+
+          // Initialize console/stdio interception
+          initStdioInterceptor();
 
           await setupMcpMiddleware(server.middlewares, serverContext);
           setupAcpMiddleware(server.middlewares, serverContext, {
@@ -366,7 +389,8 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
           await updateMcpConfigs(root, baseUrl, {
             updateConfig: options.updateConfig,
             updateConfigServerName: options.updateConfigServerName,
-            updateConfigAdditionalServers: options.updateConfigAdditionalServers,
+            updateConfigAdditionalServers:
+              options.updateConfigAdditionalServers,
             customEditors: options.customEditors,
           });
 
@@ -417,98 +441,130 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
 
         if (compiler.options.mode !== "development") return;
 
-        compiler.hooks.beforeCompile.tapAsync("UnpluginDevInspector", async (params, callback) => {
-          try {
-            const { startStandaloneServer } = await import("./standalone-server");
-            const { server, host, port, isNew } = await startStandaloneServer({
-              port: options.port,
-              host: options.host,
-            });
+        compiler.hooks.beforeCompile.tapAsync(
+          "UnpluginDevInspector",
+          async (params, callback) => {
+            try {
+              const { startStandaloneServer } = await import(
+                "./standalone-server"
+              );
+              const { server, host, port, isNew } = await startStandaloneServer(
+                {
+                  port: options.port,
+                  host: options.host,
+                },
+              );
 
-            // Update global resolved Host/Port for the load() hook
-            resolvedHost = host;
-            resolvedPort = port;
+              // Update global resolved Host/Port for the load() hook
+              resolvedHost = host;
+              resolvedPort = port;
 
-            // Only setup and log once when server is newly created
-            if (!isNew) {
-              callback();
-              return;
-            }
+              // Only setup and log once when server is newly created
+              if (!isNew) {
+                callback();
+                return;
+              }
 
-            const serverContext = { host, port, disableChrome: chromeDisabled };
+              const serverContext = {
+                host,
+                port,
+                disableChrome: chromeDisabled,
+              };
 
-            const displayHost = host === "0.0.0.0" ? "localhost" : host;
-            const publicBase = getPublicBaseUrl({
-              publicBaseUrl: options.publicBaseUrl,
-              host: displayHost,
-              port,
-            });
-            const baseUrl = `${publicBase}/__mcp__/sse`;
-            console.log(`[dev-inspector] 📡 MCP (Standalone): ${baseUrl}\n`);
+              const displayHost = host === "0.0.0.0" ? "localhost" : host;
+              const publicBase = getPublicBaseUrl({
+                publicBaseUrl: options.publicBaseUrl,
+                host: displayHost,
+                port,
+              });
+              const baseUrl = `${publicBase}/__mcp__/sse`;
+              console.log(`[dev-inspector] 📡 MCP (Standalone): ${baseUrl}\n`);
 
-            setupMcpMiddleware(server as unknown as Connect.Server, serverContext);
+              // Initialize console/stdio interception
+              initStdioInterceptor();
 
-            setupAcpMiddleware(server as unknown as Connect.Server, serverContext, {
-              acpMode: options.acpMode,
-              acpModel: options.acpModel,
-              acpDelay: options.acpDelay,
-            });
+              setupMcpMiddleware(
+                server as unknown as Connect.Server,
+                serverContext,
+              );
 
-            // Auto-update MCP configs
-            const root = compiler.context;
-            await updateMcpConfigs(root, baseUrl, {
-              updateConfig: options.updateConfig,
-              updateConfigServerName: options.updateConfigServerName,
-              updateConfigAdditionalServers: options.updateConfigAdditionalServers,
-              customEditors: options.customEditors,
-            });
+              setupAcpMiddleware(
+                server as unknown as Connect.Server,
+                serverContext,
+                {
+                  acpMode: options.acpMode,
+                  acpModel: options.acpModel,
+                  acpDelay: options.acpDelay,
+                },
+              );
 
-            // Auto-open browser with Chrome DevTools
-            const autoOpenBrowser = options.autoOpenBrowser ?? false;
-            if (autoOpenBrowser && !chromeDisabled) {
-              const targetUrl = options.browserUrl ?? publicBase;
-              // Delay browser launch to ensure server is ready
-              console.log(`[dev-inspector] 🔄 Auto-opening browser in 1s...`);
-              setTimeout(async () => {
-                try {
-                  const success = await launchBrowserWithDevTools({
-                    url: targetUrl,
-                    serverContext,
-                  });
-                  if (success) {
-                    console.log(`[dev-inspector] 🌐 Browser opened: ${targetUrl}`);
-                  } else {
-                    console.log(
-                      `[dev-inspector] 💡 Use "launch_chrome_devtools" prompt to open browser manually.\n`,
+              // Auto-update MCP configs
+              const root = compiler.context;
+              await updateMcpConfigs(root, baseUrl, {
+                updateConfig: options.updateConfig,
+                updateConfigServerName: options.updateConfigServerName,
+                updateConfigAdditionalServers:
+                  options.updateConfigAdditionalServers,
+                customEditors: options.customEditors,
+              });
+
+              // Auto-open browser with Chrome DevTools
+              const autoOpenBrowser = options.autoOpenBrowser ?? false;
+              if (autoOpenBrowser && !chromeDisabled) {
+                const targetUrl = options.browserUrl ?? publicBase;
+                // Delay browser launch to ensure server is ready
+                console.log(`[dev-inspector] 🔄 Auto-opening browser in 1s...`);
+                setTimeout(async () => {
+                  try {
+                    const success = await launchBrowserWithDevTools({
+                      url: targetUrl,
+                      serverContext,
+                    });
+                    if (success) {
+                      console.log(
+                        `[dev-inspector] 🌐 Browser opened: ${targetUrl}`,
+                      );
+                    } else {
+                      console.log(
+                        `[dev-inspector] 💡 Use "launch_chrome_devtools" prompt to open browser manually.\n`,
+                      );
+                    }
+                  } catch (err) {
+                    console.error(
+                      `[dev-inspector] ❌ Browser launch error:`,
+                      err,
                     );
                   }
-                } catch (err) {
-                  console.error(`[dev-inspector] ❌ Browser launch error:`, err);
-                }
-              }, 1000);
-            } else if (chromeDisabled) {
-              console.log(
-                `[dev-inspector] 📴 Chrome integration disabled (DEV_INSPECTOR_DISABLE_CHROME=1 or disableChrome: true)`,
+                }, 1000);
+              } else if (chromeDisabled) {
+                console.log(
+                  `[dev-inspector] 📴 Chrome integration disabled (DEV_INSPECTOR_DISABLE_CHROME=1 or disableChrome: true)`,
+                );
+              } else {
+                console.log(
+                  `[dev-inspector] ⚠️  autoOpenBrowser: false - Console/Network context unavailable`,
+                );
+                console.log(
+                  `[dev-inspector] 💡 Use "launch_chrome_devtools" prompt to enable.\n`,
+                );
+              }
+
+              setupInspectorMiddleware(server as unknown as Connect.Server, {
+                agents: options.agents,
+                visibleAgents: options.visibleAgents,
+                defaultAgent: options.defaultAgent,
+              });
+
+              callback();
+            } catch (e) {
+              console.error(
+                "[dev-inspector] Failed to start standalone server:",
+                e,
               );
-            } else {
-              console.log(
-                `[dev-inspector] ⚠️  autoOpenBrowser: false - Console/Network context unavailable`,
-              );
-              console.log(`[dev-inspector] 💡 Use "launch_chrome_devtools" prompt to enable.\n`);
+              callback();
             }
-
-            setupInspectorMiddleware(server as unknown as Connect.Server, {
-              agents: options.agents,
-              visibleAgents: options.visibleAgents,
-              defaultAgent: options.defaultAgent,
-            });
-
-            callback();
-          } catch (e) {
-            console.error("[dev-inspector] Failed to start standalone server:", e);
-            callback();
-          }
-        });
+          },
+        );
       },
 
       // Rollup-specific hooks

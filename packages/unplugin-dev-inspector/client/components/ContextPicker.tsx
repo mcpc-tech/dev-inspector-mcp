@@ -5,7 +5,7 @@ import { useContextData } from "../hooks/useContextData";
 import { usePageInfo } from "../hooks/usePageInfo";
 import { Loader2, RefreshCw, Code, Type, Search, X, Sparkles, Globe } from "lucide-react";
 import { cn } from "../lib/utils";
-import type { ConsoleMessage, NetworkRequest } from "../types";
+import type { ConsoleMessage, NetworkRequest, StdioMessage } from "../types";
 import { NetworkRequestItem } from "./NetworkRequestItem";
 import { useChat, type UIMessage } from "@ai-sdk/react";
 import { getDevServerBaseUrl } from "../utils/config-loader";
@@ -48,12 +48,15 @@ export interface SelectedContext {
     includePageInfo: boolean;
     consoleIds: number[];
     networkIds: number[];
+    stdioIds: number[];
     /** Selected related element indices (for region selection) */
     relatedElementIds: number[];
     /** Actual console message data (enriched at submission time) */
     consoleMessages?: ConsoleMessage[];
     /** Actual network request data with details (enriched at submission time) */
     networkRequests?: Array<NetworkRequest & { details?: string | null }>;
+    /** Actual stdio message data (enriched at submission time) */
+    stdioMessages?: StdioMessage[];
     /** Screenshot data URL (captured at inspection time) */
     screenshot?: string;
     /** AI reasoning for the selection */
@@ -73,6 +76,7 @@ interface ContextPickerProps {
     onDataReady?: (data: {
         consoleMessages: ConsoleMessage[];
         networkRequests: NetworkRequest[];
+        stdioMessages: StdioMessage[];
         networkDetails: Record<number, string>;
     }) => void;
     /** Whether the inspection is automated */
@@ -86,12 +90,13 @@ interface ContextPickerProps {
 interface ContextSelectorArgs {
     consoleIds?: number[];
     networkIds?: number[];
+    stdioIds?: number[];
     includeElement?: boolean;
     includeStyles?: boolean;
     reasoning?: string;
 }
 
-type TabType = "code" | "styles" | "screenshot" | "page" | "console" | "network";
+type TabType = "code" | "styles" | "screenshot" | "page" | "console" | "network" | "stdio";
 
 interface TabConfig {
     id: TabType;
@@ -134,7 +139,6 @@ export const ContextPicker: React.FC<ContextPickerProps> = ({
     onSelectionChange,
     screenshot,
     onDataReady,
-    isAutomated = false,
     userInput,
     selectedAgent = DEFAULT_AGENT
 }) => {
@@ -143,7 +147,8 @@ export const ContextPicker: React.FC<ContextPickerProps> = ({
     const [networkSearch, setNetworkSearch] = useState("");
     const [networkDetails, setNetworkDetails] = useState<Record<number, string>>({});
     const pageInfo = usePageInfo();
-    const { consoleMessages, networkRequests, loading, error, refresh } = useContextData(client, isClientReady, !isAutomated);
+    // Always fetch context data regardless of isAutomated - we have fallback logic for Chrome unavailable scenarios
+    const { consoleMessages, networkRequests, stdioMessages, loading, error, refresh } = useContextData(client, isClientReady, true);
 
     // Filtered lists
     const filteredConsole = consoleSearch
@@ -170,10 +175,10 @@ export const ContextPicker: React.FC<ContextPickerProps> = ({
 
     // Notify parent when data is ready
     useEffect(() => {
-        if (onDataReady && (consoleMessages.length > 0 || networkRequests.length > 0)) {
-            onDataReady({ consoleMessages, networkRequests, networkDetails });
+        if (onDataReady && (consoleMessages.length > 0 || networkRequests.length > 0 || stdioMessages.length > 0)) {
+            onDataReady({ consoleMessages, networkRequests, stdioMessages, networkDetails });
         }
-    }, [consoleMessages, networkRequests, networkDetails, onDataReady]);
+    }, [consoleMessages, networkRequests, stdioMessages, networkDetails, onDataReady]);
 
     const handleNetworkDetailsFetched = (reqid: number, details: string) => {
         setNetworkDetails(prev => ({ ...prev, [reqid]: details }));
@@ -193,6 +198,7 @@ export const ContextPicker: React.FC<ContextPickerProps> = ({
         (selectedContext.includePageInfo ? 1 : 0) +
         selectedContext.consoleIds.length +
         selectedContext.networkIds.length +
+        selectedContext.stdioIds.length +
         selectedContext.relatedElementIds.length;
 
     const toggleElement = () => {
@@ -216,6 +222,13 @@ export const ContextPicker: React.FC<ContextPickerProps> = ({
             ? selectedContext.consoleIds.filter((id) => id !== msgid)
             : [...selectedContext.consoleIds, msgid];
         onSelectionChange({ ...selectedContext, consoleIds: ids });
+    };
+
+    const toggleStdio = (id: number) => {
+        const ids = selectedContext.stdioIds.includes(id)
+            ? selectedContext.stdioIds.filter((sid) => sid !== id)
+            : [...selectedContext.stdioIds, id];
+        onSelectionChange({ ...selectedContext, stdioIds: ids });
     };
 
     const toggleRelatedElement = (idx: number) => {
@@ -264,6 +277,7 @@ export const ContextPicker: React.FC<ContextPickerProps> = ({
                     ...selectedContext,
                     consoleIds: finalArgs?.consoleIds || [],
                     networkIds: finalArgs?.networkIds || [],
+                    stdioIds: finalArgs?.stdioIds || [],
                     includeElement: finalArgs?.includeElement ?? true, // Default to true if not specified
                     includeStyles: finalArgs?.includeStyles ?? false, // Default to false if not specified
                     reasoning: finalArgs?.reasoning
@@ -278,8 +292,29 @@ export const ContextPicker: React.FC<ContextPickerProps> = ({
         if (!sourceInfo || isProcessing) return;
         setMessages([]);
 
-        const recentConsole = consoleMessages.slice(-MAX_RECENT_ITEMS).map(m => `[${m.msgid}] ${m.level}: ${m.text}`).join('\n');
-        const recentNetwork = networkRequests.slice(-MAX_RECENT_ITEMS).map(r => `[${r.reqid}] ${r.method} ${r.url}`).join('\n');
+        // Helper to truncate text
+        const truncate = (text: string, maxLength: number) =>
+            text.length > maxLength ? text.slice(0, maxLength) + "..." : text;
+
+        // Process recent logs (truncated and limited count)
+        const MAX_MSG_LEN = 200;
+
+        const recentConsole = consoleMessages
+            .slice(-MAX_RECENT_ITEMS)
+            .map(m => `[${m.msgid}] ${m.level}: ${truncate(m.text, MAX_MSG_LEN)}`)
+            .join('\n');
+
+        // Network: Only method, URL, status (no bodies/headers)
+        const recentNetwork = networkRequests
+            .slice(-MAX_RECENT_ITEMS)
+            .map(r => `[${r.reqid}] ${r.method} ${r.url} (${r.status})`)
+            .join('\n');
+
+        // Terminal: Truncated data
+        const recentStdio = stdioMessages
+            .slice(-MAX_RECENT_ITEMS)
+            .map(m => `[${m.stdioid}] ${m.stream}: ${truncate(m.data, MAX_MSG_LEN)}`)
+            .join('\n');
 
         const prompt = `
 I am inspecting the following element:
@@ -289,12 +324,15 @@ File: ${sourceInfo.file}:${sourceInfo.line}
 Component: ${sourceInfo.component}
 
 Available Console Logs (Recent ${MAX_RECENT_ITEMS}):
-${recentConsole}
+${recentConsole || "None"}
 
 Available Network Requests (Recent ${MAX_RECENT_ITEMS}):
-${recentNetwork}
+${recentNetwork || "None"}
 
-IMPORTANT: For this task, you MUST call the "context_selector" tool to return your selection. Do NOT use inspector tools like list_inspections, capture_element_context, update_inspection_status, or execute_page_script - the context is already provided above. You may read files if needed to understand the context better. Even if you select nothing, still call context_selector with empty arrays. Do not reply with text only.
+Available Terminal Logs (Recent ${MAX_RECENT_ITEMS}):
+${recentStdio || "None"}
+
+IMPORTANT: For this task, you MUST call the "context_selector" tool to return your selection. Do NOT use inspector tools like list_inspections, capture_element_context, update_inspection_status, or execute_page_script - the context is already provided above. You may read files if needed to understand the context better. Even if you select nothing, still call context_selector with empty arrays. Do not reply with text only. Note: You can ignore logs from dev-inspector itself.
 `;
         const currentAgent = AVAILABLE_AGENTS.find(a => a.name === selectedAgent) || AVAILABLE_AGENTS[0];
         await sendMessage(
@@ -331,6 +369,7 @@ IMPORTANT: For this task, you MUST call the "context_selector" tool to return yo
         { id: "screenshot", label: "Visual", selectedCount: selectedContext.includeScreenshot ? 1 : 0 },
         { id: "console", label: "Console", totalCount: consoleMessages.length, selectedCount: selectedContext.consoleIds.length },
         { id: "network", label: "Network", totalCount: networkRequests.length, selectedCount: selectedContext.networkIds.length },
+        { id: "stdio", label: "Terminal", totalCount: stdioMessages.length, selectedCount: selectedContext.stdioIds.length },
     ];
 
     return (
@@ -743,6 +782,41 @@ IMPORTANT: For this task, you MUST call the "context_selector" tool to return yo
                                         onDetailsFetched={handleNetworkDetailsFetched}
                                         cachedDetails={networkDetails[req.reqid]}
                                     />
+                                ))
+                            )}
+                        </div>
+                    )}
+
+                    {!loading && activeTab === "stdio" && (
+                        <div className="p-2 space-y-1">
+                            {stdioMessages.length === 0 ? (
+                                <p className="text-xs text-muted-foreground text-center py-4">
+                                    No terminal logs
+                                </p>
+                            ) : (
+                                stdioMessages.map((msg) => (
+                                    <label
+                                        key={msg.stdioid}
+                                        className="flex items-start gap-2 p-2 rounded hover:bg-accent/50 cursor-pointer transition-colors"
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedContext.stdioIds.includes(msg.stdioid)}
+                                            onChange={() => toggleStdio(msg.stdioid)}
+                                            className="mt-0.5 rounded border-border"
+                                        />
+                                        <span className={cn(
+                                            "px-1.5 py-0.5 text-[10px] font-medium rounded flex-shrink-0 border",
+                                            msg.stream === "stderr"
+                                                ? "bg-red-500/10 text-red-500 border-red-500/20"
+                                                : "bg-zinc-500/10 text-zinc-500 border-zinc-500/20"
+                                        )}>
+                                            {msg.stream}
+                                        </span>
+                                        <span className="text-xs text-foreground/90 flex-1 font-mono break-all whitespace-pre-wrap">
+                                            {msg.data}
+                                        </span>
+                                    </label>
                                 ))
                             )}
                         </div>

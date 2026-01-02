@@ -16,7 +16,7 @@ import { usePlanProgress } from "../hooks/usePlanProgress";
 import { ContextPicker, type SelectedContext } from "./ContextPicker";
 import { usePageInfo } from "../hooks/usePageInfo";
 import { formatCopyContext } from "../utils/format";
-import type { ConsoleMessage, NetworkRequest } from "../types";
+import type { ConsoleMessage, NetworkRequest, StdioMessage } from "../types";
 
 interface FeedbackBubbleProps {
   sourceInfo: InspectedElement;
@@ -58,16 +58,19 @@ export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
       includePageInfo: true, // Default checked - page context is helpful
       consoleIds: [],
       networkIds: [],
+      stdioIds: [],
       relatedElementIds: relatedCount > 0 ? Array.from({ length: relatedCount }, (_, i) => i) : [],
     };
   });
   const [contextData, setContextData] = useState<{
     consoleMessages: ConsoleMessage[];
     networkRequests: NetworkRequest[];
+    stdioMessages: StdioMessage[];
     networkDetails: Record<number, string>;
   }>({
     consoleMessages: [],
     networkRequests: [],
+    stdioMessages: [],
     networkDetails: {},
   });
 
@@ -76,13 +79,15 @@ export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
     selectedContext.includeElement ||
     selectedContext.includeStyles ||
     selectedContext.consoleIds.length > 0 ||
-    selectedContext.networkIds.length > 0,
+    selectedContext.networkIds.length > 0 ||
+    selectedContext.stdioIds.length > 0,
     [selectedContext]
   );
 
   const handleDataReady = (data: {
     consoleMessages: ConsoleMessage[];
     networkRequests: NetworkRequest[];
+    stdioMessages: StdioMessage[];
     networkDetails: Record<number, string>;
   }) => {
     setContextData(data);
@@ -107,6 +112,10 @@ export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
       selectedContext.consoleIds.includes(msg.msgid)
     );
 
+    const selectedStdio = contextData.stdioMessages.filter((msg) =>
+      selectedContext.stdioIds.includes(msg.stdioid)
+    );
+
     // Get network requests with their cached details
     const selectedNetwork = contextData.networkRequests
       .filter(req => selectedContext.networkIds.includes(req.reqid))
@@ -119,6 +128,7 @@ export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
       ...selectedContext,
       consoleMessages: selectedConsole,
       networkRequests: selectedNetwork,
+      stdioMessages: selectedStdio,
       screenshot: selectedContext.includeScreenshot ? screenshot : undefined,
     };
   };
@@ -135,6 +145,7 @@ export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
       feedback: feedback || undefined,
       consoleMessages: enrichedContext.consoleMessages.length > 0 ? enrichedContext.consoleMessages : undefined,
       networkRequests: enrichedContext.networkRequests.length > 0 ? enrichedContext.networkRequests : undefined,
+      stdioMessages: enrichedContext.stdioMessages?.length ? enrichedContext.stdioMessages : undefined,
       relatedElements: sourceInfo?.relatedElements,
       relatedElementIds: enrichedContext.relatedElementIds,
     });

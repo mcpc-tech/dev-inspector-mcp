@@ -1,10 +1,11 @@
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import type { Client } from "@modelcontextprotocol/sdk/client";
-import type { ConsoleMessage, NetworkRequest } from "../types";
+import type { ConsoleMessage, NetworkRequest, StdioMessage } from "../types";
 
 export interface ContextData {
   consoleMessages: ConsoleMessage[];
   networkRequests: NetworkRequest[];
+  stdioMessages: StdioMessage[];
   loading: boolean;
   error: string | null;
 }
@@ -23,6 +24,7 @@ export function useContextData(
   const [data, setData] = useState<ContextData>({
     consoleMessages: [],
     networkRequests: [],
+    stdioMessages: [],
     loading: false,
     error: null,
   });
@@ -45,6 +47,7 @@ export function useContextData(
     try {
       let consoleText = "";
       let networkText = "";
+      let stdioMessagesOrEmpty: StdioMessage[] = [];
 
       try {
         // Try using tools first (Chrome enabled mode)
@@ -66,10 +69,12 @@ export function useContextData(
           },
         });
 
-        const consoleContent = (consoleResult as { content?: Array<{ text?: string }> })?.content;
+        const consoleContent =
+          (consoleResult as { content?: Array<{ text?: string }> })?.content;
         consoleText = consoleContent?.map((item) => item.text).join("\n") || "";
 
-        const networkContent = (networkResult as { content?: Array<{ text?: string }> })?.content;
+        const networkContent =
+          (networkResult as { content?: Array<{ text?: string }> })?.content;
         networkText = networkContent?.map((item) => item.text).join("\n") || "";
       } catch (e) {
         // Fallback to prompts (Chrome disabled / local mode)
@@ -82,8 +87,12 @@ export function useContextData(
         // However, the prompt result structure might be different (list of messages).
 
         try {
-          const consolePrompt = await client.getPrompt({ name: "get_console_messages" });
-          const networkPrompt = await client.getPrompt({ name: "get_network_requests" });
+          const consolePrompt = await client.getPrompt({
+            name: "get_console_messages",
+          });
+          const networkPrompt = await client.getPrompt({
+            name: "get_network_requests",
+          });
 
           // The prompt result messages content is where the text is.
           // In local mode mcp.ts, we return a single message with combined text.
@@ -101,17 +110,49 @@ export function useContextData(
           consoleText = fullText;
           networkText = fullText;
         } catch (promptError) {
-          console.error("[useContextData] Prompts fallback failed:", promptError);
+          console.error(
+            "[useContextData] Prompts fallback failed:",
+            promptError,
+          );
           throw e; // Throw original error if fallback fails
         }
       }
 
+      // Try getting stdio messages via Direct API (bypassing MCP) - Independent of Chrome
+      try {
+        const config = typeof window !== "undefined"
+          ? (window as any).__DEV_INSPECTOR_CONFIG__
+          : null;
+        let baseUrl = "";
+        if (config) {
+          baseUrl = config.baseUrl ||
+            (`http://${config.host}:${config.port}${config.base || "/"}`);
+          if (baseUrl.endsWith("/")) baseUrl = baseUrl.slice(0, -1);
+        }
+
+        const res = await fetch(`${baseUrl}/__inspector__/stdio`);
+        if (res.ok) {
+          const logs = await res.json();
+          // logs is Array<{id, stream, data, timestamp}> (server StdioLog)
+          // client StdioMessage is { stdioid, stream, data }
+          stdioMessagesOrEmpty = logs.map((log: any) => ({
+            stdioid: log.id,
+            stream: log.stream,
+            data: log.data,
+          })).reverse(); // Newest first
+        }
+      } catch (e) {
+        console.warn("[useContextData] Failed to fetch stdio messages:", e);
+      }
+
       const consoleMessages = parseConsoleMessages(consoleText);
       const networkRequests = parseNetworkRequests(networkText);
+      const stdioMessages = stdioMessagesOrEmpty;
 
       setData({
         consoleMessages,
         networkRequests,
+        stdioMessages,
         loading: false,
         error: null,
       });
@@ -167,7 +208,9 @@ function parseNetworkRequests(text: string): NetworkRequest[] {
   const lines = text.split("\n");
 
   for (const line of lines) {
-    const match = line.match(/reqid=(\d+)\s+(GET|POST|PUT|DELETE|PATCH)\s+([^\s]+)\s+\[([^\]]+)\]/);
+    const match = line.match(
+      /reqid=(\d+)\s+(GET|POST|PUT|DELETE|PATCH)\s+([^\s]+)\s+\[([^\]]+)\]/,
+    );
     if (match) {
       const [, reqid, method, url, status] = match;
       requests.push({

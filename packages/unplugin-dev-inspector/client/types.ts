@@ -169,6 +169,13 @@ export interface NetworkRequest {
   timestamp?: number;
 }
 
+export interface StdioMessage {
+  stdioid: number;
+  stream: "stdout" | "stderr";
+  data: string;
+  timestamp?: number;
+}
+
 // Page context information
 export interface PageInfo {
   url: string;
