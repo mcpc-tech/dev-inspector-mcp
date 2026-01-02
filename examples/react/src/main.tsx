@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
+
 import { registerInspectorTool } from 'virtual:dev-inspector-mcp'
 
 // Example: Register a custom tool for inspecting React component state

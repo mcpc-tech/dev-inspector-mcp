@@ -8,6 +8,7 @@ export default defineConfig({
   plugins: [
     DevInspector.vite({
       enabled: true,
+      entry: "app/root.tsx",
     }),
     tailwindcss(),
     reactRouter(),

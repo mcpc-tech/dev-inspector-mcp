@@ -1,4 +1,5 @@
 import { createUnplugin } from "unplugin";
+import path from "path";
 import type { Connect } from "vite";
 import { setupMcpMiddleware } from "../middleware/mcproute-middleware";
 import { setupInspectorMiddleware } from "../middleware/inspector-middleware";
@@ -111,7 +112,21 @@ export interface DevInspectorOptions extends McpConfigOptions, AcpOptions {
    * Set to false if you only want to use the editor integration
    * @default true
    */
+  /**
+   * Whether to show the inspector bar UI
+   * Set to false if you only want to use the editor integration
+   * @default true
+   */
   showInspectorBar?: boolean;
+
+  /**
+   * Entry file to safely inject the inspector import.
+   * Useful when `autoInject: false` or when using a framework where HTML injection is insufficient.
+   * Can also be set via `DEV_INSPECTOR_ENTRY` environment variable.
+   *
+   * @example "src/main.tsx"
+   */
+  entry?: string;
 }
 
 export type TransformFunction = (
@@ -145,10 +160,32 @@ export const createDevInspectorPlugin = (
 
     const chromeDisabled = isChromeDisabled(options.disableChrome);
 
+    // Resolve entry file for auto-injection
+    const entryOption = process.env.DEV_INSPECTOR_ENTRY || options.entry;
+    const resolvedEntry = entryOption
+      ? path.resolve(process.cwd(), entryOption)
+      : null;
+
     const transform: TransformFunction = (code, id) => {
       // Never transform production builds.
       if (!enabled) return null;
       if (viteCommand && viteCommand !== "serve") return null;
+
+      // Auto-inject import if this is the entry file
+      if (resolvedEntry && id === resolvedEntry) {
+        // Prepend the import
+        const injection = `import '${virtualModuleName}';\n`;
+        // Pass modified code to transformImpl or return it
+        const result = transformImpl(code, id);
+        if (typeof result === "string") {
+          return injection + result;
+        } else if (result && typeof result === "object" && "code" in result) {
+          return { ...result, code: injection + result.code };
+        } else {
+          return injection + code;
+        }
+      }
+
       return transformImpl(code, id);
     };
 
@@ -182,11 +219,16 @@ export function registerInspectorTool(_tool) {
           }
 
           // Use resolved host/port from Vite config
+          // Use resolved host/port from Vite config
           const host = resolvedHost;
           const port = resolvedPort;
           const showInspectorBar = options.showInspectorBar ?? true;
-          const publicBaseUrl = options.publicBaseUrl ||
-            process.env.DEV_INSPECTOR_PUBLIC_BASE_URL;
+          // Use helper to respect Env > Option priority
+          const publicBaseUrl = getPublicBaseUrl({
+            publicBaseUrl: options.publicBaseUrl,
+            host,
+            port,
+          });
           const injectedBaseUrl = publicBaseUrl
             ? stripTrailingSlash(publicBaseUrl)
             : undefined;
@@ -302,8 +344,12 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
             const port = options.port ?? server?.config.server.port ?? 5173;
             const base = server?.config.base ?? "/";
             const showInspectorBar = options.showInspectorBar ?? true;
-            const publicBaseUrl = options.publicBaseUrl ||
-              process.env.DEV_INSPECTOR_PUBLIC_BASE_URL;
+            // Use helper to respect Env > Option priority
+            const publicBaseUrl = getPublicBaseUrl({
+              publicBaseUrl: options.publicBaseUrl,
+              host,
+              port,
+            });
 
             // Use 'localhost' for display when host is '0.0.0.0'
             const displayHost = host === "0.0.0.0" ? "localhost" : host;

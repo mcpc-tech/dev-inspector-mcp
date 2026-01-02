@@ -10,6 +10,7 @@ export default defineConfig({
       enabled: true,
       autoOpenBrowser: false,
       autoInject: false,
+      entry: 'src/main.ts',
     }),
   ],
 });

@@ -6,7 +6,6 @@ import {
   Scripts,
   ScrollRestoration,
 } from "react-router";
-import 'virtual:dev-inspector-mcp';
 
 import type { Route } from "./+types/root";
 import "./app.css";

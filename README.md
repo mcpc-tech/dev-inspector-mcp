@@ -152,15 +152,13 @@ If your project doesn't use HTML files (e.g., miniapp platforms that only bundle
 
 ```typescript
 // vite.config.ts
+```typescript
+// vite.config.ts
 DevInspector.vite({
   enabled: true,
-  autoInject: false  // Disable HTML injection
+  autoInject: false,  // Disable HTML injection
+  entry: 'src/main.ts' // Inject inspector into entry file
 })
-```
-
-```typescript
-// main.ts or app entry point
-import 'virtual:dev-inspector-mcp';  // ← Add this import
 ```
 
 ##### TypeScript Types (Required for `virtual:dev-inspector-mcp`)
@@ -270,15 +268,6 @@ export default function RootLayout({ children }) {
 
 ### React Router v7+
 
-Since React Router handles HTML generation via its own SSR/SPA mechanism, it bypasses the standard Vite HTML transformation hooks. You need to manually import the virtual module in your entry file.
-
-```typescript
-// app/root.tsx or app/entry.client.tsx
-import 'virtual:dev-inspector-mcp';
-```
-
-And ensure your `vite.config.ts` has the plugin:
-
 ```typescript
 // vite.config.ts
 import { reactRouter } from "@react-router/dev/vite";
@@ -286,7 +275,10 @@ import DevInspector from '@mcpc-tech/unplugin-dev-inspector-mcp';
 
 export default defineConfig({
   plugins: [
-    DevInspector.vite({ enabled: true }),
+    DevInspector.vite({
+      enabled: true,
+      entry: "app/root.tsx" // Inject inspector into root layout
+    }),
     reactRouter(),
   ],
 });
