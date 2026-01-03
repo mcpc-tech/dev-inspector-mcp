@@ -6,6 +6,26 @@ export interface StandaloneServerOptions {
   host?: string;
 }
 
+/**
+ * Default port for the standalone server.
+ * Can be overridden via DEV_INSPECTOR_PORT environment variable.
+ */
+export const DEFAULT_PORT = 5172;
+
+/**
+ * Get the configured port from environment variable or default.
+ */
+export function getDefaultPort(): number {
+  const envPort = process.env.DEV_INSPECTOR_PORT;
+  if (envPort) {
+    const parsed = parseInt(envPort, 10);
+    if (!isNaN(parsed) && parsed > 0 && parsed < 65536) {
+      return parsed;
+    }
+  }
+  return DEFAULT_PORT;
+}
+
 // Basic Connect-compatible server implementation
 export class StandaloneServer {
   private server: http.Server;
@@ -86,7 +106,7 @@ export class StandaloneServer {
   }
 
   async start(options: StandaloneServerOptions = {}): Promise<{ host: string; port: number }> {
-    const startPort = options.port || 8888;
+    const startPort = options.port || getDefaultPort();
     this.host = options.host || "localhost";
 
     // Try to find a free port
