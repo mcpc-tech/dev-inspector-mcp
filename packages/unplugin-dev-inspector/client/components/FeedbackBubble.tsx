@@ -104,7 +104,12 @@ export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && onSubmit) {
       e.preventDefault();
+      // Blur the textarea to prevent focus ring persistence on the inspector container
+      (e.currentTarget as HTMLTextAreaElement).blur();
+
       const enrichedContext = hasContext ? prepareEnrichedContext() : undefined;
+      // Shift + Enter = Submit & Continue
+      // Enter = Submit & Close
       onSubmit(feedback, e.shiftKey, enrichedContext);
     }
   };
