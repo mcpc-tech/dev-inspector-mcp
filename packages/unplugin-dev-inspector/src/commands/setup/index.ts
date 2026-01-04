@@ -20,6 +20,7 @@ export async function runSetupCommand() {
   let autoOpenBrowser: boolean | undefined;
   let defaultAgent: string | undefined;
   let visibleAgents: string[] | undefined;
+  let publicBaseUrl: string | undefined;
   let jsonOptions: Record<string, any> | undefined;
 
   // Parse flags
@@ -55,6 +56,9 @@ export async function runSetupCommand() {
       i++;
     } else if (args[i] === "--visible-agents" && args[i + 1]) {
       visibleAgents = args[i + 1].split(',').map(a => a.trim()).filter(Boolean);
+      i++;
+    } else if (args[i] === "--public-base-url" && args[i + 1]) {
+      publicBaseUrl = args[i + 1];
       i++;
     } else if (args[i] === "--options" && args[i + 1]) {
       try {
@@ -160,6 +164,7 @@ export async function runSetupCommand() {
       autoOpenBrowser,
       defaultAgent,
       visibleAgents,
+      publicBaseUrl,
       jsonOptions
     };
     
@@ -244,6 +249,7 @@ Options:
   --auto-open-browser     Auto open browser on start
   --default-agent <name>  Set default agent name
   --visible-agents <list> Comma-separated list of visible agents
+  --public-base-url <url> Set public base URL (e.g. https://dev.example.com)
   --options <json>        JSON string for advanced options (merges with flags)
   --dry-run               Preview changes without applying them
   --help, -h              Show this help message

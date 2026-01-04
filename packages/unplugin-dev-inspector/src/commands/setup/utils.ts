@@ -59,6 +59,7 @@ export function getPluginOptions(options: SetupOptions, indent: number = 6): str
   if (options.autoOpenBrowser !== undefined) config.autoOpenBrowser = options.autoOpenBrowser;
   if (options.defaultAgent !== undefined) config.defaultAgent = options.defaultAgent;
   if (options.visibleAgents !== undefined) config.visibleAgents = options.visibleAgents;
+  if (options.publicBaseUrl !== undefined) config.publicBaseUrl = options.publicBaseUrl;
 
   // 4. Serialize
   return serializeObject(config, indent);

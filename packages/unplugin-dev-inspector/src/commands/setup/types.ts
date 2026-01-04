@@ -13,6 +13,7 @@ export interface SetupOptions {
   autoOpenBrowser?: boolean;
   defaultAgent?: string;
   visibleAgents?: string[];
+  publicBaseUrl?: string;
   jsonOptions?: Record<string, any>;
 }
 
