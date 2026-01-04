@@ -352,13 +352,12 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
 
 
 
-  const handleAgentSubmit = (query: string, agentName: string, sessionId?: string) => {
-    const currentAgent = AVAILABLE_AGENTS.find((a) => a.name === agentName) || AVAILABLE_AGENTS[0];
+  const handleAgentSubmit = (query: string, agent: any, sessionId?: string) => {
     sendMessage(
       { text: query },
       {
         body: {
-          agent: currentAgent,
+          agent,
           envVars: {},
           sessionId,
         },

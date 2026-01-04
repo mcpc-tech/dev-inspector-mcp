@@ -11,7 +11,6 @@ import {
   Square,
   Info,
   BoxSelect,
-
 } from "lucide-react";
 import { Shimmer } from "../../src/components/ai-elements/shimmer";
 import type { UIMessage } from "ai";
@@ -23,13 +22,14 @@ import { useIslandState } from "../hooks/useIslandState";
 import { AVAILABLE_AGENTS, DEFAULT_AGENT } from "../constants/agents";
 import { useDraggable } from "../hooks/useDraggable";
 import { useAgent } from "../hooks/useAgent";
-import { getDevServerBaseUrl } from "../utils/config-loader";
+import type { Agent } from "../constants/types";
+import { getAvailableAgents, getDevServerBaseUrl } from "../utils/config-loader";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
 
 interface InspectorBarProps {
   isActive: boolean;
   onToggleInspector: () => void;
-  onSubmitAgent: (query: string, agentName: string, sessionId?: string) => void;
+  onSubmitAgent: (query: string, agent: Agent, sessionId?: string) => void;
   onCancel?: () => void;
   isAgentWorking: boolean;
   messages: UIMessage[];
@@ -70,9 +70,17 @@ export const InspectorBar = ({
   const [allowHover, setAllowHover] = useState(true);
 
   const { agent: selectedAgent, setAgent: setSelectedAgent, isReady } = useAgent(DEFAULT_AGENT);
+  const [availableAgents, setAvailableAgents] = useState<Agent[]>(AVAILABLE_AGENTS);
   const [isAgentSelectorOpen, setIsAgentSelectorOpen] = useState(false);
   const [configInfoAgent, setConfigInfoAgent] = useState<string | null>(null);
   const [showContextDialog, setShowContextDialog] = useState(false);
+
+  // Load available agents (merged with server config)
+  useEffect(() => {
+    getAvailableAgents().then(agents => {
+      setAvailableAgents(agents);
+    });
+  }, []);
 
   // Notify parent when agent changes (including initial load)
   useEffect(() => {
@@ -125,7 +133,7 @@ export const InspectorBar = ({
 
     let mounted = true;
     const currentAgent =
-      AVAILABLE_AGENTS.find((a) => a.name === selectedAgent) || AVAILABLE_AGENTS[0];
+      availableAgents.find((a) => a.name === selectedAgent) || availableAgents[0] || AVAILABLE_AGENTS[0];
 
     const initSession = async () => {
       // Cleanup previous session if existence
@@ -174,7 +182,7 @@ export const InspectorBar = ({
     return () => {
       mounted = false;
     };
-  }, [selectedAgent, isReady, toolsReady]);
+  }, [selectedAgent, isReady, toolsReady, availableAgents]);
 
   // Cleanup on refresh/close (best-effort)
   useEffect(() => {
@@ -205,7 +213,7 @@ export const InspectorBar = ({
 
   // Get current agent info
   const currentAgent =
-    AVAILABLE_AGENTS.find((a) => a.name === selectedAgent) || AVAILABLE_AGENTS[0];
+    availableAgents.find((a) => a.name === selectedAgent) || availableAgents[0] || AVAILABLE_AGENTS[0];
 
   // Use custom draggable hook
   const { elementRef: containerRef, isDragging, handleMouseDown } = useDraggable();
@@ -302,7 +310,8 @@ export const InspectorBar = ({
     // Clear inspection status for new query
     setInspectionStatus(null);
 
-    onSubmitAgent(input, selectedAgent, sessionId || undefined);
+    const agentToSubmit = availableAgents.find((a) => a.name === selectedAgent) || availableAgents[0] || AVAILABLE_AGENTS[0];
+    onSubmitAgent(input, agentToSubmit, sessionId || undefined);
     setInput("");
 
     // Auto-expand chat panel to show message detail
@@ -582,7 +591,7 @@ export const InspectorBar = ({
                   title="Select Agent"
                 >
                   <img
-                    src={AVAILABLE_AGENTS.find((a) => a.name === selectedAgent)?.meta?.icon}
+                    src={availableAgents.find((a) => a.name === selectedAgent)?.meta?.icon}
                     alt={selectedAgent}
                     className="w-3.5 h-3.5"
                   />
@@ -595,7 +604,7 @@ export const InspectorBar = ({
                       onClick={() => setIsAgentSelectorOpen(false)}
                     />
                     <div className="absolute bottom-full left-0 mb-2 w-64 bg-popover border border-border rounded-lg shadow-lg overflow-hidden z-[999999] animate-in fade-in zoom-in-95 duration-200">
-                      {AVAILABLE_AGENTS.map((agent) => (
+                      {availableAgents.map((agent) => (
                         <div
                           key={agent.name}
                           className={cn(
@@ -722,7 +731,7 @@ export const InspectorBar = ({
 
       {/* Config Info Modal - using Dialog component */}
       {configInfoAgent && (() => {
-        const agent = AVAILABLE_AGENTS.find(a => a.name === configInfoAgent);
+        const agent = availableAgents.find(a => a.name === configInfoAgent);
         if (!agent) return null;
         return (
           <Dialog open={!!configInfoAgent} onOpenChange={() => setConfigInfoAgent(null)}>
