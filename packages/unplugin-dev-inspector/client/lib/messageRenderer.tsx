@@ -15,6 +15,103 @@ import { Plan, PlanHeader, PlanContent, PlanTrigger } from "../../src/components
 import { CodeBlock } from "../../src/components/ai-elements/code-block";
 import type { ProviderAgentDynamicToolInput } from "@mcpc-tech/acp-ai-provider";
 
+// MCP content item types
+interface McpTextContent {
+  type: "text";
+  text: string;
+}
+
+interface McpImageContent {
+  type: "image";
+  data: string;
+  mimeType: string;
+}
+
+type McpContentItem = McpTextContent | McpImageContent | Record<string, unknown>;
+
+/**
+ * Render MCP content items (supports text and image types)
+ */
+function renderMcpContent(output: unknown, keyPrefix: string): React.ReactNode {
+  // Check if output has MCP content array structure
+  if (
+    output &&
+    typeof output === "object" &&
+    "content" in output &&
+    Array.isArray((output as { content: unknown[] }).content)
+  ) {
+    const contentItems = (output as { content: McpContentItem[] }).content;
+    return renderMcpContentItems(contentItems, keyPrefix);
+  }
+
+  // Handle case where ACP provider wraps content array in a JSON string
+  // Output format: { type: "text", text: "[{\"type\":\"text\",...}, ...]" }
+  if (
+    output &&
+    typeof output === "object" &&
+    "type" in output &&
+    (output as any).type === "text" &&
+    "text" in output &&
+    typeof (output as any).text === "string"
+  ) {
+    try {
+      const text = (output as any).text;
+      if (text.trim().startsWith("[") && text.trim().endsWith("]")) {
+        const parsed = JSON.parse(text);
+        if (Array.isArray(parsed)) {
+          return renderMcpContentItems(parsed as McpContentItem[], keyPrefix);
+        }
+      }
+    } catch {
+      // Ignore parse errors and fall back to default rendering
+    }
+  }
+
+  // Fallback: render as JSON
+  return <CodeBlock code={JSON.stringify(output, null, 2)} language="json" />;
+}
+
+function renderMcpContentItems(contentItems: McpContentItem[], keyPrefix: string) {
+  return (
+    <div className="space-y-2">
+      {contentItems.map((item, idx) => {
+        if (item.type === "text" && "text" in item) {
+          const textItem = item as McpTextContent;
+          return (
+            <CodeBlock
+              key={`${keyPrefix}-text-${idx}`}
+              code={textItem.text}
+              language="markdown"
+            />
+          );
+        }
+        if (item.type === "image" && "data" in item && "mimeType" in item) {
+          const imageItem = item as McpImageContent;
+          const src = `data:${imageItem.mimeType};base64,${imageItem.data}`;
+          return (
+            <div key={`${keyPrefix}-image-${idx}`} className="rounded-md overflow-hidden">
+              <img
+                src={src}
+                alt="MCP tool result"
+                className="max-w-full h-auto rounded-md border border-border"
+                style={{ maxHeight: "300px", objectFit: "contain" }}
+              />
+            </div>
+          );
+        }
+        // Fallback for other content types
+        return (
+          <CodeBlock
+            key={`${keyPrefix}-other-${idx}`}
+            code={JSON.stringify(item, null, 2)}
+            language="json"
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 type UITool = { name?: string };
 type UIMessagePart<TMeta = Record<string, unknown>, _TToolMap = Record<string, UITool>> =
   | {
@@ -180,9 +277,7 @@ export function renderMessagePart(
           {hasOutput && (
             <ToolOutput
               output={
-                part.output ? (
-                  <CodeBlock code={JSON.stringify(part.output, null, 2)} language="json" />
-                ) : null
+                part.output ? renderMcpContent(part.output, `${messageId}-${index}`) : null
               }
               errorText={part.errorText as string | undefined}
             />

@@ -137,12 +137,7 @@ async function loadMcpToolsV5(
           name: toolName,
           arguments: args,
         });
-        const parsedResult = CallToolResultSchema.safeParse(result);
-        if (!parsedResult.success) {
-          return result;
-        }
-        // TODO: handle more than text content
-        return parsedResult.data?.content?.map((item) => item?.text).join("\n");
+        return result;
       },
     });
   }

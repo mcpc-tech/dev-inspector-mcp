@@ -11,6 +11,7 @@ import {
   Square,
   Info,
   BoxSelect,
+
 } from "lucide-react";
 import { Shimmer } from "../../src/components/ai-elements/shimmer";
 import type { UIMessage } from "ai";
@@ -67,6 +68,7 @@ export const InspectorBar = ({
   const [input, setInput] = useState("");
   const [activePanel, setActivePanel] = useState<"none" | "inspections" | "chat">("none");
   const [allowHover, setAllowHover] = useState(true);
+
   const { agent: selectedAgent, setAgent: setSelectedAgent, isReady } = useAgent(DEFAULT_AGENT);
   const [isAgentSelectorOpen, setIsAgentSelectorOpen] = useState(false);
   const [configInfoAgent, setConfigInfoAgent] = useState<string | null>(null);
@@ -372,7 +374,7 @@ export const InspectorBar = ({
         >
           <div
             className={cn(
-              "flex items-center transition-opacity duration-300 w-full relative",
+              "flex items-center transition-opacity duration-150 w-full relative",
               showInput
                 ? "absolute left-3 opacity-0 pointer-events-none"
                 : "relative opacity-100",
@@ -505,7 +507,7 @@ export const InspectorBar = ({
 
           <div
             className={cn(
-              "flex items-center w-full gap-3 transition-all duration-500 delay-75",
+              "flex items-center w-full gap-3 transition-all duration-150",
               showInput
                 ? "opacity-100 translate-y-0 relative pointer-events-auto"
                 : "opacity-0 translate-y-4 pointer-events-none absolute top-2 left-4 right-2",

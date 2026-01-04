@@ -666,8 +666,8 @@ importers:
         specifier: ^1.3.0
         version: 1.3.0
       '@mcpc-tech/acp-ai-provider':
-        specifier: ^0.1.43
-        version: 0.1.43
+        specifier: ^0.1.49
+        version: 0.1.49
       '@mcpc-tech/cmcp':
         specifier: ^0.0.15
         version: 0.0.15
@@ -2430,6 +2430,9 @@ packages:
 
   '@mcpc-tech/acp-ai-provider@0.1.43':
     resolution: {integrity: sha512-gsb7CWXbPXWBx+XvX8HjjMpseOQws+b8MLknvdqGsty5ByGWAx7cLfTCpbw2D/qU8h5gyvSOR+XpsL4MRE3MpA==}
+
+  '@mcpc-tech/acp-ai-provider@0.1.49':
+    resolution: {integrity: sha512-yCeUlFSa9JjbGumX/2UqPPTZPvcZdPnLOHUKAFktQITF7PJZ8PgIt6DBfUZ6l082lwv0uJtb8Y5pWvVbaJcLQA==}
 
   '@mcpc-tech/cmcp@0.0.15':
     resolution: {integrity: sha512-o03iDZpacozvQTn5F0e2UvwPMinJSUZKzoGIQ1HzXnfkYdBvvrKCsU+xN3coMZ7NKMKt3iU+OMXio7u1Pud3YQ==}
@@ -10883,6 +10886,17 @@ snapshots:
       '@ai-sdk/provider': 2.0.0
       ai: 5.0.113(zod@3.25.76)
       zod: 3.25.76
+
+  '@mcpc-tech/acp-ai-provider@0.1.49':
+    dependencies:
+      '@agentclientprotocol/sdk': 0.4.9
+      '@ai-sdk/provider': 2.0.0
+      '@modelcontextprotocol/sdk': 1.24.3(zod@3.25.76)
+      ai: 5.0.113(zod@3.25.76)
+      zod: 3.25.76
+    transitivePeerDependencies:
+      - '@cfworker/json-schema'
+      - supports-color
 
   '@mcpc-tech/cmcp@0.0.15':
     dependencies:
