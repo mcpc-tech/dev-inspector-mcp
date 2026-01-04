@@ -15,6 +15,12 @@ export async function runSetupCommand() {
   let entryPath: string | undefined;
   let host: string | undefined;
   const allowedHosts: string[] = [];
+  let updateConfig: boolean | undefined;
+  let disableChrome: boolean | undefined;
+  let autoOpenBrowser: boolean | undefined;
+  let defaultAgent: string | undefined;
+  let visibleAgents: string[] | undefined;
+  let jsonOptions: Record<string, any> | undefined;
 
   // Parse flags
   for (let i = 0; i < args.length; i++) {
@@ -37,6 +43,26 @@ export async function runSetupCommand() {
       i++;
     } else if (args[i] === "--bundler" && args[i + 1]) {
       bundlerType = args[i + 1];
+      i++;
+    } else if (args[i] === "--no-update-config") {
+      updateConfig = false;
+    } else if (args[i] === "--disable-chrome") {
+      disableChrome = true;
+    } else if (args[i] === "--auto-open-browser") {
+      autoOpenBrowser = true;
+    } else if (args[i] === "--default-agent" && args[i + 1]) {
+      defaultAgent = args[i + 1];
+      i++;
+    } else if (args[i] === "--visible-agents" && args[i + 1]) {
+      visibleAgents = args[i + 1].split(',').map(a => a.trim()).filter(Boolean);
+      i++;
+    } else if (args[i] === "--options" && args[i + 1]) {
+      try {
+        jsonOptions = JSON.parse(args[i + 1]);
+      } catch (e) {
+        console.error("❌ Failed to parse JSON options:", e);
+        process.exit(1);
+      }
       i++;
     } else if (args[i] === "--help" || args[i] === "-h") {
       printHelp();
@@ -123,7 +149,19 @@ export async function runSetupCommand() {
     // Transform
     console.log(`\n${dryRun ? "🔍 Previewing" : "🔧 Transforming"} ${selectedBundler} config...`);
     const code = readFileSync(selectedConfigPath, "utf-8");
-    const options: SetupOptions = { dryRun, configPath: selectedConfigPath, entryPath, host, allowedHosts };
+    const options: SetupOptions = { 
+      dryRun, 
+      configPath: selectedConfigPath, 
+      entryPath, 
+      host, 
+      allowedHosts,
+      updateConfig,
+      disableChrome,
+      autoOpenBrowser,
+      defaultAgent,
+      visibleAgents,
+      jsonOptions
+    };
     
     const framework = frameworks.find(f => f.type === selectedBundler);
     if (!framework) {
@@ -201,6 +239,12 @@ Options:
   --bundler <type>        Specify bundler type: vite, webpack, nextjs
   --host <string>         Specify server host (e.g. 0.0.0.0)
   --allowed-hosts <list>  Specify allowed hosts (comma-separated)
+  --no-update-config      Disable auto MCP config updates
+  --disable-chrome        Disable Chrome DevTools integration
+  --auto-open-browser     Auto open browser on start
+  --default-agent <name>  Set default agent name
+  --visible-agents <list> Comma-separated list of visible agents
+  --options <json>        JSON string for advanced options (merges with flags)
   --dry-run               Preview changes without applying them
   --help, -h              Show this help message
 `);

@@ -8,6 +8,12 @@ export interface SetupOptions {
   host?: string;
   allowedHosts?: string[];
   noBackup?: boolean;
+  updateConfig?: boolean;
+  disableChrome?: boolean;
+  autoOpenBrowser?: boolean;
+  defaultAgent?: string;
+  visibleAgents?: string[];
+  jsonOptions?: Record<string, any>;
 }
 
 export interface TransformResult {
