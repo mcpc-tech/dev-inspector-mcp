@@ -134,7 +134,7 @@ export async function runSetupCommand() {
     }
 
     // Execution
-    const installed = installPackage("@mcpc-tech/unplugin-dev-inspector-mcp", true);
+    const installed = installPackage("@mcpc-tech/unplugin-dev-inspector-mcp@latest", true);
     if (!installed) {
       console.warn("⚠️  Package installation failed, but setup will continue with config transformation.");
     }

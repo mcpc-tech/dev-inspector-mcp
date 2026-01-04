@@ -38,7 +38,7 @@ export function getDevServerBaseUrl(): string {
 
   // Default: dev-style host/port (standalone server default port)
   const host = injectedConfig?.host || "localhost";
-  const port = injectedConfig?.port || "5172";
+  const port = injectedConfig?.port || "5137";
   return `http://${host}:${port}${base}`.replace(/\/$/, "");
 }
 

@@ -12,6 +12,7 @@ export async function runServerCommand() {
   // Parse CLI arguments
   let port = 8888;
   let host = "localhost";
+  const allowedHosts: string[] = [];
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--port" && args[i + 1]) {
@@ -19,6 +20,11 @@ export async function runServerCommand() {
       i++;
     } else if (args[i] === "--host" && args[i + 1]) {
       host = args[i + 1];
+      i++;
+    } else if (args[i] === "--allowed-hosts" && args[i + 1]) {
+      // Split by comma
+      const hosts = args[i + 1].split(',').map(h => h.trim()).filter(Boolean);
+      allowedHosts.push(...hosts);
       i++;
     } else if (args[i] === "--help" || args[i] === "-h") {
       console.log(`
@@ -37,10 +43,11 @@ Usage:
 Options:
   --port <number>   Port to run the server on (default: 8888)
   --host <string>   Host to bind to (default: localhost)
+  --allowed-hosts <string>  Comma-separated list of allowed hosts (e.g. "example.com,.my-ide.com")
   --help, -h        Show this help message
 
 Example:
-  npx dev-inspector-server --port 3001
+  npx dev-inspector-server --port 3001 --host 0.0.0.0 --allowed-hosts my-ide.example.com
 `);
       process.exit(0);
     }
@@ -51,7 +58,7 @@ Example:
       server,
       host: actualHost,
       port: actualPort,
-    } = await startStandaloneServer({ port, host });
+    } = await startStandaloneServer({ port, host, allowedHosts });
 
     const serverContext = {
       host: actualHost,

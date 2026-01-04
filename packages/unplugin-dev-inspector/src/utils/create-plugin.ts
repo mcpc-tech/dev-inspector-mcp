@@ -34,8 +34,8 @@ export interface DevInspectorOptions extends McpConfigOptions, AcpOptions {
    * Custom port for MCP server URL
    * Useful when behind a proxy or port forwarding (e.g., Docker, SSH tunnels)
    * Can also be set via DEV_INSPECTOR_PORT environment variable
-   * @default 5172
-   * @example 3000
+   * @default 5137
+   * @example 5137
    */
   port?: number;
 
@@ -151,20 +151,23 @@ export const createDevInspectorPlugin = (
 
     // Standalone server instance (shared between Vite and Webpack)
     let standaloneServerStarted = false;
-    let resolvedHost = options.host || "localhost";
-    let resolvedPort = options.port || 5172;
+    let resolvedHost: string = "localhost";
+    let resolvedPort = options.port || 5137;
 
     const transformImpl = transformFactory(options);
     const chromeDisabled = isChromeDisabled(options.disableChrome);
 
     // Start standalone server for MCP/Inspector (unified for all bundlers)
-    const ensureStandaloneServer = async (root: string) => {
+    const ensureStandaloneServer = async (
+      root: string,
+    ) => {
       if (standaloneServerStarted) return;
       standaloneServerStarted = true;
 
       const { server, host, port } = await startStandaloneServer({
         port: options.port,
-        host: options.host,
+        // Host is handled internally by StandaloneServer (defaults to 0.0.0.0)
+        // allowedHosts not passed from plugin options anymore per user request
       });
 
       resolvedHost = host;
@@ -449,6 +452,9 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
 
         async configureServer(server) {
           if (!enabled) return;
+          
+          if (!enabled) return;
+
           // Start standalone server for MCP/Inspector
           await ensureStandaloneServer(server.config.root);
         },
