@@ -5,6 +5,8 @@ export interface SetupOptions {
   configPath?: string;
   bundlerType?: BundlerType;
   entryPath?: string;
+  host?: string;
+  allowedHosts?: string[];
   noBackup?: boolean;
 }
 

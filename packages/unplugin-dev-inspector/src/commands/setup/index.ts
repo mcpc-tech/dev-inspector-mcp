@@ -13,6 +13,8 @@ export async function runSetupCommand() {
   let configPath: string | undefined;
   let bundlerType: string | undefined;
   let entryPath: string | undefined;
+  let host: string | undefined;
+  const allowedHosts: string[] = [];
 
   // Parse flags
   for (let i = 0; i < args.length; i++) {
@@ -23,6 +25,15 @@ export async function runSetupCommand() {
       i++;
     } else if (args[i] === "--entry" && args[i + 1]) {
       entryPath = args[i + 1];
+      i++;
+    } else if (args[i] === "--host" && args[i + 1]) {
+      // Default to true if only --host is provided? No, args[i+1] must be the value
+      host = args[i + 1];
+      i++;
+    } else if (args[i] === "--allowed-hosts" && args[i + 1]) {
+      // Parse comma-separated list
+      const hosts = args[i + 1].split(',').map(h => h.trim()).filter(Boolean);
+      allowedHosts.push(...hosts);
       i++;
     } else if (args[i] === "--bundler" && args[i + 1]) {
       bundlerType = args[i + 1];
@@ -112,7 +123,7 @@ export async function runSetupCommand() {
     // Transform
     console.log(`\n${dryRun ? "🔍 Previewing" : "🔧 Transforming"} ${selectedBundler} config...`);
     const code = readFileSync(selectedConfigPath, "utf-8");
-    const options: SetupOptions = { dryRun, configPath: selectedConfigPath, entryPath };
+    const options: SetupOptions = { dryRun, configPath: selectedConfigPath, entryPath, host, allowedHosts };
     
     const framework = frameworks.find(f => f.type === selectedBundler);
     if (!framework) {
@@ -188,6 +199,8 @@ Options:
   --config <path>         Specify config file path (auto-detect by default)
   --entry <path>          Specify entry file path to add import (optional)
   --bundler <type>        Specify bundler type: vite, webpack, nextjs
+  --host <string>         Specify server host (e.g. 0.0.0.0)
+  --allowed-hosts <list>  Specify allowed hosts (comma-separated)
   --dry-run               Preview changes without applying them
   --help, -h              Show this help message
 `);

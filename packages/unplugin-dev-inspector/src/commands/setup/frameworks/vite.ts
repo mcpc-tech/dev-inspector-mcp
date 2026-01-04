@@ -93,12 +93,76 @@ export function transformViteConfig(code: string, options: SetupOptions): Transf
       };
     }
 
+    // Inject server config (host + allowedHosts) if provided
+    if (options.host || (options.allowedHosts && options.allowedHosts.length > 0)) {
+      traverse(ast, {
+        ExportDefaultDeclaration(path: NodePath<t.ExportDefaultDeclaration>) {
+          if (
+            path.node.declaration.type === "CallExpression" &&
+            path.node.declaration.arguments.length > 0 &&
+            path.node.declaration.arguments[0].type === "ObjectExpression"
+          ) {
+            const configObj = path.node.declaration.arguments[0];
+            const serverProp = configObj.properties.find(
+              (p) =>
+                p.type === "ObjectProperty" &&
+                p.key.type === "Identifier" &&
+                p.key.name === "server"
+            ) as t.ObjectProperty | undefined;
+
+            if (serverProp) {
+              // server property exists
+              if (
+                 serverProp.value.start !== null && 
+                 serverProp.value.start !== undefined
+              ) {
+                  const serverContentStart = serverProp.value.start + 1; // after {
+                  let injection = "";
+                  
+                  // Simple inclusion check on the whole file or relevant block
+                  const serverBlockEnd = serverProp.value.end;
+                  if (serverBlockEnd) {
+                      const currentServerBlock = code.slice(serverContentStart, serverBlockEnd);
+                      
+                      if (options.host && !currentServerBlock.includes("host:")) {
+                           injection += `\n    host: '${options.host}',`;
+                      }
+                      
+                      if (options.allowedHosts && options.allowedHosts.length > 0 && !currentServerBlock.includes("allowedHosts:")) {
+                           const hostsStr = options.allowedHosts.map(h => `'${h}'`).join(', ');
+                           injection += `\n    allowedHosts: [${hostsStr}],`;
+                      }
+
+                      if (injection) {
+                          s.appendLeft(serverContentStart, injection);
+                      }
+                  }
+              }
+            } else {
+               // server property does not exist, insert at start of config object
+               if (configObj.start !== null && configObj.start !== undefined) {
+                   let injection = "\n  server: {\n";
+                   if (options.host) injection += `    host: '${options.host}',\n`;
+                   if (options.allowedHosts && options.allowedHosts.length > 0) {
+                      const hostsStr = options.allowedHosts.map(h => `'${h}'`).join(', ');
+                      injection += `    allowedHosts: [${hostsStr}],\n`;
+                   }
+                   injection += "  },";
+                   s.appendLeft(configObj.start + 1, injection);
+               }
+            }
+          }
+        }
+      });
+    }
+
     return {
       success: true,
       modified: true,
       code: s.toString(),
-      message: "Successfully added DevInspector to Vite config",
+      message: "Successfully added DevInspector and configured server in Vite config",
     };
+
   } catch (error) {
     return {
       success: false,
