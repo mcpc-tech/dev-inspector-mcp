@@ -220,6 +220,7 @@ export const createDevInspectorPlugin = (
           acpMode: options.acpMode,
           acpModel: options.acpModel,
           acpDelay: options.acpDelay,
+          mcpServers: options.mcpServers,
         },
       );
 
