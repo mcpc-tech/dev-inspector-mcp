@@ -11,6 +11,7 @@ import {
   Square,
   Info,
   BoxSelect,
+  Pin,
 } from "lucide-react";
 import { Shimmer } from "../../src/components/ai-elements/shimmer";
 import type { UIMessage } from "ai";
@@ -68,6 +69,7 @@ export const InspectorBar = ({
   const [input, setInput] = useState("");
   const [activePanel, setActivePanel] = useState<"none" | "inspections" | "chat">("none");
   const [allowHover, setAllowHover] = useState(true);
+  const [isPinned, setIsPinned] = useState(false);
 
   const { agent: selectedAgent, setAgent: setSelectedAgent, isReady } = useAgent(DEFAULT_AGENT);
   const [availableAgents, setAvailableAgents] = useState<Agent[]>(AVAILABLE_AGENTS);
@@ -339,7 +341,7 @@ export const InspectorBar = ({
         <div
           className="fixed inset-0 z-[999998] bg-transparent"
           onClick={() => {
-            if (!isWorking) {
+            if (!isWorking && !isPinned) {
               setIsExpanded(false);
               setActivePanel("none");
             }
@@ -362,6 +364,7 @@ export const InspectorBar = ({
           }
         }}
         onMouseLeave={() => {
+          if (isPinned) return;
           if (!input.trim() && !isDragging) {
             setIsExpanded(false);
             setActivePanel("none");
@@ -707,7 +710,25 @@ export const InspectorBar = ({
         {/* Expanded Panel - shows above the bar */}
         {activePanel !== "none" && (
           <div className="absolute bottom-full left-0 right-0 pointer-events-auto max-w-[480px] mx-auto animate-panel-in">
-            <div className="bg-muted/95 backdrop-blur-xl rounded-t-xl border border-border border-b-0 shadow-2xl overflow-hidden">
+            <div className="bg-muted/95 backdrop-blur-xl rounded-t-xl border border-border border-b-0 shadow-2xl overflow-hidden relative">
+              {/* Pin button - top-left corner */}
+              {showMessage && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsPinned(!isPinned);
+                  }}
+                  className={cn(
+                    "absolute top-3 left-3 z-10 flex items-center justify-center w-8 h-8 rounded-full transition-all",
+                    isPinned
+                      ? "bg-black text-white shadow-md hover:bg-gray-800"
+                      : "bg-muted/80 text-muted-foreground hover:bg-accent hover:text-foreground"
+                  )}
+                  title={isPinned ? "Unpin inspector" : "Pin inspector"}
+                >
+                  {isPinned ? <Pin className="w-3.5 h-3.5 fill-current" /> : <Pin className="w-3.5 h-3.5" />}
+                </button>
+              )}
               {/* Message Detail Section - Show InspectorBar messages */}
               {activePanel === "chat" && (
                 <div className="h-[500px]">
