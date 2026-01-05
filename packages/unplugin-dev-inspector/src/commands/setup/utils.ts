@@ -1,6 +1,7 @@
 import { existsSync } from "fs";
 import { resolve } from "path";
 import type { SetupOptions } from "./types";
+import type * as t from "@babel/types";
 
 /**
  * Detects a configuration file in the given directory based on patterns.
@@ -44,7 +45,7 @@ export function getPluginOptions(options: SetupOptions, indent: number = 6): str
   };
 
   if (options.entryPath) {
-    config.entry = options.entryPath; // Will be sanitized during serialization if needed, but here simple assignment
+    config.entry = options.entryPath;
     config.autoInject = false;
   }
 
@@ -65,7 +66,7 @@ export function getPluginOptions(options: SetupOptions, indent: number = 6): str
   return serializeObject(config, indent);
 }
 
-function serializeObject(obj: any, indentLevel: number): string {
+export function serializeObject(obj: any, indentLevel: number): string {
   if (obj === null) return "null";
   if (obj === undefined) return "undefined";
   if (typeof obj === "string") return `'${sanitizePath(obj)}'`;
@@ -90,4 +91,25 @@ function serializeObject(obj: any, indentLevel: number): string {
   });
 
   return `{\n${props.join(",\n")}\n${indent}}`;
+}
+
+/**
+ * Parses a Babel ObjectExpression node into a simple JS object (shallow).
+ * Helper for KISS principle to avoid duplicating parsing logic.
+ */
+export function parseObjectExpression(node: t.ObjectExpression): Record<string, any> {
+  const result: Record<string, any> = {};
+  node.properties.forEach(prop => {
+    if (prop.type === "ObjectProperty" && prop.key.type === "Identifier") {
+        let value: any = undefined;
+        if (prop.value.type === "StringLiteral") value = prop.value.value;
+        else if (prop.value.type === "BooleanLiteral") value = prop.value.value;
+        else if (prop.value.type === "NumericLiteral") value = prop.value.value;
+        
+        if (value !== undefined) {
+            result[prop.key.name] = value;
+        }
+    }
+  });
+  return result;
 }
