@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { cn } from "../lib/utils";
 import {
@@ -14,6 +15,7 @@ import {
   Pin,
 } from "lucide-react";
 import { Shimmer } from "../../src/components/ai-elements/shimmer";
+import { GetPromptResultSchema } from "@modelcontextprotocol/sdk/types.js";
 import type { UIMessage } from "ai";
 import { type InspectionItem } from "./InspectionQueue";
 import { ContextDialog } from "./ContextDialog";
@@ -23,9 +25,11 @@ import { useIslandState } from "../hooks/useIslandState";
 import { AVAILABLE_AGENTS, DEFAULT_AGENT } from "../constants/agents";
 import { useDraggable } from "../hooks/useDraggable";
 import { useAgent } from "../hooks/useAgent";
-import type { Agent } from "../constants/types";
+import type { Agent, Prompt } from "../constants/types";
 import { getAvailableAgents, getDevServerBaseUrl } from "../utils/config-loader";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
+import { usePrompts } from "../hooks/usePrompts";
+import { PromptParamsDialog } from "./PromptParamsDialog";
 
 interface InspectorBarProps {
   isActive: boolean;
@@ -76,6 +80,8 @@ export const InspectorBar = ({
   const [isAgentSelectorOpen, setIsAgentSelectorOpen] = useState(false);
   const [configInfoAgent, setConfigInfoAgent] = useState<string | null>(null);
   const [showContextDialog, setShowContextDialog] = useState(false);
+
+  const { prompts } = usePrompts(mcpClient || null);
 
   // Load available agents (merged with server config)
   useEffect(() => {
@@ -305,6 +311,56 @@ export const InspectorBar = ({
     };
   }, []);
 
+  const [selectedPromptForParams, setSelectedPromptForParams] = useState<Prompt | null>(null);
+
+
+  const executePrompt = async (prompt: Prompt, args: Record<string, string> = {}) => {
+    // If MCP client is available, execute the prompt to get its content
+    if (mcpClient) {
+      try {
+        const result = await mcpClient.request(
+          {
+            method: "prompts/get",
+            params: { name: prompt.name, arguments: args }
+          },
+          GetPromptResultSchema
+        );
+
+        const message = result.messages?.[0];
+        if (message?.content?.type === 'text' && message.content.text) {
+          setInput(message.content.text);
+          inputRef.current?.focus();
+          return;
+        }
+      } catch (e) {
+        console.error("Failed to execute prompt:", e);
+        // Fallback to static template/description
+      }
+    }
+
+    // Use template if available, fallback to description or name
+    const text = prompt.template || prompt.description || prompt.name;
+    setInput(text);
+    inputRef.current?.focus();
+  };
+
+  const handlePromptSelect = async (prompt: Prompt) => {
+    // Check if prompt has arguments
+    if (prompt.arguments && prompt.arguments.length > 0) {
+      setSelectedPromptForParams(prompt);
+      return;
+    }
+
+    await executePrompt(prompt);
+  };
+
+  const handlePromptParamsSubmit = (args: Record<string, string>) => {
+    if (selectedPromptForParams) {
+      executePrompt(selectedPromptForParams, args);
+      setSelectedPromptForParams(null);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
@@ -336,6 +392,12 @@ export const InspectorBar = ({
 
   return (
     <>
+      <PromptParamsDialog
+        prompt={selectedPromptForParams}
+        isOpen={!!selectedPromptForParams}
+        onOpenChange={(open) => !open && setSelectedPromptForParams(null)}
+        onSubmit={handlePromptParamsSubmit}
+      />
       {/* Transparent overlay to prevent pointer events leaking to host page when expanded */}
       {(isExpanded || activePanel !== "none") && (
         <div
@@ -348,10 +410,11 @@ export const InspectorBar = ({
           }}
         />
       )}
+
       <div
         ref={containerRef}
         className={cn(
-          "fixed bottom-8 left-1/2 z-[999999]", // Revert to CSS positioning
+          "fixed bottom-8 left-1/2 z-[999999]", // Fixed positioning
           "transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
           isExpanded ? "w-[480px]" : showMessage ? "w-auto min-w-[200px] max-w-[480px]" : "w-[190px]",
           isDragging ? "cursor-grabbing" : "cursor-grab",
@@ -373,6 +436,35 @@ export const InspectorBar = ({
           setAllowHover(true);
         }}
       >
+        {/* Prompts Panel - Floating above the bar */}
+        {isExpanded && !isWorking && activePanel === "none" && prompts.length > 0 && (
+          <div className="absolute bottom-full left-0 pb-3 flex flex-wrap gap-2 max-w-[480px]">
+            {prompts.map((prompt, index) => (
+              <button
+                key={prompt.name}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePromptSelect(prompt);
+                }}
+                style={{
+                  animationDelay: `${index * 50}ms`,
+                  opacity: 0,
+                  animation: `prompt-fade-in 0.3s ease-out ${index * 50}ms forwards`
+                }}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full",
+                  "bg-muted/90 backdrop-blur-md border border-border shadow-sm",
+                  "text-xs font-medium text-foreground",
+                  "hover:bg-accent hover:border-accent-foreground/20 hover:scale-105 active:scale-95",
+                  "transition-all duration-200"
+                )}
+                title={prompt.description || prompt.title || prompt.name}
+              >
+                <span>{prompt.title || prompt.name}</span>
+              </button>
+            ))}
+          </div>
+        )}
         <div
           className={cn(
             "relative flex items-center backdrop-blur-xl shadow-2xl border border-border",

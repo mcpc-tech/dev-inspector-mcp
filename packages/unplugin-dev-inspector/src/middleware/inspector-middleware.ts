@@ -4,7 +4,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
-import type { Agent } from "../../client/constants/types";
+import type { Agent, Prompt } from "../../client/constants/types";
 import { handleCors } from "../utils/cors";
 import {
   addLog,
@@ -89,6 +89,10 @@ export interface InspectorConfig {
    */
   agents?: Agent[];
   /**
+   * Custom prompts configuration
+   */
+  prompts?: Prompt[];
+  /**
    * Filter which agents are visible (applies after merging custom agents)
    * @example ['Claude Code', 'Gemini CLI']
    */
@@ -103,6 +107,11 @@ export interface InspectorConfig {
    * @default true
    */
   showInspectorBar?: boolean;
+
+  /**
+   * Disable dynamic prompts from agents
+   */
+  defaultPrompts?: boolean | string[];
 }
 
 export function setupInspectorMiddleware(
