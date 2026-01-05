@@ -11,7 +11,7 @@ import {
   isChromeDisabled,
   stripTrailingSlash,
 } from "./helpers";
-import type { AcpOptions, Agent } from "../../client/constants/types";
+import type { AcpOptions, Agent, Prompt } from "../../client/constants/types";
 import { initStdioInterceptor } from "./stdio-interceptor";
 import { startStandaloneServer } from "./standalone-server";
 
@@ -59,12 +59,27 @@ export interface DevInspectorOptions extends McpConfigOptions, AcpOptions {
   agents?: Agent[];
 
   /**
+   * Custom prompts configuration
+   * @example [{ name: 'debug', description: 'Debug this' }]
+   */
+  prompts?: Prompt[];
+
+  /**
    * Filter which agents are visible in the UI
    * Only agents with names in this list will be shown (applies after merging custom agents)
    * If not specified or empty array, all agents are visible
    * @example ['Claude Code', 'Gemini CLI', 'My Custom Agent']
    */
   visibleAgents?: string[];
+
+  /**
+   * Configure which default built-in prompts to enable.
+   * - `true` (default): Enable all built-in prompts.
+   * - `false`: Disable all built-in prompts.
+   * - `string[]`: Whitelist of specific prompt names to enable.
+   * @default true
+   */
+  defaultPrompts?: boolean | string[];
 
   /**
    * Default agent name to use
@@ -173,11 +188,13 @@ export const createDevInspectorPlugin = (
       resolvedHost = host;
       resolvedPort = port;
 
-      const serverContext = {
-        host,
-        port,
-        disableChrome: chromeDisabled,
-      };
+  const serverContext = {
+    host: resolvedHost,
+    port: resolvedPort,
+    disableChrome: chromeDisabled,
+    prompts: options.prompts,
+    defaultPrompts: options.defaultPrompts,
+  };
 
       const displayHost = host === "0.0.0.0" ? "localhost" : host;
       const publicBase = getPublicBaseUrl({
@@ -246,10 +263,8 @@ export const createDevInspectorPlugin = (
       }
 
       setupInspectorMiddleware(server as unknown as Connect.Server, {
-        agents: options.agents,
-        visibleAgents: options.visibleAgents,
-        defaultAgent: options.defaultAgent,
-        showInspectorBar: options.showInspectorBar,
+        ...options,
+        defaultPrompts: options.defaultPrompts ?? true,
       });
     };
 

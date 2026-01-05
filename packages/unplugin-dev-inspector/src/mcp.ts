@@ -78,6 +78,8 @@ function callMcpMethod(
   });
 }
 
+import type { Prompt } from "../client/constants/types";
+
 export interface ServerContext {
   host?: string;
   port?: number;
@@ -91,21 +93,38 @@ export interface ServerContext {
    * If false, we should guide the user to open the browser manually.
    */
   isAutomated?: boolean;
+
+  prompts?: Prompt[];
+  defaultPrompts?: boolean | string[];
 }
 
 /**
  * Create and configure the MCP server for source inspection
  */
-export async function createInspectorMcpServer(
-  serverContext?: ServerContext,
-): Promise<any> {
-  const chromeDisabled = isChromeDisabled(serverContext?.disableChrome);
+export async function createInspectorMcpServer(serverContext?: ServerContext): Promise<any> {
+  const { 
+    disableChrome, 
+    prompts: userPrompts = [],
+    defaultPrompts = true // Default to true (enabled)
+  } = serverContext || {};
+  
+  const chromeDisabled = isChromeDisabled(disableChrome);
   const isAutomated = serverContext?.isAutomated ?? false;
+
   console.log(
     `[dev-inspector] Chrome DevTools integration is ${
       chromeDisabled ? "disabled" : "enabled"
     }`,
   );
+  if (userPrompts.length > 0) {
+    console.log(`[dev-inspector] Loaded ${userPrompts.length} custom prompts`);
+  }
+  
+  if (defaultPrompts === false) {
+    console.log(`[dev-inspector] Default prompts disabled by config`);
+  } else if (Array.isArray(defaultPrompts)) {
+    console.log(`[dev-inspector] Default prompts whitelist: ${defaultPrompts.join(', ')}`);
+  }
 
   const chromeDevToolsServers = chromeDisabled ? [] : [
     {
@@ -143,24 +162,6 @@ Default dev server URL: ${
           '<tool name="chrome.press_key"/>',
           '<tool name="chrome.drag"/>',
           '<tool name="chrome.wait_for"/>',
-          // Debugging and inspection
-          '<tool name="chrome.evaluate_script"/>',
-          '<tool name="chrome.take_screenshot"/>',
-          '<tool name="chrome.take_snapshot"/>',
-          // Network inspection
-          '<tool name="chrome.list_network_requests"/>',
-          '<tool name="chrome.get_network_request"/>',
-          // Console inspection
-          '<tool name="chrome.list_console_messages"/>',
-          '<tool name="chrome.get_console_message"/>',
-          // Performance analysis
-          '<tool name="chrome.performance_start_trace"/>',
-          '<tool name="chrome.performance_stop_trace"/>',
-          '<tool name="chrome.performance_analyze_insight"/>',
-          // Dialogs and page settings
-          '<tool name="chrome.handle_dialog"/>',
-          '<tool name="chrome.resize_page"/>',
-          '<tool name="chrome.emulate"/>',
         ] as unknown as any,
       },
       deps: {
@@ -224,46 +225,77 @@ Default dev server URL: ${
         serverContext?.port || 5173
       }`;
 
+    // Map user prompts to MCP prompt format
+    const mappedUserPrompts = userPrompts.map(p => ({
+      name: p.name,
+      description: p.description,
+      arguments: p.arguments,
+    }));
+
+    // Default built-in prompts
+    const allDefaultPrompts = [
+      {
+        ...PROMPT_SCHEMAS.capture_element,
+      },
+      {
+        ...PROMPT_SCHEMAS.view_inspections,
+      },
+      {
+        ...PROMPT_SCHEMAS.get_stdio_messages,
+      },
+      ...(!chromeDisabled
+        ? [
+          {
+            ...PROMPT_SCHEMAS.launch_chrome_devtools,
+            description:
+              `Launch Chrome DevTools and navigate to the dev server for debugging and inspection. Default URL: ${defaultUrl}. You can use this default URL or provide a custom one.`,
+            arguments: [
+              {
+                name: "url",
+                description:
+                  `The URL to navigate to. Press Enter to use default: ${defaultUrl}`,
+                required: false,
+              },
+            ],
+          },
+        ]
+        : []),
+      {
+        ...PROMPT_SCHEMAS.get_network_requests,
+      },
+      {
+        ...PROMPT_SCHEMAS.get_console_messages,
+      },
+    ];
+
+    // Filter default prompts based on configuration
+    let filteredDefaultPrompts: typeof allDefaultPrompts = [];
+    if (defaultPrompts === true) {
+      filteredDefaultPrompts = allDefaultPrompts;
+    } else if (Array.isArray(defaultPrompts)) {
+      filteredDefaultPrompts = allDefaultPrompts.filter(p => defaultPrompts.includes(p.name));
+    }
+
     return {
       prompts: [
-        {
-          ...PROMPT_SCHEMAS.capture_element,
-        },
-        {
-          ...PROMPT_SCHEMAS.view_inspections,
-        },
-        {
-          ...PROMPT_SCHEMAS.get_stdio_messages,
-        },
-        ...(!chromeDisabled
-          ? [
-            {
-              ...PROMPT_SCHEMAS.launch_chrome_devtools,
-              description:
-                `Launch Chrome DevTools and navigate to the dev server for debugging and inspection. Default URL: ${defaultUrl}. You can use this default URL or provide a custom one.`,
-              arguments: [
-                {
-                  name: "url",
-                  description:
-                    `The URL to navigate to. Press Enter to use default: ${defaultUrl}`,
-                  required: false,
-                },
-              ],
-            },
-            {
-              ...PROMPT_SCHEMAS.get_network_requests,
-            },
-            {
-              ...PROMPT_SCHEMAS.get_console_messages,
-            },
-          ]
-          : []),
-      ],
+        ...filteredDefaultPrompts,
+        ...mappedUserPrompts
+      ]
     };
   });
 
+  // Helper to filter prompts based on configuration
+  const filterPrompts = (promptsToFilter: any[]) => {
+    if (defaultPrompts === true) return promptsToFilter;
+    if (defaultPrompts === false) return [];
+    if (Array.isArray(defaultPrompts)) {
+      return promptsToFilter.filter(p => defaultPrompts.includes(p.name));
+    }
+    return promptsToFilter;
+  };
+
   // Helper function to refresh chrome state (network requests and console messages)
-  async function refreshChromeState(): Promise<GetPromptResult> {
+  async function refreshChromeState(returnType: 'network' | 'console' | 'all' = 'all'): Promise<GetPromptResult> {
     if (chromeDisabled) {
       // Use local storage
       const requests = getNetworkRequests();
@@ -308,35 +340,42 @@ Default dev server URL: ${
         async (_request) => {
           return {
             prompts: [
-              { ...PROMPT_SCHEMAS.capture_element },
-              { ...PROMPT_SCHEMAS.view_inspections },
-              // When disabled, we still offer these prompts but powered by local storage
-              {
-                ...PROMPT_SCHEMAS.get_network_requests,
-                arguments: [
-                  {
-                    name: "reqid",
-                    description:
-                      `Optional. The request ID to get details for. If omitted, only refreshes and lists requests.\n\nAvailable requests:\n${
-                        requestOptions || "No requests available"
-                      }`,
-                    required: false,
-                  },
-                ],
-              },
-              {
-                ...PROMPT_SCHEMAS.get_console_messages,
-                arguments: [
-                  {
-                    name: "msgid",
-                    description:
-                      `Optional. The message ID to get details for. If omitted, only refreshes and lists messages.\n\nAvailable messages:\n${
-                        messageOptions || "No messages available"
-                      }`,
-                    required: false,
-                  },
-                ],
-              },
+              ...filterPrompts([
+                { ...PROMPT_SCHEMAS.capture_element },
+                { ...PROMPT_SCHEMAS.view_inspections },
+                // When disabled, we still offer these prompts but powered by local storage
+                {
+                  ...PROMPT_SCHEMAS.get_network_requests,
+                  arguments: [
+                    {
+                      name: "reqid",
+                      description:
+                        `Optional. The request ID to get details for. If omitted, only refreshes and lists requests.\n\nAvailable requests:\n${
+                          requestOptions || "No requests available"
+                        }`,
+                      required: false,
+                    },
+                  ],
+                },
+                {
+                  ...PROMPT_SCHEMAS.get_console_messages,
+                  arguments: [
+                    {
+                      name: "msgid",
+                      description:
+                        `Optional. The message ID to get details for. If omitted, only refreshes and lists messages.\n\nAvailable messages:\n${
+                          messageOptions || "No messages available"
+                        }`,
+                      required: false,
+                    },
+                  ],
+                },
+              ]),
+              ...userPrompts.map(p => ({
+                name: p.name,
+                description: p.description,
+                arguments: p.arguments,
+              }))
             ],
           };
         },
@@ -344,16 +383,21 @@ Default dev server URL: ${
 
       await mcpServer.sendPromptListChanged();
 
+      let text = "";
+      if (returnType === 'network' || returnType === 'all') {
+        text += `Network Requests:\n${requestOptions || "No requests"}\n\n`;
+      }
+      if (returnType === 'console' || returnType === 'all') {
+        text += `Console Messages:\n${messageOptions || "No messages"}`;
+      }
+
       return {
         messages: [
           {
             role: "user",
             content: {
               type: "text",
-              text:
-                `Refreshed state (Local Interception).\n\nNetwork Requests:\n${
-                  requestOptions || "No requests"
-                }\n\nConsole Messages:\n${messageOptions || "No messages"}`,
+              text: text.trim(),
             },
           },
         ],
@@ -417,60 +461,72 @@ Default dev server URL: ${
 
     // Dynamically update the prompts arguments
     mcpServer.setRequestHandler(ListPromptsRequestSchema, async (_request) => {
+      const usernamePromptsMapped = userPrompts.map(p => ({
+        name: p.name,
+        description: p.description,
+        arguments: p.arguments,
+      }));
+
       return {
-        prompts: [
-          {
-            ...PROMPT_SCHEMAS.capture_element,
-          },
-          {
-            ...PROMPT_SCHEMAS.view_inspections,
-          },
-          ...(!chromeDisabled
-            ? [
-              {
-                ...PROMPT_SCHEMAS.launch_chrome_devtools,
-              },
-              {
-                ...PROMPT_SCHEMAS.get_network_requests,
-                // TODO: currently, MCP prompt arguments are not typed, and can only be strings,
-                // see https://github.com/modelcontextprotocol/modelcontextprotocol/issues/136
-                arguments: [
-                  {
-                    name: "reqid",
-                    description:
-                      `Optional. The request ID to get details for. If omitted, only refreshes and lists requests.\n\nAvailable requests:\n${
-                        requestOptions || "No requests available"
-                      }`,
-                    required: false,
-                  },
-                ],
-              },
-              {
-                ...PROMPT_SCHEMAS.get_console_messages,
-                arguments: [
-                  {
-                    name: "msgid",
-                    description:
-                      `Optional. The message ID to get details for. If omitted, only refreshes and lists messages.\n\nAvailable messages:\n${
-                        messageOptions || "No messages available"
-                      }`,
-                    required: false,
-                  },
-                ],
-              },
-            ]
-            : []),
-        ],
+            prompts: [
+              ...filterPrompts([
+                {
+                  ...PROMPT_SCHEMAS.capture_element,
+                },
+                {
+                  ...PROMPT_SCHEMAS.view_inspections,
+                },
+                ...(!chromeDisabled
+                  ? [
+                    {
+                      ...PROMPT_SCHEMAS.launch_chrome_devtools,
+                    },
+                    {
+                      ...PROMPT_SCHEMAS.get_network_requests,
+                      // TODO: currently, MCP prompt arguments are not typed, and can only be strings,
+                      // see https://github.com/modelcontextprotocol/modelcontextprotocol/issues/136
+                      arguments: [
+                        {
+                          name: "reqid",
+                          description:
+                            `Optional. The request ID to get details for. If omitted, only refreshes and lists requests.\n\nAvailable requests:\n${
+                              requestOptions || "No requests available"
+                            }`,
+                          required: false,
+                        },
+                      ],
+                    },
+                    {
+                      ...PROMPT_SCHEMAS.get_console_messages,
+                      arguments: [
+                        {
+                          name: "msgid",
+                          description:
+                            `Optional. The message ID to get details for. If omitted, only refreshes and lists messages.\n\nAvailable messages:\n${
+                              messageOptions || "No messages available"
+                            }`,
+                          required: false,
+                        },
+                      ],
+                    },
+                  ]
+                  : []),
+                ...usernamePromptsMapped,
+              ]),
+            ],
       };
     });
 
     await mcpServer.sendPromptListChanged();
 
-    // Combine both results
-    const combinedContent = [
-      ...(networkResult?.content || []),
-      ...(consoleResult?.content || []),
-    ];
+    // Combine results based on type
+    const combinedContent = [];
+    if (returnType === 'network' || returnType === 'all') {
+      combinedContent.push(...(networkResult?.content || []));
+    }
+    if (returnType === 'console' || returnType === 'all') {
+      combinedContent.push(...(consoleResult?.content || []));
+    }
 
     return {
       messages: combinedContent.map((item) => ({
@@ -481,11 +537,33 @@ Default dev server URL: ${
   }
 
   mcpServer.setRequestHandler(GetPromptRequestSchema, async (request) => {
-    const promptName = request.params.name as keyof typeof PROMPT_SCHEMAS;
+    const promptName = request.params.name;
+    
+    // Check if it's a user prompt
+    const userPrompt = userPrompts.find(p => p.name === promptName);
+    if (userPrompt) {
+      // Basic argument interpolation: replace {{argName}} with value
+      let text = userPrompt.template || userPrompt.description || userPrompt.name;
+      if (request.params.arguments) {
+        for (const [key, value] of Object.entries(request.params.arguments)) {
+          text = text.replace(new RegExp(`{{${key}}}`, 'g'), String(value));
+        }
+      }
 
+      return {
+        messages: [{
+          role: "user",
+          content: { 
+            type: "text", 
+            text: text 
+          },
+        }],
+      } as GetPromptResult;
+    }
+    
     if (chromeDisabled) {
       if (promptName === "get_network_requests") {
-        const refreshResult = await refreshChromeState();
+        const refreshResult = await refreshChromeState('network');
         const reqidStr = request.params.arguments?.reqid as string | undefined;
         if (!reqidStr) return refreshResult;
 
@@ -512,7 +590,7 @@ Default dev server URL: ${
       }
 
       if (promptName === "get_console_messages") {
-        const refreshResult = await refreshChromeState();
+        const refreshResult = await refreshChromeState('console');
         const msgidStr = request.params.arguments?.msgid as string | undefined;
         if (!msgidStr) return refreshResult;
 
@@ -653,7 +731,7 @@ Default dev server URL: ${
 
       case "get_network_requests": {
         // Always refresh first
-        const refreshResult = await refreshChromeState();
+        const refreshResult = await refreshChromeState('network');
 
         const reqidStr = request.params.arguments?.reqid as string | undefined;
 
@@ -700,7 +778,7 @@ Default dev server URL: ${
 
       case "get_console_messages": {
         // Always refresh first
-        const refreshResultConsole = await refreshChromeState();
+        const refreshResultConsole = await refreshChromeState('console');
 
         const msgidStr = request.params.arguments?.msgid as string | undefined;
 

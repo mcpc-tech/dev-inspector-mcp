@@ -76,3 +76,25 @@ export interface Agent extends AcpOptions {
    */
   npmArgs?: string[];
 }
+
+/** MCP Prompt argument schema */
+export interface PromptArgument {
+  name: string;
+  description?: string;
+  required?: boolean;
+}
+
+/** MCP Prompt definition (matches MCP spec + template extension) */
+export interface Prompt {
+  name: string;
+  title?: string;
+  description?: string;
+  /** The actual content/template to insert into the input when selected */
+  template?: string;
+  arguments?: PromptArgument[];
+  icons?: Array<{
+    src: string;
+    mimeType?: string;
+    sizes?: string[];
+  }>;
+}

@@ -1,4 +1,4 @@
-import type { Agent } from "../constants/agents";
+import type { Agent, Prompt } from "../constants/types";
 import {
   AVAILABLE_AGENTS as DEFAULT_AGENTS,
   DEFAULT_AGENT as DEFAULT_AGENT_NAME,
@@ -6,9 +6,11 @@ import {
 
 interface InspectorConfig {
   agents?: Agent[];
+  prompts?: Prompt[];
   visibleAgents?: string[];
   defaultAgent?: string;
   showInspectorBar?: boolean;
+  defaultPrompts?: boolean | string[];
 }
 
 let configCache: InspectorConfig | null = null;
