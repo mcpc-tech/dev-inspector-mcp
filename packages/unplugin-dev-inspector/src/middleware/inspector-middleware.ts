@@ -109,7 +109,7 @@ export interface InspectorConfig {
   showInspectorBar?: boolean;
 
   /**
-   * Disable dynamic prompts from agents
+   * Configure which default built-in prompts to enable. Can be true (all), false (none), or an array of prompt names to whitelist.
    */
   defaultPrompts?: boolean | string[];
 }

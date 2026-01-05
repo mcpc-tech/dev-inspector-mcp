@@ -461,6 +461,12 @@ Default dev server URL: ${
 
     // Dynamically update the prompts arguments
     mcpServer.setRequestHandler(ListPromptsRequestSchema, async (_request) => {
+      const usernamePromptsMapped = userPrompts.map(p => ({
+        name: p.name,
+        description: p.description,
+        arguments: p.arguments,
+      }));
+
       return {
             prompts: [
               ...filterPrompts([
@@ -505,6 +511,7 @@ Default dev server URL: ${
                     },
                   ]
                   : []),
+                ...usernamePromptsMapped,
               ]),
             ],
       };
@@ -535,12 +542,20 @@ Default dev server URL: ${
     // Check if it's a user prompt
     const userPrompt = userPrompts.find(p => p.name === promptName);
     if (userPrompt) {
+      // Basic argument interpolation: replace {{argName}} with value
+      let text = userPrompt.template || userPrompt.description || userPrompt.name;
+      if (request.params.arguments) {
+        for (const [key, value] of Object.entries(request.params.arguments)) {
+          text = text.replace(new RegExp(`{{${key}}}`, 'g'), String(value));
+        }
+      }
+
       return {
         messages: [{
           role: "user",
           content: { 
             type: "text", 
-            text: userPrompt.template || userPrompt.description || userPrompt.name 
+            text: text 
           },
         }],
       } as GetPromptResult;

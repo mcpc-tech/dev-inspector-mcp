@@ -15,18 +15,20 @@ export const PromptsPanel = ({ prompts, onSelect, visible }: PromptsPanelProps) 
         <div
             className={cn(
                 "absolute bottom-full left-0 mb-3 ml-1 flex flex-wrap gap-2 max-w-[480px]",
-                "transition-all duration-300 ease-out origin-bottom-left",
-                visible
-                    ? "opacity-100 translate-y-0 scale-100 pointer-events-auto"
-                    : "opacity-0 translate-y-2 scale-95 pointer-events-none"
+                "origin-bottom-left"
             )}
         >
-            {prompts.map((prompt) => (
+            {prompts.map((prompt, index) => (
                 <button
                     key={prompt.name}
                     onClick={(e) => {
                         e.stopPropagation();
                         onSelect(prompt);
+                    }}
+                    style={{
+                        animationDelay: `${index * 50}ms`,
+                        opacity: 0,
+                        animation: `prompt-fade-in 0.3s ease-out ${index * 50}ms forwards`
                     }}
                     className={cn(
                         "flex items-center gap-1.5 px-3 py-1.5 rounded-full",
@@ -37,15 +39,6 @@ export const PromptsPanel = ({ prompts, onSelect, visible }: PromptsPanelProps) 
                     )}
                     title={prompt.description || prompt.title || prompt.name}
                 >
-                    {prompt.icons?.[0]?.src ? (
-                        <img
-                            src={prompt.icons[0].src}
-                            alt=""
-                            className="w-3.5 h-3.5 object-contain"
-                        />
-                    ) : (
-                        <Sparkles className="w-3.5 h-3.5 text-purple-500" />
-                    )}
                     <span>{prompt.title || prompt.name}</span>
                 </button>
             ))}

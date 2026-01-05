@@ -14,13 +14,13 @@ export default defineConfig({
       visibleAgents: ['Claude Code'],
       prompts: [
         { 
-          name: 'Code-Review', 
+          name: 'code_review', 
           title: 'Review Code', 
           description: 'Review this code for bugs',
           template: 'Please review the selected code for potential bugs, performance issues, and best practices.'
         },
         {
-          name: 'Code-Optimization', 
+          name: 'code_optimization', 
           title: 'Optimize Code', 
           description: 'Optimize this code for performance',
           template: 'Please optimize the selected code for performance.'

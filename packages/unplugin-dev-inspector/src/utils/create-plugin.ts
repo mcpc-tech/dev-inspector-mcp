@@ -189,8 +189,8 @@ export const createDevInspectorPlugin = (
       resolvedPort = port;
 
   const serverContext = {
-    host: options.host,
-    port: options.port,
+    host: resolvedHost,
+    port: resolvedPort,
     disableChrome: chromeDisabled,
     prompts: options.prompts,
     defaultPrompts: options.defaultPrompts,

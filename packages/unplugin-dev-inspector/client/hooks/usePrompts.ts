@@ -56,6 +56,7 @@ export function usePrompts(mcpClient: Client | null) {
       // Cleanup notification handler
       try {
         if (mcpClient) {
+          // Schema defines method as "notifications/prompts/list_changed", so string is correct
           mcpClient.removeNotificationHandler("notifications/prompts/list_changed");
         }
       } catch (e) {
