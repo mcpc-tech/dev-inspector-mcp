@@ -266,7 +266,7 @@ export function setupAcpMiddleware(
         env: { ...process.env, ...envVars },
         session: {
           cwd,
-          mcpServers: [],
+          mcpServers: acpOptions?.mcpServers ?? [],
         },
         authMethodId: agent.authMethodId,
       });
@@ -415,7 +415,7 @@ export function setupAcpMiddleware(
           env: { ...process.env, ...envVars },
           session: {
             cwd,
-            mcpServers: [],
+            mcpServers: acpOptions?.mcpServers ?? [],
           },
           authMethodId: agent.authMethodId,
         });

@@ -74,6 +74,7 @@ async function ensureStandaloneServer(options: TurbopackDevInspectorOptions): Pr
       acpMode: options.acpMode,
       acpModel: options.acpModel,
       acpDelay: options.acpDelay,
+      mcpServers: options.mcpServers,
     },
   );
 
