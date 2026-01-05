@@ -1,3 +1,11 @@
+import type { McpServer as McpServerSDK } from '@agentclientprotocol/sdk';
+
+/**
+ * MCP Server configuration for the Agent Client Protocol
+ * Re-exported from @agentclientprotocol/sdk for convenience
+ */
+export type McpServer = McpServerSDK;
+
 /**
  * ACP (Agent Client Protocol) options for configuring agent behavior
  */
@@ -26,6 +34,12 @@ export interface AcpOptions {
    * @default undefined (uses built-in DevInspector context)
    */
   acpSystemPrompt?: string;
+
+  /**
+   * List of MCP (Model Context Protocol) servers the agent should connect to
+   * @default []
+   */
+  mcpServers?: McpServer[];
 }
 
 // Agent type definition - shared between src and client
