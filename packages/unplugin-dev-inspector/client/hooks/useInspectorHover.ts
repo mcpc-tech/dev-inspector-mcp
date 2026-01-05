@@ -17,7 +17,11 @@ export const useInspectorHover = ({
   btnRef,
 }: UseInspectorHoverProps) => {
   useEffect(() => {
-    if (!isActive || isWaitingForFeedback) return;
+    if (!isActive || isWaitingForFeedback) {
+      if (overlayRef.current) overlayRef.current.style.display = "none";
+      if (tooltipRef.current) tooltipRef.current.style.display = "none";
+      return;
+    }
 
     const handleMouseMove = (e: MouseEvent) => {
       const target = e.target as Element;
