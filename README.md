@@ -23,6 +23,7 @@ Works with any MCP-compatible AI client. Supports ACP agents: **Claude Code**, *
   - [Auto-Update MCP Config](#auto-update-mcp-config)
   - [Agent Installation](#agent-installation)
   - [Custom Agents](#custom-agents)
+  - [MCP Servers Configuration](#mcp-servers-configuration)
 - [What It Does](#what-it-does)
 - [Two Workflow Modes](#two-workflow-modes)
 - [MCP Tools](#mcp-tools)
@@ -488,6 +489,32 @@ export default {
 - **`visibleAgents`**: Filters which agents appear in the UI (applies after merging). Great for limiting options to only what your team uses
 - **`defaultAgent`**: Sets which agent is selected on startup
 - If no custom agents provided, defaults are: Claude Code, Codex CLI, Gemini CLI, Kimi CLI, Goose, Opencode, Cursor Agent, Droid, CodeBuddy Code
+
+### MCP Servers Configuration
+
+You can configure external MCP servers for agents to access additional tools.
+
+```typescript
+DevInspector.vite({
+  mcpServers: [
+    // HTTP/SSE Server
+    {
+      name: 'remote-server',
+      type: 'sse', // or 'http'
+      url: 'https://api.example.com/sse',
+      headers: [{ name: 'Authorization', value: process.env.MCP_TOKEN ?? '' }]
+    },
+    // Local Stdio Server
+    {
+      name: 'local-server',
+      command: 'npx',
+      args: ['-y', '@modelcontextprotocol/server-memory'],
+      env: { MY_VAR: 'value' }
+    }
+  ]
+})
+```
+
 
 ## What It Does
 
