@@ -14,7 +14,7 @@ export const PromptsPanel = ({ prompts, onSelect, visible }: PromptsPanelProps) 
     return (
         <div
             className={cn(
-                "absolute bottom-full left-0 mb-3 ml-1 flex flex-wrap gap-2 max-w-[480px]",
+                "absolute bottom-full left-0 pb-3 ml-1 flex flex-wrap gap-2 max-w-[480px]",
                 "origin-bottom-left"
             )}
         >

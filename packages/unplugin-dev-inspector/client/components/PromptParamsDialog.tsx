@@ -51,7 +51,7 @@ export function PromptParamsDialog({
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[600px]">
                 <DialogHeader>
                     <DialogTitle>{prompt.title || prompt.name}</DialogTitle>
                     <DialogDescription>
@@ -70,15 +70,15 @@ export function PromptParamsDialog({
                             </label>
                             <Input
                                 id={arg.name}
-                                placeholder={arg.description}
+                                placeholder={`Enter ${arg.name}...`}
                                 value={args[arg.name] || ""}
                                 onChange={(e) => handleInputChange(arg.name, e.target.value)}
                                 required={arg.required !== false}
                             />
                             {arg.description && (
-                                <p className="text-[0.8rem] text-muted-foreground">
+                                <div className="text-[0.8rem] text-muted-foreground whitespace-pre-wrap max-h-[200px] overflow-y-auto rounded-md bg-muted/50 p-2">
                                     {arg.description}
-                                </p>
+                                </div>
                             )}
                         </div>
                     ))}
