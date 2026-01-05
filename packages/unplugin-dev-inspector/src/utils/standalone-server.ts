@@ -183,8 +183,8 @@ export class StandaloneServer {
     throw new Error(`Could not find a free port starting from ${startPort}`);
   }
 
-  close() {
-    this.server.close();
+  close(callback?: (err?: Error) => void) {
+    this.server.close(callback);
   }
 }
 
@@ -203,5 +203,53 @@ export async function startStandaloneServer(options: StandaloneServerOptions = {
 
   globalServer = new StandaloneServer();
   const { host, port } = await globalServer.start(options);
+
+  // Register cleanup hooks once when server starts
+  const shutdownHandler = async () => {
+    if (globalServer) {
+      try {
+        await stopStandaloneServer();
+      } catch (err) {
+        console.error('[dev-inspector] Error during shutdown:', err);
+      }
+    }
+  };
+
+  // Handle graceful shutdown
+  process.on('SIGINT', shutdownHandler);
+  process.on('SIGTERM', shutdownHandler);
+  
+  // Handle process exit
+  process.on('exit', () => {
+    // Synchronous cleanup on exit
+    if (globalServer) {
+      globalServer.close();
+      globalServer = null;
+    }
+  });
+
   return { server: globalServer, host, port, isNew: true };
+}
+
+/**
+ * Stop and cleanup the global standalone server instance.
+ * This should be called when the plugin is shutting down.
+ */
+export function stopStandaloneServer(): Promise<void> {
+  return new Promise((resolve) => {
+    if (!globalServer) {
+      resolve();
+      return;
+    }
+
+    const server = globalServer;
+    globalServer = null;
+
+    server.close((err) => {
+      if (err) {
+        console.error('[dev-inspector] Error closing standalone server:', err);
+      }
+      resolve();
+    });
+  });
 }

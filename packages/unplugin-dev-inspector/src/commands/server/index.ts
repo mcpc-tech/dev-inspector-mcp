@@ -87,6 +87,7 @@ Example:
     // Keep process alive
     process.on("SIGINT", () => {
       console.log("\n👋 Shutting down dev-inspector server...");
+      // Cleanup is handled by process hooks in standalone-server.ts
       process.exit(0);
     });
   } catch (error) {
