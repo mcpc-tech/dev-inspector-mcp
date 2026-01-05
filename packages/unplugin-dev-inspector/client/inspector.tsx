@@ -286,7 +286,19 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
     const isRegionCapture = sourceInfo.relatedElements && sourceInfo.relatedElements.length > 0;
 
     // Construct description for region capture if not provided
-    const finalDescription = description || (isRegionCapture ? "Region capture" : description);
+    let defaultDescription = description;
+    if (!defaultDescription && isRegionCapture) {
+      const count = (sourceInfo.relatedElements?.length || 0) + 1;
+      const primary = sourceInfo.elementInfo?.tagName.toLowerCase() || 'element';
+
+      // Check if any notes exist to add AI hint
+      const hasNotes = sourceInfo.note || sourceInfo.relatedElements?.some(el => el.note);
+      const actionHint = hasNotes ? ". Please read notes on these elements." : "";
+
+      defaultDescription = `Region: ${count} elements (primary: ${primary})${actionHint}`;
+    }
+
+    const finalDescription = defaultDescription || description;
 
     const inspectionId = `inspection-${Date.now()}`;
     const newItem: InspectionItem = {
@@ -309,7 +321,8 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
             className: el.elementInfo.className,
             id: el.elementInfo.id,
             styles: el.elementInfo.styles || {},
-          } : undefined
+          } : undefined,
+          note: el.note
         })),
       },
       description: finalDescription,
