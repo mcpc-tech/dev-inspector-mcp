@@ -23,6 +23,7 @@ Works with any MCP-compatible AI client. Supports ACP agents: **Claude Code**, *
   - [Auto-Update MCP Config](#auto-update-mcp-config)
   - [Agent Installation](#agent-installation)
   - [Custom Agents](#custom-agents)
+  - [MCP Servers Configuration](#mcp-servers-configuration)
 - [What It Does](#what-it-does)
 - [Two Workflow Modes](#two-workflow-modes)
 - [MCP Tools](#mcp-tools)
@@ -488,6 +489,84 @@ export default {
 - **`visibleAgents`**: Filters which agents appear in the UI (applies after merging). Great for limiting options to only what your team uses
 - **`defaultAgent`**: Sets which agent is selected on startup
 - If no custom agents provided, defaults are: Claude Code, Codex CLI, Gemini CLI, Kimi CLI, Goose, Opencode, Cursor Agent, Droid, CodeBuddy Code
+
+### MCP Servers Configuration
+
+You can configure external MCP servers that your ACP agents should connect to. This allows agents to access additional tools and resources provided by these servers.
+
+```typescript
+// vite.config.ts
+export default {
+  plugins: [
+    DevInspector.vite({
+      enabled: true,
+      
+      // Configure MCP servers for agents
+      mcpServers: [
+        {
+          name: 'my-http-server',
+          type: 'http',
+          url: 'https://example.com/mcp',
+          headers: [
+            { name: 'Authorization', value: process.env.MCP_TOKEN || '' }
+          ]
+        },
+        {
+          name: 'my-sse-server',
+          type: 'sse',
+          url: 'https://example.com/sse',
+          headers: []
+        },
+        {
+          name: 'local-server',
+          command: 'node',
+          args: ['path/to/server.js'],
+          env: { MY_VAR: 'value' }
+        }
+      ]
+    }),
+  ],
+};
+```
+
+**MCP Server Types:**
+
+- **HTTP/SSE Servers**: Remote servers accessible via HTTP or Server-Sent Events
+  - `name`: Server identifier
+  - `type`: `'http'` or `'sse'`
+  - `url`: Server endpoint URL
+  - `headers`: Optional HTTP headers (e.g., authentication tokens)
+
+- **Stdio Servers**: Local servers running as child processes
+  - `name`: Server identifier  
+  - `command`: Command to execute (e.g., `'node'`, `'python'`)
+  - `args`: Command arguments
+  - `env`: Optional environment variables
+
+**Use with Environment Variables:**
+
+For sensitive data like API tokens, use environment variables:
+
+```typescript
+mcpServers: [
+  {
+    name: 'secure-server',
+    type: 'http',
+    url: 'https://api.example.com/mcp',
+    headers: [
+      { name: 'API-Key', value: process.env.MY_API_KEY || '' }
+    ]
+  }
+]
+```
+
+Then set the environment variable before running your dev server:
+
+```bash
+export MY_API_KEY=your-api-key-here
+npm run dev
+```
+
 
 ## What It Does
 
