@@ -74,6 +74,14 @@ export class StandaloneServer {
         }
       }
 
+      // Ping route
+      if (req.url === '/ping') {
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'text/plain');
+        res.end('pong');
+        return;
+      }
+
       // Basic middleware runner
       let index = 0;
       const next = async () => {
