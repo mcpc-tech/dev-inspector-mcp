@@ -10,9 +10,10 @@ import { handleCors } from "../utils/cors";
 import { contextSelectorTool } from "./tools/context-selector";
 import type { ServerContext } from "../mcp";
 import type { AcpOptions } from "../../client/constants/types";
-import { CallToolResultSchema, type JSONRPCMessage } from "@modelcontextprotocol/sdk/types.js";
+import { type JSONRPCMessage } from "@modelcontextprotocol/sdk/types.js";
 import { getConnectionManager } from "./mcproute-middleware";
 import { resolveNpmPackageBin } from "../utils/npm-package";
+import { substituteEnvVars } from "../utils/helpers";
 
 export type { AcpOptions };
 
@@ -216,7 +217,12 @@ export function setupAcpMiddleware(
 
     try {
       const body = await readBody(req);
-      const { agent, envVars } = JSON.parse(body);
+      const parsedBody = JSON.parse(body);
+      const { agent: rawAgent, envVars: rawEnvVars } = parsedBody;
+
+      // Apply env substitution to dynamic agent config
+      const agent = substituteEnvVars(rawAgent);
+      const envVars = substituteEnvVars(rawEnvVars);
 
       const cwd = process.cwd();
 
@@ -373,7 +379,12 @@ export function setupAcpMiddleware(
 
     try {
       const body = await readBody(req);
-      const { messages, agent, envVars, sessionId, isAutomated, inferContext } = JSON.parse(body);
+      const parsedBody = JSON.parse(body);
+      const { messages, sessionId, isAutomated, inferContext } = parsedBody;
+      
+      // Apply env substitution
+      const agent = substituteEnvVars(parsedBody.agent);
+      const envVars = substituteEnvVars(parsedBody.envVars);
 
       const cwd = process.cwd();
 

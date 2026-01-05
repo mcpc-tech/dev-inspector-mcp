@@ -10,6 +10,7 @@ import {
   getPublicBaseUrl,
   isChromeDisabled,
   stripTrailingSlash,
+  substituteEnvVars,
 } from "./helpers";
 import type { AcpOptions, Agent, Prompt } from "../../client/constants/types";
 import { initStdioInterceptor } from "./stdio-interceptor";
@@ -154,7 +155,9 @@ export const createDevInspectorPlugin = (
   name: string,
   transformFactory: (options: DevInspectorOptions) => TransformFunction,
 ) => {
-  return createUnplugin<DevInspectorOptions | undefined>((options = {}) => {
+  return createUnplugin<DevInspectorOptions | undefined>((rawOptions = {}) => {
+    // Interpolate environment variables for all options
+    const options = substituteEnvVars(rawOptions);
     const enabled = options.enabled ?? process.env.NODE_ENV !== "production";
     const virtualModuleName = options.virtualModuleName ??
       "virtual:dev-inspector-mcp";
