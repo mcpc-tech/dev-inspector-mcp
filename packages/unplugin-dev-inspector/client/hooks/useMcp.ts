@@ -394,6 +394,9 @@ export function useMcp(): { client: McpClientType | null; isClientReady: boolean
   useEffect(() => {
     if (clientRef.current) return;
 
+    // Type cast needed due to SDK version mismatch between @modelcontextprotocol/sdk (^1.20.1)
+    // and @mcpc-tech/cmcp which uses @modelcontextprotocol/sdk (^1.15.0).
+    // The Client types differ slightly between versions but are functionally compatible.
     const client = createClientExecClient(
       new Client({ name: "inspector", version: "0.1.0" }, { capabilities: { tools: {} } }) as unknown as Parameters<typeof createClientExecClient>[0],
       "inspector",

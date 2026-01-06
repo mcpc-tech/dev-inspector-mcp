@@ -18,7 +18,6 @@ import type { InspectionItem } from "./components/InspectionQueue";
 import "./styles.css";
 
 function SidebarContainer() {
-    const [, setSelectedAgent] = useState<string>("Claude Code");
     const [inspectionQueue, setInspectionQueue] = useState<InspectionItem[]>([]);
 
     // MCP connection - useMcp returns { client, isClientReady }
@@ -103,7 +102,6 @@ function SidebarContainer() {
             onRemoveInspection={handleRemoveInspection}
             toolsReady={isClientReady}
             mcpClient={mcpClient}
-            onAgentChange={setSelectedAgent}
             connectionStatus={connectionStatus}
         />
     );

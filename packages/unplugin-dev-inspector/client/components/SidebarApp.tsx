@@ -305,7 +305,6 @@ export const SidebarApp = ({
 
             <div className="flex flex-col h-screen bg-background text-foreground">
                 {/* Header */}
-                {/* Header */}
                 <header className="flex items-center justify-between px-4 py-3 border-b border-border/40 bg-background/80 backdrop-blur-sm sticky top-0 z-10">
                     <div className="flex items-center gap-3">
                         {/* Agent Selector */}
