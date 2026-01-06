@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevInspector Sidebar</title>
+  <script>
+    // Immediate theme detection to prevent FOUC
+    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    
+    // Listen for changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+      if (e.matches) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    });
+  </script>
+  <link rel="stylesheet" href="/__inspector__/sidebar.css">
+  <style>
+    /* Prevent FOUC */
+    html, body, #sidebar-root {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+    
+    /* Base colors - will be overridden by CSS variables in app */
+    html {
+      color-scheme: light;
+      background: white;
+      color: black;
+    }
+    
+    html.dark {
+      color-scheme: dark;
+      background: hsl(240 10% 3.9%);
+      color: hsl(0 0% 98%);
+    }
+    
+    /* Loading state */
+    #sidebar-root:empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    #sidebar-root:empty::after {
+      content: "Loading...";
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+      color: hsl(240 3.8% 46.1%);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div id="sidebar-root"></div>
+  <script type="module" src="/__inspector__/sidebar.js"></script>
+</body>
+</html>

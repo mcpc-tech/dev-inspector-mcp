@@ -19,7 +19,7 @@ import { GetPromptResultSchema } from "@modelcontextprotocol/sdk/types.js";
 import type { UIMessage } from "ai";
 import { type InspectionItem } from "./InspectionQueue";
 import { ContextDialog } from "./ContextDialog";
-import type { Client } from "@modelcontextprotocol/sdk/client";
+import type { McpClientType } from "../hooks/useMcp";
 import { MessageDetail } from "./MessageDetail";
 import { useIslandState } from "../hooks/useIslandState";
 import { AVAILABLE_AGENTS, DEFAULT_AGENT } from "../constants/agents";
@@ -44,7 +44,7 @@ interface InspectorBarProps {
   inspectionItems?: InspectionItem[];
   onRemoveInspection?: (id: string) => void;
   toolsReady?: boolean;
-  mcpClient?: Client | null;
+  mcpClient?: McpClientType | null;
   /** Callback when selected agent changes */
   onAgentChange?: (agentName: string) => void;
   /** Callback for toggling region mode */

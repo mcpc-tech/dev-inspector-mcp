@@ -73,12 +73,19 @@
         "default": "./dist/loader.cjs"
       }
     },
+    "./react": {
+      "import": {
+        "types": "./dist/react/react.d.ts",
+        "default": "./dist/react/react.js"
+      }
+    },
     "./package.json": "./package.json"
   },
   "scripts": {
-    "build": "pnpm build:plugin && pnpm build:client",
+    "build": "pnpm build:plugin && pnpm build:client && pnpm build:react",
     "build:plugin": "tsdown",
     "build:client": "tsdown --config tsdown.client.config.ts",
+    "build:react": "tsdown --config tsdown.react.config.ts",
     "dev:plugin": "tsdown --watch",
     "dev:client": "tsdown --config tsdown.client.config.ts --watch",
     "lint": "oxlint .",

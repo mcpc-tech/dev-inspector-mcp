@@ -83,6 +83,66 @@ function getInspectorCSS(): string | null {
   return null;
 }
 
+function getSidebarScript(): string | null {
+  const possiblePaths = [
+    path.resolve(process.cwd(), "packages/unplugin-dev-inspector/client/dist/sidebar.js"),
+    path.resolve(__dirname, "../../client/dist/sidebar.js"),
+    path.resolve(__dirname, "../client/dist/sidebar.js"),
+    path.resolve(process.cwd(), "node_modules/@mcpc-tech/unplugin-dev-inspector-mcp/client/dist/sidebar.js"),
+  ];
+
+  for (const scriptPath of possiblePaths) {
+    try {
+      if (fs.existsSync(scriptPath)) {
+        return fs.readFileSync(scriptPath, "utf-8");
+      }
+    } catch (error) {
+      continue;
+    }
+  }
+  return null;
+}
+
+function getSidebarCSS(): string | null {
+  const possiblePaths = [
+    path.resolve(process.cwd(), "packages/unplugin-dev-inspector/client/dist/sidebar.css"),
+    path.resolve(__dirname, "../../client/dist/sidebar.css"),
+    path.resolve(__dirname, "../client/dist/sidebar.css"),
+    path.resolve(process.cwd(), "node_modules/@mcpc-tech/unplugin-dev-inspector-mcp/client/dist/sidebar.css"),
+  ];
+
+  for (const cssPath of possiblePaths) {
+    try {
+      if (fs.existsSync(cssPath)) {
+        return fs.readFileSync(cssPath, "utf-8");
+      }
+    } catch (error) {
+      continue;
+    }
+  }
+  return null;
+}
+
+function getSidebarHTML(): string | null {
+  const possiblePaths = [
+    path.resolve(process.cwd(), "packages/unplugin-dev-inspector/client/sidebar.html"),
+    path.resolve(__dirname, "../../client/sidebar.html"),
+    path.resolve(__dirname, "../client/sidebar.html"),
+    path.resolve(process.cwd(), "node_modules/@mcpc-tech/unplugin-dev-inspector-mcp/client/sidebar.html"),
+  ];
+
+  for (const htmlPath of possiblePaths) {
+    try {
+      if (fs.existsSync(htmlPath)) {
+        return fs.readFileSync(htmlPath, "utf-8");
+      }
+    } catch (error) {
+      continue;
+    }
+  }
+  return null;
+}
+
 export interface InspectorConfig {
   /**
    * @see AVAILABLE_AGENTS https://github.com/mcpc-tech/dev-inspector-mcp/blob/main/packages/unplugin-dev-inspector/client/constants/agents.ts
@@ -120,6 +180,9 @@ export function setupInspectorMiddleware(
 ) {
   let cachedScript: string | null = null;
   let cachedCSS: string | null = null;
+  let cachedSidebarScript: string | null = null;
+  let cachedSidebarCSS: string | null = null;
+  let cachedSidebarHTML: string | null = null;
   let filesChecked = false;
 
   middlewares.use(
@@ -132,7 +195,52 @@ export function setupInspectorMiddleware(
       if (!filesChecked) {
         cachedScript = getInspectorScript();
         cachedCSS = getInspectorCSS();
+        cachedSidebarScript = getSidebarScript();
+        cachedSidebarCSS = getSidebarCSS();
+        cachedSidebarHTML = getSidebarHTML();
         filesChecked = true;
+      }
+
+      // Serve sidebar HTML page
+      if (req.url === "/__inspector__/sidebar" || req.url === "/__inspector__/sidebar/") {
+        if (cachedSidebarHTML) {
+          res.statusCode = 200;
+          res.setHeader("Content-Type", "text/html");
+          res.setHeader("Cache-Control", "no-cache");
+          res.end(cachedSidebarHTML);
+          return;
+        }
+        res.statusCode = 404;
+        res.end("Sidebar not found. Run `pnpm build:client` first.");
+        return;
+      }
+
+      // Serve sidebar JS bundle
+      if (req.url === "/__inspector__/sidebar.js") {
+        if (cachedSidebarScript) {
+          res.statusCode = 200;
+          res.setHeader("Content-Type", "application/javascript");
+          res.setHeader("Cache-Control", "no-cache");
+          res.end(cachedSidebarScript);
+          return;
+        }
+        res.statusCode = 404;
+        res.end("Sidebar script not found");
+        return;
+      }
+
+      // Serve sidebar CSS
+      if (req.url === "/__inspector__/sidebar.css") {
+        if (cachedSidebarCSS) {
+          res.statusCode = 200;
+          res.setHeader("Content-Type", "text/css");
+          res.setHeader("Cache-Control", "no-cache");
+          res.end(cachedSidebarCSS);
+          return;
+        }
+        res.statusCode = 404;
+        res.end("Sidebar CSS not found");
+        return;
       }
 
       if (req.url === "/__inspector__/inspector.js") {

@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import type { Client } from "@modelcontextprotocol/sdk/client";
+import type { McpClientType } from "./useMcp";
 
 import type { Prompt } from "../constants/types";
 
 import { ListPromptsResultSchema, PromptListChangedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
 
-export function usePrompts(mcpClient: Client | null) {
+export function usePrompts(mcpClient: McpClientType | null) {
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 

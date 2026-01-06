@@ -19,6 +19,7 @@ let configPromise: Promise<InspectorConfig> | null = null;
 /**
  * Get the dev server base URL from injected config.
  * Uses __DEV_INSPECTOR_CONFIG__ set by the plugin at build time.
+ * Falls back to window.location.origin for sidebar pages.
  */
 export function getDevServerBaseUrl(): string {
   const injectedConfig = (window as any).__DEV_INSPECTOR_CONFIG__ as
@@ -38,10 +39,21 @@ export function getDevServerBaseUrl(): string {
     return injectedConfig.baseUrl.replace(/\/$/, "");
   }
 
-  // Default: dev-style host/port (standalone server default port)
-  const host = injectedConfig?.host || "localhost";
-  const port = injectedConfig?.port || "5137";
-  return `http://${host}:${port}${base}`.replace(/\/$/, "");
+  // If we have host/port from injected config, use those
+  if (injectedConfig?.host && injectedConfig?.port) {
+    const host = injectedConfig.host;
+    const port = injectedConfig.port;
+    return `http://${host}:${port}${base}`.replace(/\/$/, "");
+  }
+
+  // Fallback: use current page origin (for sidebar and other standalone pages)
+  // This ensures the sidebar connects to the same server it's served from
+  if (typeof window !== "undefined" && window.location?.origin) {
+    return window.location.origin;
+  }
+
+  // Last resort: default dev server port
+  return `http://localhost:5137`;
 }
 
 /**
