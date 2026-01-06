@@ -381,8 +381,11 @@ function updateInspectionStatus(args: any) {
   return createTextContent("Status updated");
 }
 
-export function useMcp() {
-  const clientRef = useRef<Client | null>(null);
+// Return type uses ReturnType to infer from createClientExecClient
+export type McpClientType = ReturnType<typeof createClientExecClient>;
+
+export function useMcp(): { client: McpClientType | null; isClientReady: boolean } {
+  const clientRef = useRef<McpClientType | null>(null);
   const [isClientReady, setIsClientReady] = useState(false);
 
   // Check if automated by chrome devtools, then we have console/network access
@@ -391,8 +394,11 @@ export function useMcp() {
   useEffect(() => {
     if (clientRef.current) return;
 
+    // Type cast needed due to SDK version mismatch between @modelcontextprotocol/sdk (^1.20.1)
+    // and @mcpc-tech/cmcp which uses @modelcontextprotocol/sdk (^1.15.0).
+    // The Client types differ slightly between versions but are functionally compatible.
     const client = createClientExecClient(
-      new Client({ name: "inspector", version: "0.1.0" }, { capabilities: { tools: {} } }),
+      new Client({ name: "inspector", version: "0.1.0" }, { capabilities: { tools: {} } }) as unknown as Parameters<typeof createClientExecClient>[0],
       "inspector",
     );
 

@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import type { Client } from "@modelcontextprotocol/sdk/client";
+import type { McpClientType } from "./useMcp";
 import type { ConsoleMessage, NetworkRequest, StdioMessage } from "../types";
 
 export interface ContextData {
@@ -17,7 +17,7 @@ export interface ContextData {
  * @param isEnabled - whether to enable data fetching (default: true)
  */
 export function useContextData(
-  client: Client | null,
+  client: McpClientType | null,
   isClientReady: boolean,
   isEnabled: boolean = true,
 ) {

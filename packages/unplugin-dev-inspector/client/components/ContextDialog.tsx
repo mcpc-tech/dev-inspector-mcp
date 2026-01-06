@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import type { Client } from "@modelcontextprotocol/sdk/client";
+import type { McpClientType } from "../hooks/useMcp";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { InspectionQueue, type InspectionItem } from "./InspectionQueue";
 import { useContextData } from "../hooks/useContextData";
@@ -14,7 +14,7 @@ interface ContextDialogProps {
     onOpenChange: (open: boolean) => void;
     inspectionItems: InspectionItem[];
     onRemoveInspection: (id: string) => void;
-    client: Client | null;
+    client: McpClientType | null;
     isClientReady: boolean;
 }
 
@@ -23,7 +23,7 @@ type TabType = "inspections" | "console" | "network" | "stdio" | "page";
 // Network request item component with expandable details
 const NetworkRequestItem: React.FC<{
     request: NetworkRequest;
-    client: Client | null;
+    client: McpClientType | null;
     isClientReady: boolean;
 }> = ({ request, client, isClientReady }) => {
     const [isExpanded, setIsExpanded] = useState(false);

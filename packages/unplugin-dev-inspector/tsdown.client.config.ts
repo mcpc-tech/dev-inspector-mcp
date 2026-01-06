@@ -5,7 +5,7 @@ import fs from "fs";
 import path from "path";
 
 export default defineConfig({
-  entry: ["client/inspector.tsx"],
+  entry: ["client/inspector.tsx", "client/sidebar.tsx"],
   format: ["esm"],
   outDir: "client/dist",
   clean: true,
@@ -107,8 +107,9 @@ export default defineConfig({
             });
           }
 
-          // Write the processed CSS file for reference
+          // Write the processed CSS files for reference
           fs.writeFileSync("client/dist/inspector.css", result.css);
+          fs.writeFileSync("client/dist/sidebar.css", result.css);
 
           // Return the processed CSS as a default export
           return `export default ${JSON.stringify(result.css)}`;
