@@ -4,9 +4,8 @@ import type { NodePath } from "@babel/traverse";
 import type * as t from "@babel/types";
 import MagicString from "magic-string";
 import type { SetupOptions, TransformResult } from "../types";
-import { detectConfigFile, getInsertPosition, parseObjectExpression, serializeObject } from "../utils";
+import { detectConfigFile, getInsertPosition, parseObjectExpression, serializeObject, detectIndent, unwrapNode } from "../utils";
 
-// Handle both ESM and CommonJS default exports
 const traverse = (traverseModule as any).default || traverseModule;
 
 const PLUGIN_IMPORT = "@mcpc-tech/unplugin-dev-inspector-mcp";
@@ -20,11 +19,11 @@ export function transformViteConfig(code: string, options: SetupOptions): Transf
       plugins: ["typescript", "jsx"],
     });
 
+    const indent = detectIndent(code);
     let lastImportEnd = 0;
     let pluginsArrayStart = -1;
     let firstPluginStart = -1;
     let hasPluginsArray = false;
-
     let hasImport = false;
     let hasPluginUsage = false;
     let importedVarName = PLUGIN_VAR_NAME;
@@ -32,14 +31,13 @@ export function transformViteConfig(code: string, options: SetupOptions): Transf
     let usageStart = -1;
     let usageEnd = -1;
 
-    // Analyze existing config
     traverse(ast, {
       ImportDeclaration(path: NodePath<t.ImportDeclaration>) {
         if (path.node.source.value === PLUGIN_IMPORT) {
           hasImport = true;
-          const defaultSpecifier = path.node.specifiers.find((s) => s.type === "ImportDefaultSpecifier");
-          if (defaultSpecifier && defaultSpecifier.local.type === "Identifier") {
-            importedVarName = defaultSpecifier.local.name;
+          const spec = path.node.specifiers.find(s => s.type === "ImportDefaultSpecifier");
+          if (spec?.local.type === "Identifier") {
+            importedVarName = spec.local.name;
           }
         }
         if (path.node.loc) {
@@ -53,11 +51,11 @@ export function transformViteConfig(code: string, options: SetupOptions): Transf
           path.node.value.type === "ArrayExpression"
         ) {
           hasPluginsArray = true;
-          if (path.node.value.start !== null && path.node.value.start !== undefined) {
-            pluginsArrayStart = path.node.value.start;
-            const elements = path.node.value.elements;
-            
-            elements.forEach((element) => {
+          pluginsArrayStart = path.node.value.start ?? -1;
+          const elements = path.node.value.elements;
+          
+            elements.forEach((rawElement) => {
+              const element = unwrapNode(rawElement) as any; // Cast to any to safely access properties
               if (
                 element &&
                 element.type === "CallExpression" &&
@@ -68,7 +66,17 @@ export function transformViteConfig(code: string, options: SetupOptions): Transf
                 element.callee.property.name === "vite"
               ) {
                 hasPluginUsage = true;
+                // Use undefined check for types safety
                 if (typeof element.start === 'number' && typeof element.end === 'number') {
+                    // For replacement, we want to replace the WHOLE element (including 'as any'),
+                    // so we use rawElement's range if available, otherwise element's range.
+                    // Actually, if we use rawElement, we replace 'Call() as any' with 'NewCall()'.
+                    // 'NewCall()' does not have 'as any'.
+                    // If we want to preserve 'as any', we should replace the inner call range.
+                    // But overwriting inner call might be tricky if 'as any' wraps it.
+                    // simpler: just replace the inner call.
+                    // But wait, if we replace inner call, the 'as any' stays.
+                    
                     usageStart = element.start;
                     usageEnd = element.end;
                 }
@@ -77,31 +85,30 @@ export function transformViteConfig(code: string, options: SetupOptions): Transf
                 }
               }
             });
+          
 
-            if (elements.length > 0 && typeof elements[0]?.start === 'number') {
-              firstPluginStart = elements[0].start;
-            }
+          if (elements.length > 0 && elements[0]?.start != null) {
+            firstPluginStart = elements[0].start;
           }
         }
       },
     });
 
-    // Add import statement if missing
+    // Add import if missing
     if (!hasImport) {
       const importLine = `import ${PLUGIN_VAR_NAME} from '${PLUGIN_IMPORT}';\n`;
       if (lastImportEnd > 0) {
-        const insertPos = getInsertPosition(code, lastImportEnd);
-        s.appendLeft(insertPos, importLine);
+        s.appendLeft(getInsertPosition(code, lastImportEnd), importLine);
       } else {
         s.prepend(importLine);
       }
     }
 
-    // Build CLI options
+    // Build config options
     const cliConfig: Record<string, any> = {};
     if (options.entryPath) {
-        cliConfig.entry = options.entryPath;
-        cliConfig.autoInject = false;
+      cliConfig.entry = options.entryPath;
+      cliConfig.autoInject = false;
     }
     if (options.jsonOptions) Object.assign(cliConfig, options.jsonOptions);
     if (options.updateConfig !== undefined) cliConfig.updateConfig = options.updateConfig;
@@ -111,71 +118,66 @@ export function transformViteConfig(code: string, options: SetupOptions): Transf
     if (options.visibleAgents !== undefined) cliConfig.visibleAgents = options.visibleAgents;
     if (options.publicBaseUrl !== undefined) cliConfig.publicBaseUrl = options.publicBaseUrl;
 
+    const pluginIndent = indent.repeat(2);
+
     if (hasPluginUsage) {
+      // Update existing config
       const mergedConfig = existingOptionsNode ? parseObjectExpression(existingOptionsNode) : {};
       Object.assign(mergedConfig, cliConfig);
-
       if (usageStart > -1 && usageEnd > -1) {
-          const newPluginCall = `${importedVarName}.vite(${serializeObject(mergedConfig, 6)})`;
-          s.overwrite(usageStart, usageEnd, newPluginCall);
+        s.overwrite(usageStart, usageEnd, `${importedVarName}.vite(${serializeObject(mergedConfig, indent, 3)})`);
       }
-
-    } else {
+    } else if (hasPluginsArray) {
+      // Add new plugin
       const finalConfig = { enabled: true, ...cliConfig };
-      if (hasPluginsArray && firstPluginStart > -1) {
-        const pluginCall = `${importedVarName}.vite(${serializeObject(finalConfig, 6)}),\n    `;
-        s.appendLeft(firstPluginStart, pluginCall);
-      } else if (hasPluginsArray && pluginsArrayStart > -1) {
-        const pluginCall = `\n    ${importedVarName}.vite(${serializeObject(finalConfig, 6)}),\n  `;
-        s.appendLeft(pluginsArrayStart + 1, pluginCall);
-      } else {
-        return {
-          success: false,
-          modified: false,
-          error: "Could not find plugins array in config",
-          message: "Please add DevInspector manually to your plugins array",
-        };
+      const pluginCall = `${importedVarName}.vite(${serializeObject(finalConfig, indent, 3)})`;
+      if (firstPluginStart > -1) {
+        s.appendLeft(firstPluginStart, `${pluginCall},\n${pluginIndent}`);
+      } else if (pluginsArrayStart > -1) {
+        s.appendLeft(pluginsArrayStart + 1, `\n${pluginIndent}${pluginCall},\n${indent}`);
       }
+    } else {
+      return {
+        success: false,
+        modified: false,
+        error: "Could not find plugins array in config",
+        message: "Please add DevInspector manually to your plugins array",
+      };
     }
 
-    // Server config injection (Host/AllowedHosts)
-    if (options.host || (options.allowedHosts && options.allowedHosts.length > 0)) {
+    // Server config injection
+    if (options.host || options.allowedHosts?.length) {
       traverse(ast, {
         ExportDefaultDeclaration(path: NodePath<t.ExportDefaultDeclaration>) {
           if (
             path.node.declaration.type === "CallExpression" &&
-            path.node.declaration.arguments.length > 0 &&
-            path.node.declaration.arguments[0].type === "ObjectExpression"
+            path.node.declaration.arguments[0]?.type === "ObjectExpression"
           ) {
             const configObj = path.node.declaration.arguments[0];
             const serverProp = configObj.properties.find(
-              (p) => p.type === "ObjectProperty" && p.key.type === "Identifier" && p.key.name === "server"
+              p => p.type === "ObjectProperty" && p.key.type === "Identifier" && p.key.name === "server"
             ) as t.ObjectProperty | undefined;
 
-            if (serverProp && serverProp.value.start !== null) {
-                const serverContentStart = serverProp.value.start! + 1;
-                const serverBlockEnd = serverProp.value.end;
-                if (serverBlockEnd) {
-                    const currentServerBlock = code.slice(serverContentStart, serverBlockEnd);
-                    let injection = "";
-                    if (options.host && !currentServerBlock.includes("host:")) {
-                         injection += `\n    host: '${options.host}',`;
-                    }
-                    if (options.allowedHosts && options.allowedHosts.length > 0 && !currentServerBlock.includes("allowedHosts:")) {
-                         const hostsStr = options.allowedHosts.map(h => `'${h}'`).join(', ');
-                         injection += `\n    allowedHosts: [${hostsStr}],`;
-                    }
-                    if (injection) s.appendLeft(serverContentStart, injection);
-                }
-            } else if (configObj.start !== null) {
-                 let injection = "\n  server: {\n";
-                 if (options.host) injection += `    host: '${options.host}',\n`;
-                 if (options.allowedHosts && options.allowedHosts.length > 0) {
-                    const hostsStr = options.allowedHosts.map(h => `'${h}'`).join(', ');
-                    injection += `    allowedHosts: [${hostsStr}],\n`;
-                 }
-                 injection += "  },";
-                 s.appendLeft(configObj.start! + 1, injection);
+            const serverIndent = indent.repeat(2);
+            if (serverProp?.value.start != null) {
+              const serverContentStart = serverProp.value.start + 1;
+              const currentBlock = code.slice(serverContentStart, serverProp.value.end!);
+              let injection = "";
+              if (options.host && !currentBlock.includes("host:")) {
+                injection += `\n${serverIndent}host: '${options.host}',`;
+              }
+              if (options.allowedHosts?.length && !currentBlock.includes("allowedHosts:")) {
+                injection += `\n${serverIndent}allowedHosts: [${options.allowedHosts.map(h => `'${h}'`).join(', ')}],`;
+              }
+              if (injection) s.appendLeft(serverContentStart, injection);
+            } else if (configObj.start != null) {
+              let injection = `\n${indent}server: {\n`;
+              if (options.host) injection += `${serverIndent}host: '${options.host}',\n`;
+              if (options.allowedHosts?.length) {
+                injection += `${serverIndent}allowedHosts: [${options.allowedHosts.map(h => `'${h}'`).join(', ')}],\n`;
+              }
+              injection += `${indent}},`;
+              s.appendLeft(configObj.start + 1, injection);
             }
           }
         }
@@ -183,11 +185,10 @@ export function transformViteConfig(code: string, options: SetupOptions): Transf
     }
 
     if (s.toString() === code) {
-       return { success: true, modified: false, message: "DevInspector is already configured" };
+      return { success: true, modified: false, message: "DevInspector is already configured" };
     }
 
     return { success: true, modified: true, code: s.toString(), message: "Successfully added/updated DevInspector in Vite config" };
-
   } catch (error) {
     return { success: false, modified: false, error: error instanceof Error ? error.message : String(error), message: "Failed to transform Vite config" };
   }

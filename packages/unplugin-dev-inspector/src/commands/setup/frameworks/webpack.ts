@@ -4,9 +4,8 @@ import type { NodePath } from "@babel/traverse";
 import type * as t from "@babel/types";
 import MagicString from "magic-string";
 import type { SetupOptions, TransformResult } from "../types";
-import { detectConfigFile, getInsertPosition, parseObjectExpression, serializeObject } from "../utils";
+import { detectConfigFile, getInsertPosition, parseObjectExpression, serializeObject, unwrapNode, detectIndent } from "../utils";
 
-// Handle both ESM and CommonJS default exports
 const traverse = (traverseModule as any).default || traverseModule;
 
 const PLUGIN_IMPORT = "@mcpc-tech/unplugin-dev-inspector-mcp";
@@ -16,15 +15,12 @@ export function transformWebpackConfig(code: string, options: SetupOptions): Tra
   try {
     const s = new MagicString(code);
     const isESM = code.includes("import ") && !code.includes("require(");
-
-    const ast = parse(code, {
-      sourceType: "module",
-      plugins: ["typescript"],
-    });
+    const ast = parse(code, { sourceType: "module", plugins: ["typescript"] });
+    const indent = detectIndent(code);
 
     let lastImportEnd = 0;
     let pluginsArrayStart = -1;
-
+    let firstPluginStart = -1;
     let hasImport = false;
     let hasPluginUsage = false;
     let importedVarName = PLUGIN_VAR_NAME;
@@ -32,32 +28,32 @@ export function transformWebpackConfig(code: string, options: SetupOptions): Tra
     let usageStart = -1;
     let usageEnd = -1;
 
-    // Find last import/require and plugins array
     traverse(ast, {
       ImportDeclaration(path: NodePath<t.ImportDeclaration>) {
         if (path.node.loc) lastImportEnd = Math.max(lastImportEnd, path.node.loc.end.line);
         if (path.node.source.value === PLUGIN_IMPORT) {
           hasImport = true;
-          const specifier = path.node.specifiers.find((s) => s.type === "ImportDefaultSpecifier");
-          if (specifier && specifier.local.type === "Identifier") {
-            importedVarName = specifier.local.name;
+          const spec = path.node.specifiers.find(s => s.type === "ImportDefaultSpecifier");
+          if (spec?.local.type === "Identifier") {
+            importedVarName = spec.local.name;
           }
         }
       },
       VariableDeclaration(path: NodePath<t.VariableDeclaration>) {
         if (path.node.loc && !isESM) lastImportEnd = Math.max(lastImportEnd, path.node.loc.end.line);
-        path.node.declarations.forEach((decl) => {
+        for (const decl of path.node.declarations) {
           if (
             decl.init?.type === "CallExpression" &&
             decl.init.callee.type === "Identifier" &&
             decl.init.callee.name === "require" &&
             decl.init.arguments[0]?.type === "StringLiteral" &&
-            decl.init.arguments[0].value === PLUGIN_IMPORT
+            decl.init.arguments[0].value === PLUGIN_IMPORT &&
+            decl.id.type === "Identifier"
           ) {
             hasImport = true;
-            if (decl.id.type === "Identifier") importedVarName = decl.id.name;
+            importedVarName = decl.id.name;
           }
-        });
+        }
       },
       ObjectProperty(path: NodePath<t.ObjectProperty>) {
         if (
@@ -65,54 +61,56 @@ export function transformWebpackConfig(code: string, options: SetupOptions): Tra
           path.node.key.name === "plugins" &&
           path.node.value.type === "ArrayExpression"
         ) {
-          if (path.node.value.start !== null && path.node.value.start !== undefined) {
-            pluginsArrayStart = path.node.value.start;
-            const elements = path.node.value.elements;
+          pluginsArrayStart = path.node.value.start ?? -1;
+          const elements = path.node.value.elements;
 
-            elements.forEach((element) => {
-              if (
-                element &&
-                element.type === "CallExpression" &&
-                element.callee.type === "MemberExpression" &&
-                element.callee.object.type === "Identifier" &&
-                element.callee.object.name === importedVarName &&
-                element.callee.property.type === "Identifier" &&
-                element.callee.property.name === "webpack"
-              ) {
-                hasPluginUsage = true;
-                if (typeof element.start === 'number' && typeof element.end === 'number') {
-                    usageStart = element.start;
-                    usageEnd = element.end;
-                }
-                if (element.arguments.length > 0 && element.arguments[0].type === "ObjectExpression") {
-                  existingOptionsNode = element.arguments[0];
-                }
+          elements.forEach((rawElement) => {
+            const element = unwrapNode(rawElement) as any;
+            
+            if (
+              element &&
+              element.type === "CallExpression" &&
+              element.callee.type === "MemberExpression" &&
+              element.callee.object.type === "Identifier" &&
+              element.callee.object.name === importedVarName &&
+              element.callee.property.type === "Identifier" &&
+              element.callee.property.name === "webpack"
+            ) {
+              hasPluginUsage = true;
+              if (typeof element.start === 'number' && typeof element.end === 'number') {
+                  usageStart = element.start;
+                  usageEnd = element.end;
               }
-            });
+               if (element.arguments.length > 0 && element.arguments[0].type === "ObjectExpression") {
+                existingOptionsNode = element.arguments[0];
+              }
+            }
+          });
+
+          if (elements.length > 0 && elements[0]?.start != null) {
+            firstPluginStart = elements[0].start;
           }
         }
       },
     });
 
-    // Add import statement
+    // Add import if missing
     if (!hasImport) {
       const importLine = isESM
         ? `import ${PLUGIN_VAR_NAME} from '${PLUGIN_IMPORT}';\n`
         : `const ${PLUGIN_VAR_NAME} = require('${PLUGIN_IMPORT}');\n`;
-
       if (lastImportEnd > 0) {
-        const insertPos = getInsertPosition(code, lastImportEnd);
-        s.appendLeft(insertPos, importLine);
+        s.appendLeft(getInsertPosition(code, lastImportEnd), importLine);
       } else {
         s.prepend(importLine);
       }
     }
 
-     // Build CLI options
+    // Build config options
     const cliConfig: Record<string, any> = {};
     if (options.entryPath) {
-        cliConfig.entry = options.entryPath;
-        cliConfig.autoInject = false;
+      cliConfig.entry = options.entryPath;
+      cliConfig.autoInject = false;
     }
     if (options.jsonOptions) Object.assign(cliConfig, options.jsonOptions);
     if (options.updateConfig !== undefined) cliConfig.updateConfig = options.updateConfig;
@@ -122,30 +120,27 @@ export function transformWebpackConfig(code: string, options: SetupOptions): Tra
     if (options.visibleAgents !== undefined) cliConfig.visibleAgents = options.visibleAgents;
     if (options.publicBaseUrl !== undefined) cliConfig.publicBaseUrl = options.publicBaseUrl;
 
+    const pluginIndent = indent.repeat(2);
 
-    // Add DevInspector to plugins array
     if (hasPluginUsage) {
       const mergedConfig = existingOptionsNode ? parseObjectExpression(existingOptionsNode) : {};
       Object.assign(mergedConfig, cliConfig);
-
       if (usageStart > -1 && usageEnd > -1) {
-          const newPluginCall = `${importedVarName}.webpack(${serializeObject(mergedConfig, 6)})`;
-          s.overwrite(usageStart, usageEnd, newPluginCall);
+        s.overwrite(usageStart, usageEnd, `${importedVarName}.webpack(${serializeObject(mergedConfig, indent, 3)})`);
       }
-
+    } else if (firstPluginStart > -1) {
+      const finalConfig = { enabled: true, ...cliConfig };
+      s.appendLeft(firstPluginStart, `${importedVarName}.webpack(${serializeObject(finalConfig, indent, 3)}),\n${pluginIndent}`);
+    } else if (pluginsArrayStart > -1) {
+      const finalConfig = { enabled: true, ...cliConfig };
+      s.appendLeft(pluginsArrayStart + 1, `\n${pluginIndent}${importedVarName}.webpack(${serializeObject(finalConfig, indent, 3)}),\n${indent}`);
     } else {
-      if (pluginsArrayStart > -1) {
-        const finalConfig = { enabled: true, ...cliConfig };
-        const pluginCall = `\n    ${importedVarName}.webpack(${serializeObject(finalConfig, 6)}),`;
-        s.appendLeft(pluginsArrayStart + 1, pluginCall);
-      } else {
-        return {
-          success: false,
-          modified: false,
-          error: "Could not find plugins array in config",
-          message: "Please add DevInspector manually to your plugins array",
-        };
-      }
+      return {
+        success: false,
+        modified: false,
+        error: "Could not find plugins array in config",
+        message: "Please add DevInspector manually to your plugins array",
+      };
     }
 
     if (s.toString() === code) {

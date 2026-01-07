@@ -1,6 +1,5 @@
 import { existsSync } from "fs";
 import { resolve } from "path";
-import type { SetupOptions } from "./types";
 import type * as t from "@babel/types";
 
 /**
@@ -14,6 +13,22 @@ export function detectConfigFile(cwd: string, patterns: string[]): string | null
     }
   }
   return null;
+}
+
+/**
+ * Detects the indentation style used in the code.
+ * Simple approach: find the first indented line and use its indent.
+ */
+export function detectIndent(code: string): string {
+  const match = code.match(/\n(\t+|[ ]+)(?=\S)/);
+  if (match) {
+    const indent = match[1];
+    // Return the base unit (first tab or first 2/4 spaces)
+    if (indent[0] === '\t') return '\t';
+    if (indent.length >= 4 && indent.startsWith('    ')) return '    ';
+    if (indent.length >= 2) return '  ';
+  }
+  return '  '; // Default to 2 spaces
 }
 
 /**
@@ -36,56 +51,30 @@ export function sanitizePath(path: string): string {
 }
 
 /**
- * Generates formatted plugin options string.
+ * Serializes an object to a formatted string.
+ * @param obj - The object to serialize
+ * @param baseIndent - The base indentation unit (e.g., "  " for 2 spaces)
+ * @param depth - Current nesting depth
  */
-export function getPluginOptions(options: SetupOptions, indent: number = 6): string {
-  // 1. Base config
-  const config: Record<string, any> = {
-    enabled: true,
-  };
-
-  if (options.entryPath) {
-    config.entry = options.entryPath;
-    config.autoInject = false;
-  }
-
-  // 2. Merge generic JSON options
-  if (options.jsonOptions) {
-    Object.assign(config, options.jsonOptions);
-  }
-
-  // 3. Apply specific flags (Override JSON options)
-  if (options.updateConfig !== undefined) config.updateConfig = options.updateConfig;
-  if (options.disableChrome !== undefined) config.disableChrome = options.disableChrome;
-  if (options.autoOpenBrowser !== undefined) config.autoOpenBrowser = options.autoOpenBrowser;
-  if (options.defaultAgent !== undefined) config.defaultAgent = options.defaultAgent;
-  if (options.visibleAgents !== undefined) config.visibleAgents = options.visibleAgents;
-  if (options.publicBaseUrl !== undefined) config.publicBaseUrl = options.publicBaseUrl;
-
-  // 4. Serialize
-  return serializeObject(config, indent);
-}
-
-export function serializeObject(obj: any, indentLevel: number): string {
+export function serializeObject(obj: any, baseIndent: string = "  ", depth: number = 0): string {
   if (obj === null) return "null";
   if (obj === undefined) return "undefined";
   if (typeof obj === "string") return `'${sanitizePath(obj)}'`;
   if (typeof obj !== "object") return String(obj);
 
   if (Array.isArray(obj)) {
-    const items = obj.map(item => serializeObject(item, indentLevel + 2)).join(", ");
+    const items = obj.map(item => serializeObject(item, baseIndent, depth)).join(", ");
     return `[${items}]`;
   }
 
   const keys = Object.keys(obj);
   if (keys.length === 0) return "{}";
 
-  const indent = " ".repeat(indentLevel);
-  const propIndent = " ".repeat(indentLevel + 2); // 2 spaces for nested properties
+  const indent = baseIndent.repeat(depth);
+  const propIndent = baseIndent.repeat(depth + 1);
   
   const props = keys.map(key => {
-    const value = serializeObject(obj[key], indentLevel + 2);
-    // Keys in JS/TS usually don't need quotes unless they contain special chars
+    const value = serializeObject(obj[key], baseIndent, depth + 1);
     const safeKey = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key) ? key : `'${key}'`;
     return `${propIndent}${safeKey}: ${value}`;
   });
@@ -95,7 +84,6 @@ export function serializeObject(obj: any, indentLevel: number): string {
 
 /**
  * Parses a Babel ObjectExpression node into a simple JS object (shallow).
- * Helper for KISS principle to avoid duplicating parsing logic.
  */
 export function parseObjectExpression(node: t.ObjectExpression): Record<string, any> {
   const result: Record<string, any> = {};
@@ -112,4 +100,21 @@ export function parseObjectExpression(node: t.ObjectExpression): Record<string, 
     }
   });
   return result;
+}
+
+/**
+ * Unwraps TS expressions like 'as any', '!', etc. to get the underlying expression.
+ */
+export function unwrapNode(node: t.Node | null | undefined): t.Node | null | undefined {
+  if (!node) return node;
+  let current = node;
+  while (
+    current.type === "TSAsExpression" ||
+    current.type === "TSNonNullExpression" ||
+    current.type === "TSSatisfiesExpression" ||
+    current.type === "TSTypeAssertion"
+  ) {
+      current = (current as any).expression;
+  }
+  return current;
 }
