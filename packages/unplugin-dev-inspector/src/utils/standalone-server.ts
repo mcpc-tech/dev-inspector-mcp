@@ -46,31 +46,31 @@ export class StandaloneServer {
       if (this.allowedHosts.length > 0) {
         const hostHeader = req.headers.host;
         if (hostHeader) {
-            const hostname = hostHeader.split(':')[0];
-            // Allow localhost/127.0.0.1 by default if they are accessing via those IPs even if not in allowedHosts? 
-            // Better to stick to strict check if allowedHosts is provided.
-            const isAllowed = this.allowedHosts.some(allowed => {
-                if (allowed.startsWith('.')) {
-                    return hostname.endsWith(allowed) || hostname === allowed.slice(1);
-                }
-                return hostname === allowed;
-            });
-            
-            if (!isAllowed) {
-                // Check if it's localhost access which is usually safe?
-                // Vite allows localhost access even if allowedHosts is set, usually.
-                // But specifically for 0.0.0.0, we want to restrict external access.
-                // Let's keep it simple: if allowedHosts is set, MUST match.
-                
-                // Exception: always allow localhost references for local tools?
-                const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
-                
-                if (!isAllowed && !isLocal) {
-                    res.statusCode = 403;
-                    res.end('Host Restricted');
-                    return;
-                }
+          const hostname = hostHeader.split(':')[0];
+          // Allow localhost/127.0.0.1 by default if they are accessing via those IPs even if not in allowedHosts? 
+          // Better to stick to strict check if allowedHosts is provided.
+          const isAllowed = this.allowedHosts.some(allowed => {
+            if (allowed.startsWith('.')) {
+              return hostname.endsWith(allowed) || hostname === allowed.slice(1);
             }
+            return hostname === allowed;
+          });
+
+          if (!isAllowed) {
+            // Check if it's localhost access which is usually safe?
+            // Vite allows localhost access even if allowedHosts is set, usually.
+            // But specifically for 0.0.0.0, we want to restrict external access.
+            // Let's keep it simple: if allowedHosts is set, MUST match.
+
+            // Exception: always allow localhost references for local tools?
+            const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+
+            if (!isAllowed && !isLocal) {
+              res.statusCode = 403;
+              res.end('Host Restricted');
+              return;
+            }
+          }
         }
       }
 
@@ -149,8 +149,8 @@ export class StandaloneServer {
   }
 
   async start(options: StandaloneServerOptions = {}): Promise<{ host: string; port: number }> {
-    const startPort = options.port || getDefaultPort();    
-    this.host = "0.0.0.0"
+    const startPort = options.port || getDefaultPort();
+    this.host = options.host ? 'localhost' : "0.0.0.0"
     this.allowedHosts = options.allowedHosts || [];
 
     // Try to find a free port
@@ -218,7 +218,7 @@ export async function startStandaloneServer(options: StandaloneServerOptions = {
   // Handle graceful shutdown
   process.on('SIGINT', shutdownHandler);
   process.on('SIGTERM', shutdownHandler);
-  
+
   // Handle process exit
   process.on('exit', () => {
     // Synchronous cleanup on exit
