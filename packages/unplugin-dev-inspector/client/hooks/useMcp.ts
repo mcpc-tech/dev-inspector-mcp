@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createClientExecClient } from "@mcpc-tech/cmcp";
 import { TOOL_SCHEMAS } from "../../src/tool-schemas.js";
 import { getDevServerBaseUrl } from "../utils/config-loader";
+import { formatElementAnnotations } from "../utils/format";
 
 const STORAGE_KEY = "inspector-inspection-items";
 const INSPECTION_ID_KEY = "inspector-current-inspection-id";
@@ -68,6 +69,13 @@ function getAllFeedbacks() {
             ? `LOADING (${progress.completed}/${progress.total} steps)`
             : status.toUpperCase();
 
+        // Format annotations using shared helper (KISS principle)
+        const notesSection = formatElementAnnotations({
+          primaryNote: sourceInfo.note,
+          primaryTag: sourceInfo.elementInfo?.tagName?.toLowerCase() || sourceInfo.component,
+          relatedElements: sourceInfo.relatedElements,
+        });
+
         return `## ${index + 1}. Feedback ID: \`${id}\`
 
 **Status**: ${statusText}
@@ -77,7 +85,7 @@ function getAllFeedbacks() {
 ${formatElementInfoSimple(sourceInfo.elementInfo)}
 **User Request**:
 ${description}
-
+${notesSection}
 ${result ? `**Result**: ${result}\n` : ""}---`;
       })
       .join("\n\n");
@@ -131,18 +139,16 @@ DOM Path: ${elementInfo.domPath || "N/A"}
 \`\`\`
 
 ### Position & Size
-${
-  elementInfo.boundingBox
-    ? `
+${elementInfo.boundingBox
+        ? `
 - **Position**: (${Math.round(elementInfo.boundingBox.x)}, ${Math.round(elementInfo.boundingBox.y)})
 - **Size**: ${Math.round(elementInfo.boundingBox.width)}px × ${Math.round(elementInfo.boundingBox.height)}px
 `
-    : ""
-}
+        : ""
+      }
 
-${
-  includeStyles && elementInfo.computedStyles
-    ? `### Computed Styles (Key Properties)
+${includeStyles && elementInfo.computedStyles
+        ? `### Computed Styles (Key Properties)
 
 **Layout**:
 - display: ${elementInfo.computedStyles.layout.display}
@@ -168,8 +174,8 @@ ${
 - box-shadow: ${elementInfo.computedStyles.effects.boxShadow || "none"}
 - transform: ${elementInfo.computedStyles.effects.transform || "none"}
 `
-    : includeStyles && elementInfo.styles
-      ? `### Legacy Styles:
+        : includeStyles && elementInfo.styles
+          ? `### Legacy Styles:
 \`\`\`css
 display: ${elementInfo.styles?.display}
 color: ${elementInfo.styles?.color}
@@ -179,8 +185,8 @@ padding: ${elementInfo.styles?.padding}
 margin: ${elementInfo.styles?.margin}
 \`\`\`
 `
-      : ""
-}
+          : ""
+      }
 `
       : "";
 

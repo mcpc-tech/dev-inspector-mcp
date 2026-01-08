@@ -31,9 +31,8 @@ Path: ${domPath || "N/A"}
     output += `
 ### Position & Size
 - **Position**: (${Math.round(boundingBox.x)}, ${Math.round(boundingBox.y)})
-- **Size**: ${Math.round(boundingBox.width)}px × ${
-      Math.round(boundingBox.height)
-    }px
+- **Size**: ${Math.round(boundingBox.width)}px × ${Math.round(boundingBox.height)
+      }px
 `;
   }
 
@@ -121,8 +120,8 @@ export function formatConsoleMessages(messages: ConsoleMessage[]): string {
       const levelIcon = msg.level === "error"
         ? "❌"
         : msg.level === "warn"
-        ? "⚠️"
-        : "📝";
+          ? "⚠️"
+          : "📝";
       return `- ${levelIcon} [${msg.level}] ${msg.text}`;
     })
     .join("\n");
@@ -212,6 +211,45 @@ export function formatPageInfo(pageInfo: PageInfo): string {
 }
 
 /**
+ * Format element annotations (notes) from primary and related elements
+ */
+export function formatElementAnnotations(options: {
+  primaryNote?: string;
+  primaryTag?: string;
+  relatedElements?: Array<{
+    note?: string;
+    elementInfo?: { tagName?: string };
+    component?: string;
+    file?: string;
+    line?: number;
+  }>;
+}): string {
+  const { primaryNote, primaryTag, relatedElements } = options;
+  const notes: string[] = [];
+
+  // Add primary element note if exists
+  if (primaryNote) {
+    const tag = primaryTag || "element";
+    notes.push(`- **Primary element** (${tag}): ${primaryNote}`);
+  }
+
+  // Add related elements' notes if they exist
+  if (relatedElements && relatedElements.length > 0) {
+    relatedElements.forEach((el, idx) => {
+      if (el.note) {
+        const tag = el.elementInfo?.tagName?.toLowerCase() || el.component;
+        const location = el.file && el.line ? ` at ${el.file}:${el.line}` : "";
+        notes.push(`- **Related element #${idx + 1}** (${tag}${location}): ${el.note}`);
+      }
+    });
+  }
+
+  return notes.length > 0
+    ? `\n**Element Annotations**:\n${notes.join("\n")}\n`
+    : "";
+}
+
+/**
  * Format complete context for Copy & Go (matches ContextPicker tab structure)
  */
 export function formatCopyContext(options: {
@@ -288,13 +326,13 @@ export function formatCopyContext(options: {
         {} as Record<string, InspectedElement[]>,
       );
 
-       Object.entries(grouped).forEach(([file, elements]) => {
+      Object.entries(grouped).forEach(([file, elements]) => {
         output += `### ${file}\n`;
         elements.forEach((el) => {
-            // Find the original index for this element to look up notes
-            // This relies on relatedElements being preserved in order
-            const originalIndex = relatedElements.indexOf(el);
-            const note = elementNotes ? elementNotes[originalIndex] : null;
+          // Find the original index for this element to look up notes
+          // This relies on relatedElements being preserved in order
+          const originalIndex = relatedElements.indexOf(el);
+          const note = elementNotes ? elementNotes[originalIndex] : null;
 
           output += `- **${el.component}** (${el.line}:${el.column})`;
           if (el.elementInfo?.tagName) {
@@ -312,16 +350,15 @@ export function formatCopyContext(options: {
             if (el.elementInfo.textContent) {
               const preview = el.elementInfo.textContent.trim().slice(0, 30);
               if (preview) {
-                output += ` "${preview}${
-                  el.elementInfo.textContent.length > 30 ? "..." : ""
-                }"`;
+                output += ` "${preview}${el.elementInfo.textContent.length > 30 ? "..." : ""
+                  }"`;
               }
             }
             output += "`";
           }
-          
+
           if (note) {
-              output += `\n  - **USER NOTE**: "${note}"`;
+            output += `\n  - **USER NOTE**: "${note}"`;
           }
           output += "\n";
         });

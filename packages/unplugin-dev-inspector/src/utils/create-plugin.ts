@@ -191,13 +191,13 @@ export const createDevInspectorPlugin = (
       resolvedHost = host;
       resolvedPort = port;
 
-  const serverContext = {
-    host: resolvedHost,
-    port: resolvedPort,
-    disableChrome: chromeDisabled,
-    prompts: options.prompts,
-    defaultPrompts: options.defaultPrompts,
-  };
+      const serverContext = {
+        host: resolvedHost,
+        port: resolvedPort,
+        disableChrome: chromeDisabled,
+        prompts: options.prompts,
+        defaultPrompts: options.defaultPrompts,
+      };
 
       const displayHost = host === "0.0.0.0" ? "localhost" : host;
       const publicBase = getPublicBaseUrl({
@@ -330,7 +330,8 @@ export function registerInspectorTool(_tool) {
           }
 
           // Use resolved host/port from standalone server
-          const host = resolvedHost;
+          // Use 'localhost' instead of '0.0.0.0' for client-side URLs to prevent Mixed Content errors
+          const host = resolvedHost === "0.0.0.0" ? "localhost" : resolvedHost;
           const port = resolvedPort;
           const showInspectorBar = options.showInspectorBar ?? true;
           // Use helper to respect Env > Option priority
@@ -386,11 +387,10 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
       host: '${host}',
       port: '${port}',
       base: '/',
-      baseUrl: ${
-            injectedBaseUrl
+      baseUrl: ${injectedBaseUrl
               ? `'${injectedBaseUrl.replace(/'/g, "\\'")}'`
               : "undefined"
-          },
+            },
       showInspectorBar: ${showInspectorBar},
       disableChrome: ${chromeDisabled}
     };
@@ -447,10 +447,9 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
       host: '${host}',
       port: '${port}',
       base: '${base}',
-      baseUrl: ${
-                publicBaseUrl
-                  ? `'${publicBaseUrl.replace(/'/g, "\\'")}'`
-                  : "undefined"
+      baseUrl: ${publicBaseUrl
+                ? `'${publicBaseUrl.replace(/'/g, "\\'")}'`
+                : "undefined"
               },
       showInspectorBar: ${showInspectorBar},
       disableChrome: ${chromeDisabled}
@@ -471,7 +470,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
 
         async configureServer(server) {
           if (!enabled) return;
-          
+
           if (!enabled) return;
 
           // Start standalone server for MCP/Inspector
