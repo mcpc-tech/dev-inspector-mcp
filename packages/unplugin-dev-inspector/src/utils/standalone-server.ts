@@ -148,6 +148,10 @@ export class StandaloneServer {
     return this.server.listen(...args);
   }
 
+  /**
+   * Start the standalone server.
+   * Host resolution: string value used as-is, `true` = '0.0.0.0', default = 'localhost'
+   */
   async start(options: StandaloneServerOptions = {}): Promise<{ host: string; port: number }> {
     const startPort = options.port || getDefaultPort();
     this.host = typeof options.host === 'string' ? options.host : (options.host === true ? '0.0.0.0' : 'localhost')

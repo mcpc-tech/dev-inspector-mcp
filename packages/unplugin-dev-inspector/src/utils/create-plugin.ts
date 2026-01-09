@@ -24,12 +24,14 @@ export interface DevInspectorOptions extends McpConfigOptions, AcpOptions {
   enabled?: boolean;
 
   /**
-   * Custom host for MCP server URL
-   * Useful when behind a proxy or in Docker containers
+   * Host address for the standalone server to bind to.
+   * - `"localhost"` (default): Only accessible locally, avoids Mixed Content errors (HTTPS→HTTP allowed)
+   * - `"0.0.0.0"` or `true`: Accessible from all network interfaces (useful for Docker, remote access)
+   * - Custom hostname: Bind to specific interface
    * @default "localhost"
-   * @example "localhost" or "my-dev-server.local"
+   * @example true
    */
-  host?: string;
+  host?: string | boolean;
 
   /**
    * Custom port for MCP server URL
@@ -43,12 +45,17 @@ export interface DevInspectorOptions extends McpConfigOptions, AcpOptions {
   /**
    * Public base URL (including protocol) that editors/browsers should use to reach the dev server.
    *
-   * Use this when the dev server runs in a container or behind a reverse proxy where the externally
-   * reachable URL is different from the internal host/port (e.g. https://your-domain.com).
+   * Use this when the dev server runs in a cloud IDE or behind a reverse proxy where the externally
+   * reachable URL differs from the internal host/port.
+   *
+   * Common use cases:
+   * - Cloud IDEs: Fly.io (`https://app-5137.fly.dev`), Gitpod, GitHub Codespaces
+   * - Docker with port mapping
+   * - Reverse proxy / tunnel (ngrok, cloudflared)
    *
    * If provided, it will be used for MCP config auto-update and console output.
    *
-   * @example "https://your-domain.com"
+   * @example "https://my-app-5137.fly.dev"
    */
   publicBaseUrl?: string;
 
@@ -184,8 +191,7 @@ export const createDevInspectorPlugin = (
 
       const { server, host, port } = await startStandaloneServer({
         port: options.port,
-        // Host is handled internally by StandaloneServer (defaults to 0.0.0.0)
-        // allowedHosts not passed from plugin options anymore per user request
+        host: options.host,
       });
 
       resolvedHost = host;
