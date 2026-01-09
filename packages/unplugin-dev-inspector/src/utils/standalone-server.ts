@@ -150,7 +150,7 @@ export class StandaloneServer {
 
   async start(options: StandaloneServerOptions = {}): Promise<{ host: string; port: number }> {
     const startPort = options.port || getDefaultPort();
-    this.host = options.host ? 'localhost' : "0.0.0.0"
+    this.host = typeof options.host === 'string' ? options.host : (options.host === true ? '0.0.0.0' : 'localhost')
     this.allowedHosts = options.allowedHosts || [];
 
     // Try to find a free port

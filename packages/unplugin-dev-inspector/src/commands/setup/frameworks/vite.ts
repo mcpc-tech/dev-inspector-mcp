@@ -53,39 +53,39 @@ export function transformViteConfig(code: string, options: SetupOptions): Transf
           hasPluginsArray = true;
           pluginsArrayStart = path.node.value.start ?? -1;
           const elements = path.node.value.elements;
-          
-            elements.forEach((rawElement) => {
-              const element = unwrapNode(rawElement) as any; // Cast to any to safely access properties
-              if (
-                element &&
-                element.type === "CallExpression" &&
-                element.callee.type === "MemberExpression" &&
-                element.callee.object.type === "Identifier" &&
-                element.callee.object.name === importedVarName &&
-                element.callee.property.type === "Identifier" &&
-                element.callee.property.name === "vite"
-              ) {
-                hasPluginUsage = true;
-                // Use undefined check for types safety
-                if (typeof element.start === 'number' && typeof element.end === 'number') {
-                    // For replacement, we want to replace the WHOLE element (including 'as any'),
-                    // so we use rawElement's range if available, otherwise element's range.
-                    // Actually, if we use rawElement, we replace 'Call() as any' with 'NewCall()'.
-                    // 'NewCall()' does not have 'as any'.
-                    // If we want to preserve 'as any', we should replace the inner call range.
-                    // But overwriting inner call might be tricky if 'as any' wraps it.
-                    // simpler: just replace the inner call.
-                    // But wait, if we replace inner call, the 'as any' stays.
-                    
-                    usageStart = element.start;
-                    usageEnd = element.end;
-                }
-                if (element.arguments.length > 0 && element.arguments[0].type === "ObjectExpression") {
-                  existingOptionsNode = element.arguments[0];
-                }
+
+          elements.forEach((rawElement) => {
+            const element = unwrapNode(rawElement) as any; // Cast to any to safely access properties
+            if (
+              element &&
+              element.type === "CallExpression" &&
+              element.callee.type === "MemberExpression" &&
+              element.callee.object.type === "Identifier" &&
+              element.callee.object.name === importedVarName &&
+              element.callee.property.type === "Identifier" &&
+              element.callee.property.name === "vite"
+            ) {
+              hasPluginUsage = true;
+              // Use undefined check for types safety
+              if (typeof element.start === 'number' && typeof element.end === 'number') {
+                // For replacement, we want to replace the WHOLE element (including 'as any'),
+                // so we use rawElement's range if available, otherwise element's range.
+                // Actually, if we use rawElement, we replace 'Call() as any' with 'NewCall()'.
+                // 'NewCall()' does not have 'as any'.
+                // If we want to preserve 'as any', we should replace the inner call range.
+                // But overwriting inner call might be tricky if 'as any' wraps it.
+                // simpler: just replace the inner call.
+                // But wait, if we replace inner call, the 'as any' stays.
+
+                usageStart = element.start;
+                usageEnd = element.end;
               }
-            });
-          
+              if (element.arguments.length > 0 && element.arguments[0].type === "ObjectExpression") {
+                existingOptionsNode = element.arguments[0];
+              }
+            }
+          });
+
 
           if (elements.length > 0 && elements[0]?.start != null) {
             firstPluginStart = elements[0].start;
@@ -147,40 +147,84 @@ export function transformViteConfig(code: string, options: SetupOptions): Transf
 
     // Server config injection
     if (options.host || options.allowedHosts?.length) {
-      traverse(ast, {
-        ExportDefaultDeclaration(path: NodePath<t.ExportDefaultDeclaration>) {
-          if (
-            path.node.declaration.type === "CallExpression" &&
-            path.node.declaration.arguments[0]?.type === "ObjectExpression"
-          ) {
-            const configObj = path.node.declaration.arguments[0];
-            const serverProp = configObj.properties.find(
-              p => p.type === "ObjectProperty" && p.key.type === "Identifier" && p.key.name === "server"
-            ) as t.ObjectProperty | undefined;
+      // Helper to inject server config into an ObjectExpression
+      const injectServerConfig = (configObj: t.ObjectExpression) => {
+        const serverProp = configObj.properties.find(
+          p => p.type === "ObjectProperty" && p.key.type === "Identifier" && p.key.name === "server"
+        ) as t.ObjectProperty | undefined;
 
-            const serverIndent = indent.repeat(2);
-            if (serverProp?.value.start != null) {
-              const serverContentStart = serverProp.value.start + 1;
-              const currentBlock = code.slice(serverContentStart, serverProp.value.end!);
-              let injection = "";
-              if (options.host && !currentBlock.includes("host:")) {
-                injection += `\n${serverIndent}host: '${options.host}',`;
-              }
-              if (options.allowedHosts?.length && !currentBlock.includes("allowedHosts:")) {
-                injection += `\n${serverIndent}allowedHosts: [${options.allowedHosts.map(h => `'${h}'`).join(', ')}],`;
-              }
-              if (injection) s.appendLeft(serverContentStart, injection);
-            } else if (configObj.start != null) {
-              let injection = `\n${indent}server: {\n`;
-              if (options.host) injection += `${serverIndent}host: '${options.host}',\n`;
-              if (options.allowedHosts?.length) {
-                injection += `${serverIndent}allowedHosts: [${options.allowedHosts.map(h => `'${h}'`).join(', ')}],\n`;
-              }
-              injection += `${indent}},`;
-              s.appendLeft(configObj.start + 1, injection);
+        const serverIndent = indent.repeat(2);
+        if (serverProp?.value.start != null) {
+          const serverContentStart = serverProp.value.start + 1;
+          const currentBlock = code.slice(serverContentStart, serverProp.value.end!);
+          let injection = "";
+          if (options.host && !currentBlock.includes("host:")) {
+            injection += `\n${serverIndent}host: '${options.host}',`;
+          }
+          if (options.allowedHosts?.length && !currentBlock.includes("allowedHosts:")) {
+            injection += `\n${serverIndent}allowedHosts: [${options.allowedHosts.map(h => `'${h}'`).join(', ')}],`;
+          }
+          if (injection) s.appendLeft(serverContentStart, injection);
+        } else if (configObj.start != null) {
+          let injection = `\n${indent}server: {\n`;
+          if (options.host) injection += `${serverIndent}host: '${options.host}',\n`;
+          if (options.allowedHosts?.length) {
+            injection += `${serverIndent}allowedHosts: [${options.allowedHosts.map(h => `'${h}'`).join(', ')}],\n`;
+          }
+          injection += `${indent}},`;
+          s.appendLeft(configObj.start + 1, injection);
+        }
+      };
+
+      // Helper to extract config object from function body
+      const extractConfigFromFunction = (fn: t.ArrowFunctionExpression | t.FunctionExpression): t.ObjectExpression | null => {
+        // Arrow function with direct return: () => ({ ... })
+        if (fn.type === "ArrowFunctionExpression" && fn.body.type === "ObjectExpression") {
+          return fn.body;
+        }
+        // Function with block body: () => { return { ... } } or function() { return { ... } }
+        if (fn.body.type === "BlockStatement") {
+          for (const stmt of fn.body.body) {
+            if (stmt.type === "ReturnStatement" && stmt.argument?.type === "ObjectExpression") {
+              return stmt.argument;
             }
           }
         }
+        return null;
+      };
+
+      traverse(ast, {
+        ExportDefaultDeclaration(path: NodePath<t.ExportDefaultDeclaration>) {
+          const decl = path.node.declaration;
+
+          // Case 1: export default defineConfig({ ... })
+          if (
+            decl.type === "CallExpression" &&
+            decl.arguments[0]?.type === "ObjectExpression"
+          ) {
+            injectServerConfig(decl.arguments[0]);
+            return;
+          }
+
+          // Case 2: export default defineConfig((config) => { return { ... } })
+          // or: export default defineConfig(() => ({ ... }))
+          if (
+            decl.type === "CallExpression" &&
+            (decl.arguments[0]?.type === "ArrowFunctionExpression" ||
+              decl.arguments[0]?.type === "FunctionExpression")
+          ) {
+            const configObj = extractConfigFromFunction(decl.arguments[0] as t.ArrowFunctionExpression | t.FunctionExpression);
+            if (configObj) {
+              injectServerConfig(configObj);
+            }
+            return;
+          }
+
+          // Case 3: export default { ... } (no defineConfig wrapper)
+          if (decl.type === "ObjectExpression") {
+            injectServerConfig(decl);
+          }
+        },
       });
     }
 
