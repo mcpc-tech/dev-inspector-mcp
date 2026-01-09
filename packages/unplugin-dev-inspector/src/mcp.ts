@@ -102,24 +102,23 @@ export interface ServerContext {
  * Create and configure the MCP server for source inspection
  */
 export async function createInspectorMcpServer(serverContext?: ServerContext): Promise<any> {
-  const { 
-    disableChrome, 
+  const {
+    disableChrome,
     prompts: userPrompts = [],
     defaultPrompts = true // Default to true (enabled)
   } = serverContext || {};
-  
+
   const chromeDisabled = isChromeDisabled(disableChrome);
   const isAutomated = serverContext?.isAutomated ?? false;
 
   console.log(
-    `[dev-inspector] Chrome DevTools integration is ${
-      chromeDisabled ? "disabled" : "enabled"
+    `[dev-inspector] Chrome DevTools integration is ${chromeDisabled ? "disabled" : "enabled"
     }`,
   );
   if (userPrompts.length > 0) {
     console.log(`[dev-inspector] Loaded ${userPrompts.length} custom prompts`);
   }
-  
+
   if (defaultPrompts === false) {
     console.log(`[dev-inspector] Default prompts disabled by config`);
   } else if (Array.isArray(defaultPrompts)) {
@@ -133,18 +132,15 @@ export async function createInspectorMcpServer(serverContext?: ServerContext): P
 
 Provides tools for inspecting network requests, console logs, and performance metrics.
 
-${
-        isAutomated
+${isAutomated
           ? "Chrome is already open and connected. You can use this tool to inspect the page directly."
           : "The client does not support automation. You MUST ask the user for confirmation before navigating to any URL."
-      }
+        }
 
-Default dev server URL: ${
-        process.env.DEV_INSPECTOR_PUBLIC_BASE_URL ||
-        `http://${serverContext?.host || "localhost"}:${
-          serverContext?.port || 5173
+Default dev server URL: ${process.env.DEV_INSPECTOR_PUBLIC_BASE_URL ||
+        `http://${serverContext?.host || "localhost"}:${serverContext?.port || 5173
         }`
-      }
+        }
 `,
       options: {
         refs: [
@@ -215,14 +211,16 @@ Default dev server URL: ${
     {
       ...TOOL_SCHEMAS.execute_page_script,
     },
+    {
+      ...TOOL_SCHEMAS.capture_area_context,
+    },
   ]);
 
   // Prompts
   mcpServer.setRequestHandler(ListPromptsRequestSchema, async (_request) => {
     const defaultUrl = process.env.DEV_INSPECTOR_PUBLIC_BASE_URL
       ? stripTrailingSlash(process.env.DEV_INSPECTOR_PUBLIC_BASE_URL)
-      : `http://${serverContext?.host || "localhost"}:${
-        serverContext?.port || 5173
+      : `http://${serverContext?.host || "localhost"}:${serverContext?.port || 5173
       }`;
 
     // Map user prompts to MCP prompt format
@@ -350,8 +348,7 @@ Default dev server URL: ${
                     {
                       name: "reqid",
                       description:
-                        `Optional. The request ID to get details for. If omitted, only refreshes and lists requests.\n\nAvailable requests:\n${
-                          requestOptions || "No requests available"
+                        `Optional. The request ID to get details for. If omitted, only refreshes and lists requests.\n\nAvailable requests:\n${requestOptions || "No requests available"
                         }`,
                       required: false,
                     },
@@ -363,8 +360,7 @@ Default dev server URL: ${
                     {
                       name: "msgid",
                       description:
-                        `Optional. The message ID to get details for. If omitted, only refreshes and lists messages.\n\nAvailable messages:\n${
-                          messageOptions || "No messages available"
+                        `Optional. The message ID to get details for. If omitted, only refreshes and lists messages.\n\nAvailable messages:\n${messageOptions || "No messages available"
                         }`,
                       required: false,
                     },
@@ -468,52 +464,50 @@ Default dev server URL: ${
       }));
 
       return {
-            prompts: [
-              ...filterPrompts([
+        prompts: [
+          ...filterPrompts([
+            {
+              ...PROMPT_SCHEMAS.capture_element,
+            },
+            {
+              ...PROMPT_SCHEMAS.view_inspections,
+            },
+            ...(!chromeDisabled
+              ? [
                 {
-                  ...PROMPT_SCHEMAS.capture_element,
+                  ...PROMPT_SCHEMAS.launch_chrome_devtools,
                 },
                 {
-                  ...PROMPT_SCHEMAS.view_inspections,
+                  ...PROMPT_SCHEMAS.get_network_requests,
+                  // TODO: currently, MCP prompt arguments are not typed, and can only be strings,
+                  // see https://github.com/modelcontextprotocol/modelcontextprotocol/issues/136
+                  arguments: [
+                    {
+                      name: "reqid",
+                      description:
+                        `Optional. The request ID to get details for. If omitted, only refreshes and lists requests.\n\nAvailable requests:\n${requestOptions || "No requests available"
+                        }`,
+                      required: false,
+                    },
+                  ],
                 },
-                ...(!chromeDisabled
-                  ? [
+                {
+                  ...PROMPT_SCHEMAS.get_console_messages,
+                  arguments: [
                     {
-                      ...PROMPT_SCHEMAS.launch_chrome_devtools,
+                      name: "msgid",
+                      description:
+                        `Optional. The message ID to get details for. If omitted, only refreshes and lists messages.\n\nAvailable messages:\n${messageOptions || "No messages available"
+                        }`,
+                      required: false,
                     },
-                    {
-                      ...PROMPT_SCHEMAS.get_network_requests,
-                      // TODO: currently, MCP prompt arguments are not typed, and can only be strings,
-                      // see https://github.com/modelcontextprotocol/modelcontextprotocol/issues/136
-                      arguments: [
-                        {
-                          name: "reqid",
-                          description:
-                            `Optional. The request ID to get details for. If omitted, only refreshes and lists requests.\n\nAvailable requests:\n${
-                              requestOptions || "No requests available"
-                            }`,
-                          required: false,
-                        },
-                      ],
-                    },
-                    {
-                      ...PROMPT_SCHEMAS.get_console_messages,
-                      arguments: [
-                        {
-                          name: "msgid",
-                          description:
-                            `Optional. The message ID to get details for. If omitted, only refreshes and lists messages.\n\nAvailable messages:\n${
-                              messageOptions || "No messages available"
-                            }`,
-                          required: false,
-                        },
-                      ],
-                    },
-                  ]
-                  : []),
-                ...usernamePromptsMapped,
-              ]),
-            ],
+                  ],
+                },
+              ]
+              : []),
+            ...usernamePromptsMapped,
+          ]),
+        ],
       };
     });
 
@@ -538,7 +532,7 @@ Default dev server URL: ${
 
   mcpServer.setRequestHandler(GetPromptRequestSchema, async (request) => {
     const promptName = request.params.name;
-    
+
     // Check if it's a user prompt
     const userPrompt = userPrompts.find(p => p.name === promptName);
     if (userPrompt) {
@@ -553,14 +547,14 @@ Default dev server URL: ${
       return {
         messages: [{
           role: "user",
-          content: { 
-            type: "text", 
-            text: text 
+          content: {
+            type: "text",
+            text: text
           },
         }],
       } as GetPromptResult;
     }
-    
+
     if (chromeDisabled) {
       if (promptName === "get_network_requests") {
         const refreshResult = await refreshChromeState('network');
@@ -668,8 +662,7 @@ Default dev server URL: ${
       case "launch_chrome_devtools": {
         const defaultUrl = process.env.DEV_INSPECTOR_PUBLIC_BASE_URL
           ? stripTrailingSlash(process.env.DEV_INSPECTOR_PUBLIC_BASE_URL)
-          : `http://${serverContext?.host || "localhost"}:${
-            serverContext?.port || 5173
+          : `http://${serverContext?.host || "localhost"}:${serverContext?.port || 5173
           }`;
         const url = (request.params.arguments?.url as string | undefined) ||
           defaultUrl;
@@ -719,9 +712,8 @@ Default dev server URL: ${
                 role: "user",
                 content: {
                   type: "text",
-                  text: `Error launching Chrome DevTools: ${
-                    error instanceof Error ? error.message : String(error)
-                  }`,
+                  text: `Error launching Chrome DevTools: ${error instanceof Error ? error.message : String(error)
+                    }`,
                 },
               },
             ],
@@ -766,9 +758,8 @@ Default dev server URL: ${
                 role: "user",
                 content: {
                   type: "text",
-                  text: `Error getting network request: ${
-                    error instanceof Error ? error.message : String(error)
-                  }`,
+                  text: `Error getting network request: ${error instanceof Error ? error.message : String(error)
+                    }`,
                 },
               },
             ],
@@ -813,9 +804,8 @@ Default dev server URL: ${
                 role: "user",
                 content: {
                   type: "text",
-                  text: `Error getting console message: ${
-                    error instanceof Error ? error.message : String(error)
-                  }`,
+                  text: `Error getting console message: ${error instanceof Error ? error.message : String(error)
+                    }`,
                 },
               },
             ],
@@ -873,8 +863,7 @@ Default dev server URL: ${
           async (_request) => {
             const defaultUrl = process.env.DEV_INSPECTOR_PUBLIC_BASE_URL
               ? stripTrailingSlash(process.env.DEV_INSPECTOR_PUBLIC_BASE_URL)
-              : `http://${serverContext?.host || "localhost"}:${
-                serverContext?.port || 5173
+              : `http://${serverContext?.host || "localhost"}:${serverContext?.port || 5173
               }`;
 
             return {
@@ -886,8 +875,7 @@ Default dev server URL: ${
                   arguments: [{
                     name: "stdioid",
                     description:
-                      `Optional. The stdio message ID to get details for.\n\nAvailable messages:\n${
-                        formattedMessages.join("\n") || "No stdio messages"
+                      `Optional. The stdio message ID to get details for.\n\nAvailable messages:\n${formattedMessages.join("\n") || "No stdio messages"
                       }`,
                     required: false,
                   }],
@@ -921,9 +909,8 @@ Default dev server URL: ${
             role: "user",
             content: {
               type: "text",
-              text: `Stdio Messages (Terminal Output):\n${
-                formattedMessages.join("\n") || "No stdio messages"
-              }`,
+              text: `Stdio Messages (Terminal Output):\n${formattedMessages.join("\n") || "No stdio messages"
+                }`,
             },
           }],
         } as GetPromptResult;

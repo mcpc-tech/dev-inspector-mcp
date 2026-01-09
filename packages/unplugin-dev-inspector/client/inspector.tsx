@@ -184,6 +184,21 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
     return () => window.removeEventListener("activate-inspector", handleActivateInspector);
   }, [isActive, showNotif]);
 
+  // MCP: Handle area selection activation from capture_area_context tool
+  useEffect(() => {
+    const handleActivateAreaSelect = () => {
+      // Activate inspector in region mode
+      setIsActive(true);
+      setRegionMode(true);
+      setBubbleMode(null);
+      document.body.style.cursor = "default"; // Region overlay handles cursor
+      showNotif("Area Mode: ON");
+    };
+
+    window.addEventListener("activate-area-select", handleActivateAreaSelect);
+    return () => window.removeEventListener("activate-area-select", handleActivateAreaSelect);
+  }, [showNotif]);
+
 
   useInspectorHover({
     isActive: isActive && !regionMode, // Disable hover when in region mode
@@ -386,6 +401,13 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
     } else {
       setScreenshot("");
     }
+
+    // MCP: Dispatch event for capture_area_context tool to receive selection
+    window.dispatchEvent(
+      new CustomEvent("area-selection-complete", {
+        detail: { sourceInfo: info },
+      }),
+    );
 
     setSourceInfo(info);
     setBubbleMode("input");

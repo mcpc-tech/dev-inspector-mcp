@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { createClientExecClient } from "@mcpc-tech/cmcp";
 import { TOOL_SCHEMAS } from "../../src/tool-schemas.js";
 import { getDevServerBaseUrl } from "../utils/config-loader";
-import { formatElementAnnotations } from "../utils/format";
+import { formatElementAnnotations, formatCopyContext } from "../utils/format";
+import { captureElementScreenshot } from "../utils/screenshot";
+import type { PageInfo } from "../types";
 
 const STORAGE_KEY = "inspector-inspection-items";
 const INSPECTION_ID_KEY = "inspector-current-inspection-id";
@@ -532,6 +534,88 @@ After clicking, use \`list_inspections\` to view the captured element with full 
       {
         ...TOOL_SCHEMAS.execute_page_script,
         implementation: patchContext,
+      },
+      {
+        ...TOOL_SCHEMAS.capture_area_context,
+        implementation: () => {
+          // Cancel any pending request
+          cancelPendingRequest("New area capture request started");
+
+          // Activate area selection mode
+          window.dispatchEvent(new CustomEvent("activate-area-select"));
+
+          return new Promise((resolve, reject) => {
+            pendingResolve = resolve;
+            pendingReject = reject;
+
+            // Listen for area selection complete event
+            const handleAreaComplete = async (event: Event) => {
+              window.removeEventListener("area-selection-complete", handleAreaComplete);
+
+              const customEvent = event as CustomEvent;
+              const { sourceInfo } = customEvent.detail || {};
+              if (!sourceInfo) {
+                reject(new Error("No elements selected in area"));
+                clearPendingRequest();
+                return;
+              }
+
+              try {
+                // Get page info
+                const pageInfo: PageInfo = {
+                  url: window.location.href,
+                  title: document.title,
+                  viewport: { width: window.innerWidth, height: window.innerHeight },
+                  language: document.documentElement.lang || navigator.language,
+                };
+
+                // Always capture screenshot
+                let screenshot: string | undefined;
+                if (sourceInfo.element) {
+                  screenshot = await captureElementScreenshot(sourceInfo.element);
+                }
+
+                // Format the result using formatCopyContext
+                const resultText = formatCopyContext({
+                  sourceInfo,
+                  includeElement: true,
+                  includeStyles: false,
+                  includePageInfo: true,
+                  pageInfo,
+                  relatedElements: sourceInfo.relatedElements,
+                });
+
+                // Build response with text and optional screenshot
+                const content: Array<{ type: "text"; text: string } | { type: "image"; data: string; mimeType: string }> = [
+                  { type: "text" as const, text: resultText },
+                ];
+
+                if (screenshot) {
+                  const base64Data = screenshot.replace(/^data:image\/\w+;base64,/, "");
+                  content.push({ type: "image" as const, data: base64Data, mimeType: "image/png" });
+                }
+
+                resolve({ content });
+              } catch (error) {
+                const errorMsg = error instanceof Error ? error.message : String(error);
+                reject(new Error(`Error processing area selection: ${errorMsg}`));
+              }
+
+              clearPendingRequest();
+            };
+
+            window.addEventListener("area-selection-complete", handleAreaComplete);
+
+            // Set timeout
+            setTimeout(() => {
+              if (pendingReject === reject) {
+                window.removeEventListener("area-selection-complete", handleAreaComplete);
+                clearPendingRequest();
+                reject(new Error("Timeout: No area selected"));
+              }
+            }, TIMEOUT_MS);
+          });
+        },
       },
     ];
 

@@ -100,4 +100,20 @@ Returns: source location, DOM hierarchy, computed styles, dimensions, and user n
       required: ["code"] as string[],
     },
   },
+
+  capture_area_context: {
+    name: "capture_area_context",
+    description: `Capture area context by activating visual area selection mode.
+
+User draws a rectangle on the page to select multiple elements at once. After selection, returns context for all elements in the area including source locations, DOM info, and screenshot.
+
+**Flow**: 
+1. Activates area selection mode (user sees crosshair cursor)
+2. User draws rectangle around target elements
+3. Returns: primary element + related elements with source locations, DOM hierarchy, and screenshot`,
+    inputSchema: {
+      type: "object" as const,
+      properties: {},
+    },
+  },
 } as const;
