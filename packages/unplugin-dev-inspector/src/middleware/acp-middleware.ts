@@ -162,11 +162,13 @@ CRITICAL WORKFLOW:
    - Otherwise -> Answer user's question first, then ask if they want to use the pending inspections.
 
 Available tools:
-- **list_inspections**: Get pending user feedback context (do this first!)
-- **capture_element_context**: Activate visual selector
-- **update_inspection_status**: Update status
+- **get_page_info**: Get page overview with accessibility tree (start here to understand the page)
+- **list_inspections**: Get pending user feedback context
+- **capture_element_context**: Capture single element (interactive or via selector)
+- **capture_area_context**: Capture multiple elements in area (interactive or via containerSelector/bounds)
+- **update_inspection_status**: Update inspection status
 - **execute_page_script**: Run JS in browser
-- **chrome_devtools**: Access network/console`;
+- **get_stdio_messages**: Get dev server terminal output (list or details by stdioid)`;
 
 /**
  * Get an active transport from the connection manager
@@ -493,7 +495,10 @@ export function setupAcpMiddleware(
                 type: "text",
                 text: `<system_instructions>
 ${systemPrompt}
-${isAutomated ? "" : "Currently chrome devtools automation is disabled. You do not have access to Console/Network context."}
+${isAutomated 
+  ? `- **chrome_devtools**: Access Chrome DevTools for network requests, console logs, page navigation, and element interaction` 
+  : `- **get_network_requests**: Get browser network requests (list or details by reqid) - uses local storage
+- **get_console_messages**: Get browser console logs (list or details by msgid) - uses local storage`}
 </system_instructions>
 `,
               },

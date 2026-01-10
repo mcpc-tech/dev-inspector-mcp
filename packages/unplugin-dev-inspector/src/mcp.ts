@@ -300,6 +300,7 @@ Default dev server URL: ${process.env.DEV_INSPECTOR_PUBLIC_BASE_URL ||
     { ...TOOL_SCHEMAS.list_inspections },
     { ...TOOL_SCHEMAS.update_inspection_status },
     { ...TOOL_SCHEMAS.execute_page_script },
+    { ...TOOL_SCHEMAS.get_page_info },
   ]);
 
 
@@ -320,13 +321,10 @@ Default dev server URL: ${process.env.DEV_INSPECTOR_PUBLIC_BASE_URL ||
     // Default built-in prompts
     const allDefaultPrompts = [
       {
-        ...PROMPT_SCHEMAS.capture_element,
+        ...PROMPT_SCHEMAS.capture_context,
       },
       {
         ...PROMPT_SCHEMAS.list_inspections,
-      },
-      {
-        ...PROMPT_SCHEMAS.capture_area,
       },
       {
         ...PROMPT_SCHEMAS.get_stdio_messages,
@@ -353,6 +351,13 @@ Default dev server URL: ${process.env.DEV_INSPECTOR_PUBLIC_BASE_URL ||
       },
       {
         ...PROMPT_SCHEMAS.get_console_messages,
+      },
+      // Backward compatibility aliases (deprecated)
+      {
+        ...PROMPT_SCHEMAS.capture_element,
+      },
+      {
+        ...PROMPT_SCHEMAS.capture_area,
       },
     ];
 
@@ -429,8 +434,7 @@ Default dev server URL: ${process.env.DEV_INSPECTOR_PUBLIC_BASE_URL ||
           return {
             prompts: [
               ...filterPrompts([
-                { ...PROMPT_SCHEMAS.capture_element },
-                { ...PROMPT_SCHEMAS.capture_area },
+                { ...PROMPT_SCHEMAS.capture_context },
                 { ...PROMPT_SCHEMAS.list_inspections },
                 // When disabled, we still offer these prompts but powered by local storage
                 {
@@ -558,13 +562,10 @@ Default dev server URL: ${process.env.DEV_INSPECTOR_PUBLIC_BASE_URL ||
         prompts: [
           ...filterPrompts([
             {
-              ...PROMPT_SCHEMAS.capture_element,
+              ...PROMPT_SCHEMAS.capture_context,
             },
             {
               ...PROMPT_SCHEMAS.list_inspections,
-            },
-            {
-              ...PROMPT_SCHEMAS.capture_area,
             },
             ...(!chromeDisabled
               ? [
@@ -976,9 +977,8 @@ Default dev server URL: ${process.env.DEV_INSPECTOR_PUBLIC_BASE_URL ||
 
             return {
               prompts: [
-                { ...PROMPT_SCHEMAS.capture_element },
+                { ...PROMPT_SCHEMAS.capture_context },
                 { ...PROMPT_SCHEMAS.list_inspections },
-                { ...PROMPT_SCHEMAS.capture_area },
                 {
                   ...PROMPT_SCHEMAS.get_stdio_messages,
                   arguments: [{

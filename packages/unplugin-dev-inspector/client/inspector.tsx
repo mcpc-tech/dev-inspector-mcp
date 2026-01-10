@@ -16,6 +16,7 @@ import { useInspectorTheme } from "./context/ThemeContext";
 import { InspectorContainerContext } from "./context/InspectorContainerContext";
 import { useInspectionProgress } from "./hooks/useInspectionProgress";
 import { captureElementScreenshot } from "./utils/screenshot";
+import { getSourceInfo } from "./sourceDetector";
 import inspectorStyles from "./styles.css";
 import ReactDOM from "react-dom/client";
 import { InspectorThemeProvider } from "./context/ThemeContext";
@@ -198,6 +199,137 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
     window.addEventListener("activate-area-select", handleActivateAreaSelect);
     return () => window.removeEventListener("activate-area-select", handleActivateAreaSelect);
   }, [showNotif]);
+
+  // MCP: Handle automated capture from capture_context tool with selector/containerSelector/bounds
+  useEffect(() => {
+    const handleAutomatedCapture = async (e: Event) => {
+      const customEvent = e as CustomEvent<{
+        selector?: string;
+        containerSelector?: string;
+        bounds?: { x: number; y: number; width: number; height: number };
+      }>;
+      const { selector, containerSelector, bounds } = customEvent.detail || {};
+
+      let elements: Element[] = [];
+      let primaryElement: Element | null = null;
+
+      try {
+        if (selector) {
+          // Single element by selector
+          const el = document.querySelector(selector);
+          if (el) {
+            primaryElement = el;
+            elements = [el];
+          }
+        } else if (containerSelector) {
+          // All elements within container
+          const container = document.querySelector(containerSelector);
+          if (container) {
+            primaryElement = container;
+            // Get all interactive/meaningful children
+            const children = container.querySelectorAll("*");
+            elements = [container, ...Array.from(children).filter(el => {
+              // Filter to meaningful elements (not empty, has content or is interactive)
+              const tag = el.tagName.toLowerCase();
+              const isInteractive = ["button", "a", "input", "select", "textarea", "img", "video", "audio"].includes(tag);
+              const hasText = el.textContent?.trim();
+              const hasId = el.id;
+              const hasClass = el.className;
+              return isInteractive || hasText || hasId || hasClass;
+            }).slice(0, 50)]; // Limit to 50 elements
+          }
+        } else if (bounds) {
+          // Elements within bounds
+          const { x, y, width, height } = bounds;
+          const allElements = document.querySelectorAll("*");
+          elements = Array.from(allElements).filter(el => {
+            const rect = el.getBoundingClientRect();
+            // Check if element intersects with bounds
+            return (
+              rect.left < x + width &&
+              rect.right > x &&
+              rect.top < y + height &&
+              rect.bottom > y &&
+              rect.width > 0 &&
+              rect.height > 0
+            );
+          }).slice(0, 50); // Limit to 50 elements
+
+          // Use the first element as primary
+          primaryElement = elements[0] || null;
+        }
+
+        if (!primaryElement || elements.length === 0) {
+          // Dispatch error event
+          window.dispatchEvent(new CustomEvent("element-inspected", {
+            detail: { error: "No elements found matching the criteria" }
+          }));
+          return;
+        }
+
+        // Get source info for primary element
+        const primaryInfo = getSourceInfo(primaryElement);
+
+        // Get related elements info (excluding primary)
+        const relatedElements = elements.slice(1).map(el => {
+          const info = getSourceInfo(el);
+          return {
+            file: info.file,
+            component: info.component,
+            line: info.line,
+            column: info.column,
+            elementInfo: info.elementInfo,
+          };
+        });
+
+        // Capture screenshot
+        let screenshot: string | undefined;
+        if (primaryElement.isConnected) {
+          screenshot = await captureElementScreenshot(primaryElement);
+        }
+
+        // Create inspection item
+        const inspectionId = `inspection-${Date.now()}`;
+        const description = selector
+          ? `Auto-captured: ${selector}`
+          : containerSelector
+            ? `Auto-captured container: ${containerSelector} (${elements.length} elements)`
+            : `Auto-captured bounds: ${bounds?.width}x${bounds?.height} at (${bounds?.x}, ${bounds?.y}) (${elements.length} elements)`;
+
+        const newItem: InspectionItem = {
+          id: inspectionId,
+          sourceInfo: {
+            file: primaryInfo.file,
+            component: primaryInfo.component,
+            line: primaryInfo.line,
+            column: primaryInfo.column,
+            elementInfo: primaryInfo.elementInfo,
+            relatedElements: relatedElements.length > 0 ? relatedElements : undefined,
+          },
+          description,
+          status: "pending",
+          timestamp: Date.now(),
+          selectedContext: { screenshot },
+        };
+
+        setInspections(prev => [...prev, newItem]);
+
+        // Dispatch for MCP tool to receive
+        window.dispatchEvent(new CustomEvent("element-inspected", {
+          detail: { inspections: [newItem] }
+        }));
+
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        window.dispatchEvent(new CustomEvent("element-inspected", {
+          detail: { error: `Automated capture failed: ${errorMsg}` }
+        }));
+      }
+    };
+
+    window.addEventListener("automated-capture", handleAutomatedCapture);
+    return () => window.removeEventListener("automated-capture", handleAutomatedCapture);
+  }, [setInspections]);
 
 
   useInspectorHover({

@@ -6,20 +6,49 @@
 export const TOOL_SCHEMAS = {
   capture_element_context: {
     name: "capture_element_context",
-    description: `Capture element context for troubleshooting. 
+    description: `Capture single element context.
 
-**Default (automated=false)**: Manual mode - activates visual selector for user interaction.
+**Modes**:
+1. **Interactive (default)**: User clicks element to select
+2. **Automated**: Use \`selector\` param for programmatic capture
 
-**Automated (automated=true)**: AI controls capture by clicking elements programmatically. Only set to true when user needs automation.
-
-Returns: source location, DOM hierarchy, computed styles, dimensions, and user notes. Use \`list_inspections\` to view all captured elements.`,
+Returns: source location, DOM hierarchy, computed styles, dimensions, user notes, screenshot.`,
     inputSchema: {
       type: "object" as const,
       properties: {
-        automated: {
-          type: "boolean",
-          description:
-            "Set to true ONLY when user explicitly requests automated capture. Default is false (manual mode).",
+        selector: {
+          type: "string",
+          description: "CSS selector for automated capture (no user interaction).",
+        },
+      },
+    },
+  },
+
+  capture_area_context: {
+    name: "capture_area_context",
+    description: `Capture multiple elements in an area.
+
+**Modes**:
+1. **Interactive (default)**: User draws rectangle to select area
+2. **Automated**: Use \`containerSelector\` or \`bounds\` param
+
+Returns: array of element contexts (max 50).`,
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        containerSelector: {
+          type: "string",
+          description: "CSS selector for container - captures all meaningful child elements.",
+        },
+        bounds: {
+          type: "object",
+          properties: {
+            x: { type: "number" },
+            y: { type: "number" },
+            width: { type: "number" },
+            height: { type: "number" },
+          },
+          description: "Page coordinates - captures elements intersecting this area. Use get_page_info for context.",
         },
       },
     },
@@ -28,7 +57,7 @@ Returns: source location, DOM hierarchy, computed styles, dimensions, and user n
   list_inspections: {
     name: "list_inspections",
     description:
-      "List all captured inspections with ID, element details, source location, notes, and status (pending/in-progress/completed/failed). Use with chrome_devtools for additional context (Console.getMessages, Network.getHAR, Performance.getMetrics).",
+      "List all captured inspections with ID, element details, source location, notes, and status (pending/in-progress/completed/failed).",
     inputSchema: {
       type: "object" as const,
       properties: {},
@@ -38,46 +67,22 @@ Returns: source location, DOM hierarchy, computed styles, dimensions, and user n
   update_inspection_status: {
     name: "update_inspection_status",
     description:
-      "Update inspection status with optional progress tracking.\n\n**Parameters**:\n- inspectionId: Optional (auto-detects if omitted)\n- status: 'in-progress' | 'completed' | 'failed' | 'deleted'\n- progress: Optional steps array [{id, title, status}]\n- message: REQUIRED for 'completed'/'failed' status\n\n**Example**:\n```javascript\nupdate_inspection_status({\n  status: 'completed',\n  message: 'Fixed: pointer-events: none blocking clicks'\n});\n// Or delete an inspection\nupdate_inspection_status({\n  status: 'deleted'\n});\n```",
+      "Update inspection status. Parameters: inspectionId (optional, auto-detects), status ('in-progress'|'completed'|'failed'|'deleted'), message (required for completed/failed).",
     inputSchema: {
       type: "object" as const,
       properties: {
         inspectionId: {
           type: "string",
-          description:
-            "Optional inspection ID. If not provided, uses the current active inspection.",
+          description: "Optional. If omitted, uses current active inspection.",
         },
         status: {
           type: "string",
           enum: ["in-progress", "completed", "failed", "deleted"],
-          description:
-            "Current status: 'in-progress' for updates, 'completed' when resolved, 'failed' if unresolvable, 'deleted' to remove inspection",
-        },
-        progress: {
-          type: "object",
-          properties: {
-            steps: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  id: { type: "number" },
-                  title: { type: "string" },
-                  status: {
-                    type: "string",
-                    enum: ["pending", "in-progress", "completed", "failed"],
-                  },
-                },
-                required: ["id", "title", "status"],
-              },
-            },
-          },
-          description: "Optional step-by-step progress tracking",
+          description: "New status.",
         },
         message: {
           type: "string",
-          description:
-            "Summary of findings or resolution. REQUIRED when status is 'completed' or 'failed'",
+          description: "Summary. Required for 'completed' or 'failed'.",
         },
       },
       required: ["status"] as string[],
@@ -87,52 +92,28 @@ Returns: source location, DOM hierarchy, computed styles, dimensions, and user n
   execute_page_script: {
     name: "execute_page_script",
     description:
-      "Execute JavaScript in browser context (synchronous only, must return value). Access: window, document, DOM APIs, React/Vue instances, localStorage. For deeper diagnostics, use chrome_devtools MCP (Network.getHAR, Console.getMessages, Performance.getMetrics, Debugger, HeapProfiler).",
+      "Execute JavaScript in browser context. Access: window, document, DOM APIs, React/Vue instances, localStorage. Must return a value.",
     inputSchema: {
       type: "object" as const,
       properties: {
         code: {
           type: "string",
-          description:
-            "JavaScript code to execute in page context. Must return a value for diagnostic output.",
+          description: "JavaScript code to execute. Must return a value.",
         },
       },
       required: ["code"] as string[],
     },
   },
 
-  capture_area_context: {
-    name: "capture_area_context",
-    description: `Capture area context by activating visual area selection mode.
-
-User draws a rectangle on the page to select multiple elements at once. After selection, returns context for all elements in the area including source locations, DOM info, and screenshot.
-
-**Flow**: 
-1. Activates area selection mode (user sees crosshair cursor)
-2. User draws rectangle around target elements
-3. Returns: primary element + related elements with source locations, DOM hierarchy, and screenshot`,
-    inputSchema: {
-      type: "object" as const,
-      properties: {},
-    },
-  },
-
   get_network_requests: {
     name: "get_network_requests",
-    description: `Get network requests from browser for debugging.
-
-Returns list of HTTP requests with ID, method, URL, and status code. Use reqid parameter to get full details of a specific request including headers, body, and timing.
-
-**Usage**:
-- Call without parameters to list all requests
-- Call with reqid to get specific request details`,
+    description: `Get network requests from browser. Returns list with reqid, method, URL, status. Use reqid param to get full request/response details.`,
     inputSchema: {
       type: "object" as const,
       properties: {
         reqid: {
           type: "number",
-          description:
-            "Optional. Request ID to get full details. If omitted, returns list of all requests.",
+          description: "Request ID from list to get full details (headers, body, timing).",
         },
       },
     },
@@ -140,20 +121,13 @@ Returns list of HTTP requests with ID, method, URL, and status code. Use reqid p
 
   get_console_messages: {
     name: "get_console_messages",
-    description: `Get console messages from browser for debugging.
-
-Returns list of console logs with ID, level (log/warn/error/info), and message content. Use msgid parameter to get full details of a specific message.
-
-**Usage**:
-- Call without parameters to list all messages
-- Call with msgid to get specific message details`,
+    description: `Get console messages from browser. Returns list with msgid, level (log/warn/error), message. Use msgid param to get full message details.`,
     inputSchema: {
       type: "object" as const,
       properties: {
         msgid: {
           type: "number",
-          description:
-            "Optional. Message ID to get full details. If omitted, returns list of all messages.",
+          description: "Message ID from list to get full details.",
         },
       },
     },
@@ -161,22 +135,24 @@ Returns list of console logs with ID, level (log/warn/error/info), and message c
 
   get_stdio_messages: {
     name: "get_stdio_messages",
-    description: `Get stdio (stdout/stderr) terminal messages from dev server process.
-
-Returns list of terminal output with ID, stream type (stdout/stderr), and content. Use stdioid parameter to get full details of a specific message.
-
-**Usage**:
-- Call without parameters to list all stdio messages
-- Call with stdioid to get specific message details`,
+    description: `Get dev server stdout/stderr. Returns list with stdioid, stream type, content. Use stdioid param to get full message.`,
     inputSchema: {
       type: "object" as const,
       properties: {
         stdioid: {
           type: "number",
-          description:
-            "Optional. Stdio message ID to get full details. If omitted, returns list of all messages.",
+          description: "Stdio ID from list to get full details.",
         },
       },
+    },
+  },
+
+  get_page_info: {
+    name: "get_page_info",
+    description: "Get page overview with accessibility tree. Returns URL, title, viewport, document size, and semantic structure (landmarks, headings, forms, links). Start here to understand the page.",
+    inputSchema: {
+      type: "object" as const,
+      properties: {},
     },
   },
 } as const;

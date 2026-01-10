@@ -4,9 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createClientExecClient } from "@mcpc-tech/cmcp";
 import { TOOL_SCHEMAS } from "../../src/tool-schemas.js";
 import { getDevServerBaseUrl } from "../utils/config-loader";
-import { formatElementAnnotations, formatCopyContext } from "../utils/format";
-import { captureElementScreenshot } from "../utils/screenshot";
-import type { PageInfo } from "../types";
+import { formatCopyContext, formatElementAnnotations } from "../utils/format";
 
 const STORAGE_KEY = "inspector-inspection-items";
 const INSPECTION_ID_KEY = "inspector-current-inspection-id";
@@ -115,143 +113,30 @@ ${result ? `**Result**: ${result}\n` : ""}---`;
   }
 }
 
+// KISS: Reuse formatCopyContext from format.ts for consistent output
 function formatResult(sourceInfo: any, description: string, selectedContext?: any) {
-  const { file, line, component, elementInfo } = sourceInfo;
-
-  let output = `# Element Inspection Result
-
-## Source Code
-- **File**: ${file}
-- **Line**: ${line}
-- **Component**: ${component}
-`;
-
-  // Only include element info if selected (or if no context specified, include by default)
   const includeElement = selectedContext?.includeElement !== false;
   const includeStyles = selectedContext?.includeStyles !== false;
 
-  const domInfo =
-    elementInfo && includeElement
-      ? `
-## DOM Element
-\`\`\`
-Tag: <${elementInfo.tagName}${elementInfo.id ? ` id="${elementInfo.id}"` : ""}${elementInfo.className ? ` class="${elementInfo.className}"` : ""}>
-Text: ${elementInfo.textContent || "(empty)"}
-DOM Path: ${elementInfo.domPath || "N/A"}
-\`\`\`
-
-### Position & Size
-${elementInfo.boundingBox
-        ? `
-- **Position**: (${Math.round(elementInfo.boundingBox.x)}, ${Math.round(elementInfo.boundingBox.y)})
-- **Size**: ${Math.round(elementInfo.boundingBox.width)}px × ${Math.round(elementInfo.boundingBox.height)}px
-`
-        : ""
-      }
-
-${includeStyles && elementInfo.computedStyles
-        ? `### Computed Styles (Key Properties)
-
-**Layout**:
-- display: ${elementInfo.computedStyles.layout.display}
-- position: ${elementInfo.computedStyles.layout.position}
-- z-index: ${elementInfo.computedStyles.layout.zIndex}
-
-**Typography**:
-- font: ${elementInfo.computedStyles.typography.fontSize} ${elementInfo.computedStyles.typography.fontFamily}
-- color: ${elementInfo.computedStyles.typography.color}
-- text-align: ${elementInfo.computedStyles.typography.textAlign}
-
-**Spacing**:
-- padding: ${elementInfo.computedStyles.spacing.padding}
-- margin: ${elementInfo.computedStyles.spacing.margin}
-
-**Background & Border**:
-- background: ${elementInfo.computedStyles.background.backgroundColor}
-- border: ${elementInfo.computedStyles.border.border}
-- border-radius: ${elementInfo.computedStyles.border.borderRadius}
-
-**Effects**:
-- opacity: ${elementInfo.computedStyles.effects.opacity}
-- box-shadow: ${elementInfo.computedStyles.effects.boxShadow || "none"}
-- transform: ${elementInfo.computedStyles.effects.transform || "none"}
-`
-        : includeStyles && elementInfo.styles
-          ? `### Legacy Styles:
-\`\`\`css
-display: ${elementInfo.styles?.display}
-color: ${elementInfo.styles?.color}
-background: ${elementInfo.styles?.backgroundColor}
-font-size: ${elementInfo.styles?.fontSize}
-padding: ${elementInfo.styles?.padding}
-margin: ${elementInfo.styles?.margin}
-\`\`\`
-`
-          : ""
-      }
-`
-      : "";
-
-  output += domInfo;
-
-  // Add user request
-  output += `## User Request
-${description}
-
-`;
-
-  // Note: Screenshot is now returned as MCP image content type (not in markdown)
-
-  // Add console messages if provided
-  if (selectedContext?.consoleMessages && selectedContext.consoleMessages.length > 0) {
-    const messages = selectedContext.consoleMessages
-      .map((msg: any) => {
-        const levelIcon = msg.level === "error" ? "❌" : msg.level === "warn" ? "⚠️" : "📝";
-        return `- ${levelIcon} [${msg.level}] ${msg.text}`;
-      })
-      .join("\n");
-    output += `## Console Messages (${selectedContext.consoleMessages.length})
-${messages}
-
-`;
-  }
-
-  // Add network requests if provided
-  if (selectedContext?.networkRequests && selectedContext.networkRequests.length > 0) {
-    const requests = selectedContext.networkRequests
-      .map((req: any) => {
-        let entry = `### ${req.method} ${req.url}
-- **Status**: ${req.status}
-`;
-        if (req.details && req.details !== "(expand request to load details)") {
-          entry += `
-#### Details
-\`\`\`
-${req.details}
-\`\`\`
-`;
-        }
-        return entry;
-      })
-      .join("\n");
-    output += `## Network Requests (${selectedContext.networkRequests.length})
-${requests}
-
-`;
-  }
-
-  // Add element annotations (user notes) if available
-  const notesSection = formatElementAnnotations({
-    primaryNote: sourceInfo.note,
-    primaryTag: elementInfo?.tagName?.toLowerCase() || component,
+  // Build output using shared format function
+  let output = formatCopyContext({
+    sourceInfo,
+    includeElement,
+    includeStyles,
+    includePageInfo: false,
+    feedback: description,
+    consoleMessages: selectedContext?.consoleMessages,
+    networkRequests: selectedContext?.networkRequests,
+    stdioMessages: selectedContext?.stdioMessages,
     relatedElements: sourceInfo.relatedElements,
+    relatedElementIds: sourceInfo.relatedElements?.map((_: any, i: number) => i),
     elementNotes: selectedContext?.elementNotes,
   });
-  if (notesSection) {
-    output += notesSection;
-  }
 
-  output += `## Your Task
+  // Add task instructions (MCP-specific)
+  output += `
+
+## Your Task
 1. Investigate the issue using 'chrome_devtools' tool (check console logs, network requests, performance)
 2. Use 'execute_page_script' to query element state if needed
 3. Update status with 'update_inspection_status':
@@ -421,36 +306,32 @@ export function useMcp(): { client: McpClientType | null; isClientReady: boolean
       "inspector",
     );
 
-    // Tool implementations
-    async function inspectElement(args: any) {
-      if (args?.automated) {
-        activateInspector();
+    // Capture single element (interactive or via selector)
+    async function captureElementContext(args: { selector?: string } = {}) {
+      const { selector } = args;
 
-        if (isAutomated) {
-          // Chrome DevTools available
-          return createTextContent(
-            `Inspector activated. Click the target element to auto-capture.
+      // Automated mode with selector
+      if (selector) {
+        return new Promise((resolve, reject) => {
+          cancelPendingRequest("New automated capture started");
+          pendingResolve = resolve;
+          pendingReject = reject;
 
-**Available tools**:
-- chrome_take_snapshot: See the page visually
-- chrome_click: Click element via browser automation
+          window.dispatchEvent(new CustomEvent("automated-capture", {
+            detail: { selector }
+          }));
 
-After clicking, use \`list_inspections\` to view the captured element with full context (DOM, styles, source).`,
-          );
-        } else {
-          // No Chrome DevTools - use execute_page_script only
-          return createTextContent(
-            `Inspector activated. Click the target element to auto-capture.
-
-**Available tool**:
-- execute_page_script: Find the target element on the page, then trigger a click programmatically
-
-After clicking, use \`list_inspections\` to view the captured element with full context (DOM, styles, source).`,
-          );
-        }
+          setTimeout(() => {
+            if (pendingReject === reject) {
+              clearPendingRequest();
+              reject(new Error("Timeout: Automated capture failed"));
+            }
+          }, TIMEOUT_MS);
+        });
       }
 
-      cancelPendingRequest("New inspect request started");
+      // Interactive mode - user clicks element
+      cancelPendingRequest("New capture request started");
       activateInspector();
 
       return new Promise((resolve, reject) => {
@@ -461,6 +342,47 @@ After clicking, use \`list_inspections\` to view the captured element with full 
           if (pendingReject === reject) {
             clearPendingRequest();
             reject(new Error("Timeout: No element selected"));
+          }
+        }, TIMEOUT_MS);
+      });
+    }
+
+    // Capture multiple elements in area (interactive or via containerSelector/bounds)
+    async function captureAreaContext(args: { containerSelector?: string; bounds?: { x: number; y: number; width: number; height: number } } = {}) {
+      const { containerSelector, bounds } = args;
+
+      // Automated mode with containerSelector or bounds
+      if (containerSelector || bounds) {
+        return new Promise((resolve, reject) => {
+          cancelPendingRequest("New automated capture started");
+          pendingResolve = resolve;
+          pendingReject = reject;
+
+          window.dispatchEvent(new CustomEvent("automated-capture", {
+            detail: { containerSelector, bounds }
+          }));
+
+          setTimeout(() => {
+            if (pendingReject === reject) {
+              clearPendingRequest();
+              reject(new Error("Timeout: Automated capture failed"));
+            }
+          }, TIMEOUT_MS);
+        });
+      }
+
+      // Interactive mode - user draws rectangle
+      cancelPendingRequest("New capture request started");
+      window.dispatchEvent(new CustomEvent("activate-area-capture"));
+
+      return new Promise((resolve, reject) => {
+        pendingResolve = resolve;
+        pendingReject = reject;
+
+        setTimeout(() => {
+          if (pendingReject === reject) {
+            clearPendingRequest();
+            reject(new Error("Timeout: No area selected"));
           }
         }, TIMEOUT_MS);
       });
@@ -524,19 +446,134 @@ After clicking, use \`list_inspections\` to view the captured element with full 
       },
     ];
 
+    // A11y tree helpers (defined once, reused)
+    const IMPLICIT_ROLES: Record<string, string | ((el: Element) => string)> = {
+      'HEADER': 'banner',
+      'NAV': 'navigation',
+      'MAIN': 'main',
+      'ASIDE': 'complementary',
+      'FOOTER': 'contentinfo',
+      'SECTION': 'region',
+      'ARTICLE': 'article',
+      'FORM': 'form',
+      'BUTTON': 'button',
+      'A': (el) => el.hasAttribute('href') ? 'link' : '',
+      'IMG': 'img',
+      'UL': 'list',
+      'OL': 'list',
+      'LI': 'listitem',
+      'TABLE': 'table',
+      'H1': 'heading',
+      'H2': 'heading',
+      'H3': 'heading',
+      'H4': 'heading',
+      'H5': 'heading',
+      'H6': 'heading',
+      'INPUT': (el) => {
+        const type = el.getAttribute('type');
+        if (type === 'submit' || type === 'button') return 'button';
+        if (type === 'checkbox') return 'checkbox';
+        if (type === 'radio') return 'radio';
+        return 'textbox';
+      },
+      'TEXTAREA': 'textbox',
+      'SELECT': 'combobox',
+      'DIALOG': 'dialog',
+    };
+
+    const SKIP_TAGS = new Set(['DIV', 'SPAN', 'SCRIPT', 'STYLE', 'NOSCRIPT', 'BR', 'HR']);
+
+    function getImplicitRole(el: Element): string | null {
+      const mapping = IMPLICIT_ROLES[el.tagName];
+      if (!mapping) return null;
+      return typeof mapping === 'function' ? mapping(el) : mapping;
+    }
+
+    function getDirectTextContent(el: Element): string {
+      let text = '';
+      for (let i = 0; i < el.childNodes.length; i++) {
+        const node = el.childNodes[i];
+        if (node.nodeType === Node.TEXT_NODE) {
+          text += node.textContent?.trim() || '';
+        }
+      }
+      return text.slice(0, 50);
+    }
+
+    function getA11yTree(element: Element, depth = 0, maxDepth = 4, lines: string[] = []): string[] {
+      if (depth > maxDepth || lines.length >= 100) return lines;
+
+      const role = element.getAttribute('role') || getImplicitRole(element);
+      const ariaLabel = element.getAttribute('aria-label');
+      const hasSemanticMeaning = role || !SKIP_TAGS.has(element.tagName) || element.id || ariaLabel;
+
+      if (hasSemanticMeaning && role !== 'none' && role !== 'presentation') {
+        // Compute accessible name
+        const ariaLabelledBy = element.getAttribute('aria-labelledby');
+        let name = ariaLabel
+          || (ariaLabelledBy ? document.getElementById(ariaLabelledBy)?.textContent?.trim() : null)
+          || element.getAttribute('alt')
+          || element.getAttribute('title')
+          || element.getAttribute('placeholder')
+          || (element.tagName !== 'INPUT' && element.tagName !== 'TEXTAREA' ? getDirectTextContent(element) : '');
+
+        if (name && name.length > 50) name = name.slice(0, 47) + '...';
+
+        const tag = element.tagName.toLowerCase();
+        const id = element.id ? `#${element.id}` : '';
+        const roleStr = role && role !== tag ? ` [${role}]` : '';
+        const nameStr = name ? `: "${name}"` : '';
+        lines.push(`${'  '.repeat(depth)}<${tag}${id}${roleStr}${nameStr}>`);
+      }
+
+      for (let i = 0; i < element.children.length && lines.length < 100; i++) {
+        getA11yTree(element.children[i], hasSemanticMeaning ? depth + 1 : depth, maxDepth, lines);
+      }
+
+      return lines;
+    }
+
+    // Get page info implementation
+    function getPageInfo() {
+      const a11yTree = getA11yTree(document.body);
+
+      const output = `## Page Information
+- **URL**: ${window.location.href}
+- **Title**: ${document.title}
+- **Viewport**: ${window.innerWidth} × ${window.innerHeight}
+- **Document Size**: ${document.documentElement.scrollWidth} × ${document.documentElement.scrollHeight}
+- **Scroll**: (${window.scrollX}, ${window.scrollY})
+
+## Accessibility Tree
+\`\`\`
+${a11yTree.length > 0 ? a11yTree.join('\n') : '(empty or no semantic structure)'}
+\`\`\`
+
+## Next Steps
+- \`capture_element_context({ selector })\` - inspect specific element
+- \`capture_area_context({ containerSelector })\` - inspect container's children
+- \`capture_area_context({ bounds: {x,y,width,height} })\` - inspect screen region`;
+
+      return createTextContent(output);
+    }
+
     eventHandlers.forEach(({ event, handler }) => {
       window.addEventListener(event, handler as EventListener);
     });
 
-    // Built-in tools
+    // Built-in tools (exposed to AI)
     const builtInTools = [
+      {
+        ...TOOL_SCHEMAS.capture_element_context,
+        implementation: captureElementContext,
+      },
+      {
+        ...TOOL_SCHEMAS.capture_area_context,
+        implementation: captureAreaContext,
+      },
       {
         ...TOOL_SCHEMAS.list_inspections,
         implementation: getAllFeedbacks,
-      },
-      {
-        ...TOOL_SCHEMAS.capture_element_context,
-        implementation: inspectElement,
       },
       {
         ...TOOL_SCHEMAS.update_inspection_status,
@@ -547,94 +584,8 @@ After clicking, use \`list_inspections\` to view the captured element with full 
         implementation: patchContext,
       },
       {
-        ...TOOL_SCHEMAS.capture_area_context,
-        implementation: () => {
-          // Cancel any pending request
-          cancelPendingRequest("New area capture request started");
-
-          // Activate area selection mode
-          window.dispatchEvent(new CustomEvent("activate-area-select"));
-
-          return new Promise((resolve, reject) => {
-            pendingResolve = resolve;
-            pendingReject = reject;
-
-            // Listen for area selection complete event
-            const handleAreaComplete = async (event: Event) => {
-              window.removeEventListener("area-selection-complete", handleAreaComplete);
-
-              const customEvent = event as CustomEvent;
-              const { sourceInfo } = customEvent.detail || {};
-              if (!sourceInfo) {
-                reject(new Error("No elements selected in area"));
-                clearPendingRequest();
-                return;
-              }
-
-              try {
-                // Get page info
-                const pageInfo: PageInfo = {
-                  url: window.location.href,
-                  title: document.title,
-                  viewport: { width: window.innerWidth, height: window.innerHeight },
-                  language: document.documentElement.lang || navigator.language,
-                };
-
-                // Always capture screenshot
-                let screenshot: string | undefined;
-                if (sourceInfo.element) {
-                  screenshot = await captureElementScreenshot(sourceInfo.element);
-                }
-
-                // Format the result using formatCopyContext
-                // Include element notes from relatedElements if they exist
-                const elementNotes: Record<number, string> = {};
-                sourceInfo.relatedElements?.forEach((el: any, idx: number) => {
-                  if (el.note) elementNotes[idx] = el.note;
-                });
-
-                const resultText = formatCopyContext({
-                  sourceInfo,
-                  includeElement: true,
-                  includeStyles: false,
-                  includePageInfo: true,
-                  pageInfo,
-                  relatedElements: sourceInfo.relatedElements,
-                  relatedElementIds: sourceInfo.relatedElements?.map((_: any, idx: number) => idx),
-                  elementNotes: Object.keys(elementNotes).length > 0 ? elementNotes : undefined,
-                });
-
-                // Build response with text and optional screenshot
-                const content: Array<{ type: "text"; text: string } | { type: "image"; data: string; mimeType: string }> = [
-                  { type: "text" as const, text: resultText },
-                ];
-
-                if (screenshot) {
-                  const base64Data = screenshot.replace(/^data:image\/\w+;base64,/, "");
-                  content.push({ type: "image" as const, data: base64Data, mimeType: "image/png" });
-                }
-
-                resolve({ content });
-              } catch (error) {
-                const errorMsg = error instanceof Error ? error.message : String(error);
-                reject(new Error(`Error processing area selection: ${errorMsg}`));
-              }
-
-              clearPendingRequest();
-            };
-
-            window.addEventListener("area-selection-complete", handleAreaComplete);
-
-            // Set timeout
-            setTimeout(() => {
-              if (pendingReject === reject) {
-                window.removeEventListener("area-selection-complete", handleAreaComplete);
-                clearPendingRequest();
-                reject(new Error("Timeout: No area selected"));
-              }
-            }, TIMEOUT_MS);
-          });
-        },
+        ...TOOL_SCHEMAS.get_page_info,
+        implementation: getPageInfo,
       },
     ];
 

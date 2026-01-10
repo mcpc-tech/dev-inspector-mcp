@@ -4,16 +4,29 @@
  */
 
 export const PROMPT_SCHEMAS = {
-  capture_element: {
-    name: "capture_element",
-    title: "Capture Element Context",
+  capture_element_context: {
+    name: "capture_element_context",
+    title: "Capture Element",
     description:
-      "Capture context about a UI element for troubleshooting and investigation.",
+      "Capture single element context. Interactive (user clicks) or automated (selector param).",
     arguments: [
       {
-        name: "automated",
-        description:
-          "If true, the AI will automate the capture process (click/feedback/submit).",
+        name: "selector",
+        description: "CSS selector for automated capture (no user interaction).",
+        required: false,
+      },
+    ],
+  },
+
+  capture_area_context: {
+    name: "capture_area_context",
+    title: "Capture Area",
+    description:
+      "Capture multiple elements in area. Interactive (user draws rectangle) or automated (containerSelector/bounds param).",
+    arguments: [
+      {
+        name: "containerSelector",
+        description: "CSS selector for container - captures all child elements.",
         required: false,
       },
     ],
@@ -45,7 +58,6 @@ export const PROMPT_SCHEMAS = {
     title: "Get Network Requests",
     description:
       "List network requests or get details of a specific one. Always refreshes the list first.",
-    // Arguments will be dynamically populated based on available requests
     arguments: [],
   },
 
@@ -54,7 +66,6 @@ export const PROMPT_SCHEMAS = {
     title: "Get Console Messages",
     description:
       "List console messages or get details of a specific one. Always refreshes the list first.",
-    // Arguments will be dynamically populated based on available messages
     arguments: [],
   },
 
@@ -63,7 +74,23 @@ export const PROMPT_SCHEMAS = {
     title: "Get Stdio Messages",
     description:
       "List stdio (stdout/stderr) messages from the server process. Always refreshes the list first.",
-    // Arguments will be dynamically populated based on available messages
+    arguments: [],
+  },
+
+  // Deprecated aliases (kept for backward compatibility)
+  capture_context: {
+    name: "capture_context",
+    title: "Capture Context",
+    description:
+      "[DEPRECATED] Use capture_element_context or capture_area_context.",
+    arguments: [],
+  },
+
+  capture_element: {
+    name: "capture_element",
+    title: "Capture Element Context",
+    description:
+      "[DEPRECATED] Use capture_element_context.",
     arguments: [],
   },
 
@@ -71,7 +98,7 @@ export const PROMPT_SCHEMAS = {
     name: "capture_area",
     title: "Capture Area Context",
     description:
-      "Draw a rectangle on the page to capture multiple elements at once for troubleshooting.",
+      "[DEPRECATED] Use capture_area_context.",
     arguments: [],
   },
 } as const;

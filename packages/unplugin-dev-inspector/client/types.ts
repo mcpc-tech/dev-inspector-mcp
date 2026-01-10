@@ -187,4 +187,12 @@ export interface PageInfo {
     height: number;
   };
   language: string;
+  scrollPosition?: {
+    x: number;
+    y: number;
+  };
+  documentSize?: {
+    width: number;
+    height: number;
+  };
 }

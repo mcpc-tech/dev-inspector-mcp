@@ -336,7 +336,7 @@ ${recentNetwork || "None"}
 Available Terminal Logs (Recent ${MAX_RECENT_ITEMS}):
 ${recentStdio || "None"}
 
-IMPORTANT: For this task, you MUST call the "context_selector" tool to return your selection. Do NOT use inspector tools like list_inspections, capture_element_context, update_inspection_status, or execute_page_script - the context is already provided above. You may read files if needed to understand the context better. Even if you select nothing, still call context_selector with empty arrays. Do not reply with text only. Note: You can ignore logs from dev-inspector itself.
+IMPORTANT: For this task, you MUST call the "context_selector" tool to return your selection. Do NOT use inspector tools like list_inspections, capture_element_context, capture_area_context, update_inspection_status, or execute_page_script - the context is already provided above. You may read files if needed to understand the context better. Even if you select nothing, still call context_selector with empty arrays. Do not reply with text only. Note: You can ignore logs from dev-inspector itself.
 `;
         const currentAgent = AVAILABLE_AGENTS.find(a => a.name === selectedAgent) || AVAILABLE_AGENTS[0];
         await sendMessage(
