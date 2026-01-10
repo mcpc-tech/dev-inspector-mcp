@@ -37,8 +37,8 @@ export interface DevInspectorOptions extends McpConfigOptions, AcpOptions {
    * Custom port for MCP server URL
    * Useful when behind a proxy or port forwarding (e.g., Docker, SSH tunnels)
    * Can also be set via DEV_INSPECTOR_PORT environment variable
-   * @default 5137
-   * @example 5137
+   * @default 6137
+   * @example 6137
    */
   port?: number;
 
@@ -49,13 +49,13 @@ export interface DevInspectorOptions extends McpConfigOptions, AcpOptions {
    * reachable URL differs from the internal host/port.
    *
    * Common use cases:
-   * - Cloud IDEs: Fly.io (`https://app-5137.fly.dev`), Gitpod, GitHub Codespaces
+   * - Cloud IDEs: Fly.io (`https://app-6137.fly.dev`), Gitpod, GitHub Codespaces
    * - Docker with port mapping
    * - Reverse proxy / tunnel (ngrok, cloudflared)
    *
    * If provided, it will be used for MCP config auto-update and console output.
    *
-   * @example "https://my-app-5137.fly.dev"
+   * @example "https://my-app-6137.fly.dev"
    */
   publicBaseUrl?: string;
 
@@ -177,7 +177,7 @@ export const createDevInspectorPlugin = (
     // Standalone server instance (shared between Vite and Webpack)
     let standaloneServerStarted = false;
     let resolvedHost: string = "localhost";
-    let resolvedPort = options.port || 5137;
+    let resolvedPort = options.port || 6137;
 
     const transformImpl = transformFactory(options);
     const chromeDisabled = isChromeDisabled(options.disableChrome);

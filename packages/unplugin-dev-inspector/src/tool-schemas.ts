@@ -116,4 +116,67 @@ User draws a rectangle on the page to select multiple elements at once. After se
       properties: {},
     },
   },
+
+  get_network_requests: {
+    name: "get_network_requests",
+    description: `Get network requests from browser for debugging.
+
+Returns list of HTTP requests with ID, method, URL, and status code. Use reqid parameter to get full details of a specific request including headers, body, and timing.
+
+**Usage**:
+- Call without parameters to list all requests
+- Call with reqid to get specific request details`,
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        reqid: {
+          type: "number",
+          description:
+            "Optional. Request ID to get full details. If omitted, returns list of all requests.",
+        },
+      },
+    },
+  },
+
+  get_console_messages: {
+    name: "get_console_messages",
+    description: `Get console messages from browser for debugging.
+
+Returns list of console logs with ID, level (log/warn/error/info), and message content. Use msgid parameter to get full details of a specific message.
+
+**Usage**:
+- Call without parameters to list all messages
+- Call with msgid to get specific message details`,
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        msgid: {
+          type: "number",
+          description:
+            "Optional. Message ID to get full details. If omitted, returns list of all messages.",
+        },
+      },
+    },
+  },
+
+  get_stdio_messages: {
+    name: "get_stdio_messages",
+    description: `Get stdio (stdout/stderr) terminal messages from dev server process.
+
+Returns list of terminal output with ID, stream type (stdout/stderr), and content. Use stdioid parameter to get full details of a specific message.
+
+**Usage**:
+- Call without parameters to list all stdio messages
+- Call with stdioid to get specific message details`,
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        stdioid: {
+          type: "number",
+          description:
+            "Optional. Stdio message ID to get full details. If omitted, returns list of all messages.",
+        },
+      },
+    },
+  },
 } as const;

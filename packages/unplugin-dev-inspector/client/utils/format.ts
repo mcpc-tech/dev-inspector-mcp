@@ -223,8 +223,10 @@ export function formatElementAnnotations(options: {
     file?: string;
     line?: number;
   }>;
+  /** User notes from ContextPicker (key is element index) */
+  elementNotes?: Record<number, string>;
 }): string {
-  const { primaryNote, primaryTag, relatedElements } = options;
+  const { primaryNote, primaryTag, relatedElements, elementNotes } = options;
   const notes: string[] = [];
 
   // Add primary element note if exists
@@ -236,10 +238,12 @@ export function formatElementAnnotations(options: {
   // Add related elements' notes if they exist
   if (relatedElements && relatedElements.length > 0) {
     relatedElements.forEach((el, idx) => {
-      if (el.note) {
+      // Check both el.note (from RegionOverlay) and elementNotes[idx] (from ContextPicker)
+      const note = el.note || elementNotes?.[idx];
+      if (note) {
         const tag = el.elementInfo?.tagName?.toLowerCase() || el.component;
         const location = el.file && el.line ? ` at ${el.file}:${el.line}` : "";
-        notes.push(`- **Related element #${idx + 1}** (${tag}${location}): ${el.note}`);
+        notes.push(`- **Related element #${idx + 1}** (${tag}${location}): ${note}`);
       }
     });
   }

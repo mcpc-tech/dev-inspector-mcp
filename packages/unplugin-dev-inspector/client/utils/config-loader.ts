@@ -53,7 +53,7 @@ export function getDevServerBaseUrl(): string {
   }
 
   // Last resort: default dev server port
-  return `http://localhost:5137`;
+  return `http://localhost:6137`;
 }
 
 /**

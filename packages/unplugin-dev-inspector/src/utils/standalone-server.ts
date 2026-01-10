@@ -11,7 +11,7 @@ export interface StandaloneServerOptions {
  * Default port for the standalone server.
  * Can be overridden via DEV_INSPECTOR_PORT environment variable.
  */
-export const DEFAULT_PORT = 5137;
+export const DEFAULT_PORT = 6137;
 
 /**
  * Get the configured port from environment variable or default.

@@ -21,6 +21,10 @@ import {
   getStdioLogs,
 } from "./utils/log-storage.js";
 
+// Truncation limits for list summaries
+const TRUNCATE_URL_LENGTH = 60;
+const TRUNCATE_MESSAGE_LENGTH = 180;
+
 /**
  * Get Chrome DevTools binary path from npm package, then use node to run it, faster/stabler than npx
  */
@@ -195,26 +199,109 @@ Default dev server URL: ${process.env.DEV_INSPECTOR_PUBLIC_BASE_URL ||
     chromeDevToolsServers,
   );
 
+
+  // Server tools - only register network/console when Chrome is disabled
+  if (chromeDisabled) {
+    mcpServer.tool(
+      TOOL_SCHEMAS.get_network_requests.name,
+      TOOL_SCHEMAS.get_network_requests.description,
+      TOOL_SCHEMAS.get_network_requests.inputSchema,
+      async ({ reqid }: { reqid?: number }) => {
+        if (reqid !== undefined) {
+          const req = getRequestById(reqid);
+          return {
+            content: [{
+              type: "text" as const,
+              text: req ? (req.details || JSON.stringify(req, null, 2)) : "Request not found",
+            }],
+          };
+        }
+        const requests = getNetworkRequests();
+        const text = requests
+          .map((r) => {
+            const truncatedUrl = r.url.length > TRUNCATE_URL_LENGTH ? r.url.substring(0, TRUNCATE_URL_LENGTH - 3) + "..." : r.url;
+            return `reqid=${r.id} ${r.method} ${truncatedUrl} [${r.status}]`;
+          })
+          .reverse()
+          .join("\n");
+        return {
+          content: [{ type: "text" as const, text: text || "No network requests" }],
+        };
+      }
+    );
+
+    mcpServer.tool(
+      TOOL_SCHEMAS.get_console_messages.name,
+      TOOL_SCHEMAS.get_console_messages.description,
+      TOOL_SCHEMAS.get_console_messages.inputSchema,
+      async ({ msgid }: { msgid?: number }) => {
+        if (msgid !== undefined) {
+          const log = getLogById(msgid);
+          return {
+            content: [{
+              type: "text" as const,
+              text: log ? JSON.stringify(log, null, 2) : "Log not found",
+            }],
+          };
+        }
+        const logs = getLogs();
+        const text = logs
+          .map((l) => {
+            const msg = l.args
+              .map((arg) => typeof arg === "object" ? JSON.stringify(arg) : String(arg))
+              .join(" ");
+            const truncated = msg.length > TRUNCATE_MESSAGE_LENGTH ? msg.substring(0, TRUNCATE_MESSAGE_LENGTH - 3) + "..." : msg;
+            return `msgid=${l.id} [${l.type}] ${truncated}`;
+          })
+          .reverse()
+          .join("\n");
+        return {
+          content: [{ type: "text" as const, text: text || "No console messages" }],
+        };
+      }
+    );
+  }
+
+  // Stdio tool - always available (not in Chrome DevTools)
+  mcpServer.tool(
+    TOOL_SCHEMAS.get_stdio_messages.name,
+    TOOL_SCHEMAS.get_stdio_messages.description,
+    TOOL_SCHEMAS.get_stdio_messages.inputSchema,
+    async ({ stdioid }: { stdioid?: number }) => {
+      if (stdioid !== undefined) {
+        const log = getStdioById(stdioid);
+        return {
+          content: [{
+            type: "text" as const,
+            text: log ? JSON.stringify(log, null, 2) : "Stdio message not found",
+          }],
+        };
+      }
+      const stdioLogs = getStdioLogs();
+      const text = stdioLogs
+        .map((log) => {
+          const truncated = log.data.length > TRUNCATE_MESSAGE_LENGTH ? log.data.substring(0, TRUNCATE_MESSAGE_LENGTH - 3) + "..." : log.data;
+          return `stdioid=${log.id} [${log.stream}] ${truncated}`;
+        })
+        .reverse()
+        .join("\n");
+      return {
+        content: [{ type: "text" as const, text: text || "No stdio messages" }],
+      };
+    }
+  );
+
   const mcpClientExecServer = createClientExecServer(mcpServer, "inspector");
 
-  // Client tools
+  // Client tools (executed in browser)
   mcpClientExecServer.registerClientToolSchemas([
-    {
-      ...TOOL_SCHEMAS.capture_element_context,
-    },
-    {
-      ...TOOL_SCHEMAS.list_inspections,
-    },
-    {
-      ...TOOL_SCHEMAS.update_inspection_status,
-    },
-    {
-      ...TOOL_SCHEMAS.execute_page_script,
-    },
-    {
-      ...TOOL_SCHEMAS.capture_area_context,
-    },
+    { ...TOOL_SCHEMAS.capture_element_context },
+    { ...TOOL_SCHEMAS.capture_area_context },
+    { ...TOOL_SCHEMAS.list_inspections },
+    { ...TOOL_SCHEMAS.update_inspection_status },
+    { ...TOOL_SCHEMAS.execute_page_script },
   ]);
+
 
   // Prompts
   mcpServer.setRequestHandler(ListPromptsRequestSchema, async (_request) => {
@@ -236,7 +323,10 @@ Default dev server URL: ${process.env.DEV_INSPECTOR_PUBLIC_BASE_URL ||
         ...PROMPT_SCHEMAS.capture_element,
       },
       {
-        ...PROMPT_SCHEMAS.view_inspections,
+        ...PROMPT_SCHEMAS.list_inspections,
+      },
+      {
+        ...PROMPT_SCHEMAS.capture_area,
       },
       {
         ...PROMPT_SCHEMAS.get_stdio_messages,
@@ -302,8 +392,8 @@ Default dev server URL: ${process.env.DEV_INSPECTOR_PUBLIC_BASE_URL ||
       const requestOptions = requests
         .map((r) => {
           // Truncate long URLs
-          const truncatedUrl = r.url.length > 60
-            ? r.url.substring(0, 57) + "..."
+          const truncatedUrl = r.url.length > TRUNCATE_URL_LENGTH
+            ? r.url.substring(0, TRUNCATE_URL_LENGTH - 3) + "..."
             : r.url;
           return `reqid=${r.id} ${r.method} ${truncatedUrl} [${r.status}]`;
         })
@@ -324,8 +414,8 @@ Default dev server URL: ${process.env.DEV_INSPECTOR_PUBLIC_BASE_URL ||
               return String(arg);
             })
             .join(" ");
-          const truncatedText = text.length > 1000
-            ? text.substring(0, 997) + "..."
+          const truncatedText = text.length > TRUNCATE_MESSAGE_LENGTH
+            ? text.substring(0, TRUNCATE_MESSAGE_LENGTH - 3) + "..."
             : text;
           return `msgid=${l.id} [${l.type}] ${truncatedText}`;
         })
@@ -340,7 +430,8 @@ Default dev server URL: ${process.env.DEV_INSPECTOR_PUBLIC_BASE_URL ||
             prompts: [
               ...filterPrompts([
                 { ...PROMPT_SCHEMAS.capture_element },
-                { ...PROMPT_SCHEMAS.view_inspections },
+                { ...PROMPT_SCHEMAS.capture_area },
+                { ...PROMPT_SCHEMAS.list_inspections },
                 // When disabled, we still offer these prompts but powered by local storage
                 {
                   ...PROMPT_SCHEMAS.get_network_requests,
@@ -428,9 +519,9 @@ Default dev server URL: ${process.env.DEV_INSPECTOR_PUBLIC_BASE_URL ||
     const requestOptions = Array.from(reqIdMatches)
       .map((match) => {
         const [, reqId, method, url, status] = match;
-        // Truncate long URLs to 60 characters with ellipsis
-        const truncatedUrl = url.length > 60
-          ? url.substring(0, 57) + "..."
+        // Truncate long URLs
+        const truncatedUrl = url.length > TRUNCATE_URL_LENGTH
+          ? url.substring(0, TRUNCATE_URL_LENGTH - 3) + "..."
           : url;
         return `  ${reqId}: ${method} ${truncatedUrl} [${status}]`;
       })
@@ -446,9 +537,9 @@ Default dev server URL: ${process.env.DEV_INSPECTOR_PUBLIC_BASE_URL ||
     const messageOptions = Array.from(msgIdMatches)
       .map((match) => {
         const [, msgId, level, text] = match;
-        // Truncate long messages to 60 characters with ellipsis
-        const truncatedText = text.length > 60
-          ? text.substring(0, 57) + "..."
+        // Truncate long messages
+        const truncatedText = text.length > TRUNCATE_URL_LENGTH
+          ? text.substring(0, TRUNCATE_URL_LENGTH - 3) + "..."
           : text;
         return `  ${msgId}: [${level}] ${truncatedText}`;
       })
@@ -470,7 +561,10 @@ Default dev server URL: ${process.env.DEV_INSPECTOR_PUBLIC_BASE_URL ||
               ...PROMPT_SCHEMAS.capture_element,
             },
             {
-              ...PROMPT_SCHEMAS.view_inspections,
+              ...PROMPT_SCHEMAS.list_inspections,
+            },
+            {
+              ...PROMPT_SCHEMAS.capture_area,
             },
             ...(!chromeDisabled
               ? [
@@ -645,7 +739,7 @@ Default dev server URL: ${process.env.DEV_INSPECTOR_PUBLIC_BASE_URL ||
         } as GetPromptResult;
       }
 
-      case "view_inspections": {
+      case "list_inspections": {
         const inspections = (await callMcpMethod(mcpServer, "tools/call", {
           name: "list_inspections",
           arguments: {},
@@ -653,6 +747,20 @@ Default dev server URL: ${process.env.DEV_INSPECTOR_PUBLIC_BASE_URL ||
 
         return {
           messages: inspections?.content.map((item) => ({
+            role: "user",
+            content: item,
+          })) || [],
+        } as GetPromptResult;
+      }
+
+      case "capture_area": {
+        const area = (await callMcpMethod(mcpServer, "tools/call", {
+          name: "capture_area_context",
+          arguments: {},
+        })) as CallToolResult;
+
+        return {
+          messages: area?.content.map((item) => ({
             role: "user",
             content: item,
           })) || [],
@@ -822,8 +930,8 @@ Default dev server URL: ${process.env.DEV_INSPECTOR_PUBLIC_BASE_URL ||
         // Format logs list
         const formattedMessages = stdioLogs
           .map((log) => {
-            const truncatedData = log.data.length > 1000
-              ? log.data.substring(0, 997) + "..."
+            const truncatedData = log.data.length > TRUNCATE_MESSAGE_LENGTH
+              ? log.data.substring(0, TRUNCATE_MESSAGE_LENGTH - 3) + "..."
               : log.data;
             return `stdioid=${log.id} [${log.stream}] ${truncatedData}`;
           })
@@ -869,7 +977,8 @@ Default dev server URL: ${process.env.DEV_INSPECTOR_PUBLIC_BASE_URL ||
             return {
               prompts: [
                 { ...PROMPT_SCHEMAS.capture_element },
-                { ...PROMPT_SCHEMAS.view_inspections },
+                { ...PROMPT_SCHEMAS.list_inspections },
+                { ...PROMPT_SCHEMAS.capture_area },
                 {
                   ...PROMPT_SCHEMAS.get_stdio_messages,
                   arguments: [{
@@ -897,6 +1006,12 @@ Default dev server URL: ${process.env.DEV_INSPECTOR_PUBLIC_BASE_URL ||
                     { ...PROMPT_SCHEMAS.get_console_messages },
                   ]
                   : []),
+                // Add user prompts
+                ...userPrompts.map(p => ({
+                  name: p.name,
+                  description: p.description,
+                  arguments: p.arguments,
+                }))
               ],
             };
           },

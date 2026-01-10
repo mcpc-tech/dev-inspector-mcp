@@ -240,6 +240,17 @@ ${requests}
 `;
   }
 
+  // Add element annotations (user notes) if available
+  const notesSection = formatElementAnnotations({
+    primaryNote: sourceInfo.note,
+    primaryTag: elementInfo?.tagName?.toLowerCase() || component,
+    relatedElements: sourceInfo.relatedElements,
+    elementNotes: selectedContext?.elementNotes,
+  });
+  if (notesSection) {
+    output += notesSection;
+  }
+
   output += `## Your Task
 1. Investigate the issue using 'chrome_devtools' tool (check console logs, network requests, performance)
 2. Use 'execute_page_script' to query element state if needed
@@ -576,6 +587,12 @@ After clicking, use \`list_inspections\` to view the captured element with full 
                 }
 
                 // Format the result using formatCopyContext
+                // Include element notes from relatedElements if they exist
+                const elementNotes: Record<number, string> = {};
+                sourceInfo.relatedElements?.forEach((el: any, idx: number) => {
+                  if (el.note) elementNotes[idx] = el.note;
+                });
+
                 const resultText = formatCopyContext({
                   sourceInfo,
                   includeElement: true,
@@ -583,6 +600,8 @@ After clicking, use \`list_inspections\` to view the captured element with full 
                   includePageInfo: true,
                   pageInfo,
                   relatedElements: sourceInfo.relatedElements,
+                  relatedElementIds: sourceInfo.relatedElements?.map((_: any, idx: number) => idx),
+                  elementNotes: Object.keys(elementNotes).length > 0 ? elementNotes : undefined,
                 });
 
                 // Build response with text and optional screenshot

@@ -19,8 +19,8 @@ export const PROMPT_SCHEMAS = {
     ],
   },
 
-  view_inspections: {
-    name: "view_inspections",
+  list_inspections: {
+    name: "list_inspections",
     title: "View All Inspections",
     description: "View all element inspections in the queue with their status.",
     arguments: [],
@@ -64,6 +64,14 @@ export const PROMPT_SCHEMAS = {
     description:
       "List stdio (stdout/stderr) messages from the server process. Always refreshes the list first.",
     // Arguments will be dynamically populated based on available messages
+    arguments: [],
+  },
+
+  capture_area: {
+    name: "capture_area",
+    title: "Capture Area Context",
+    description:
+      "Draw a rectangle on the page to capture multiple elements at once for troubleshooting.",
     arguments: [],
   },
 } as const;
