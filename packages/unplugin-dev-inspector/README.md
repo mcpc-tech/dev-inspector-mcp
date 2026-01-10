@@ -555,21 +555,47 @@ DevInspector offers two ways to interact with your AI, depending on your prefere
 
 ### `capture_element_context`
 
-Activates visual selector. Returns source location, DOM hierarchy, styles, dimensions, and user notes.
+Capture single element context. Two modes:
+- **Interactive (default)**: User clicks element to select
+- **Automated**: Use `selector` param for programmatic capture
+
+Returns: source location, DOM hierarchy, computed styles, dimensions, user notes, screenshot.
+
+### `capture_area_context`
+
+Capture multiple elements in an area. Two modes:
+- **Interactive (default)**: User draws rectangle to select area
+- **Automated**: Use `containerSelector` or `bounds` param
+
+Returns: array of element contexts (max 50).
+
+### `get_page_info`
+
+Get page overview with accessibility tree. Returns URL, title, viewport, document size, and semantic structure (landmarks, headings, forms, links). Start here to understand the page.
 
 ### `list_inspections`
 
-Shows all inspections with ID, element details, notes, and status (pending/in-progress/completed/failed).
+List all captured inspections with ID, element details, source location, notes, and status (pending/in-progress/completed/failed).
 
 ### `update_inspection_status`
 
-Updates inspection status with optional progress steps.
-
-**Parameters:** `status`, `message` (required for completed/failed), `progress`, `inspectionId` (optional)
+Update inspection status. Parameters: `inspectionId` (optional, auto-detects), `status` ('in-progress'|'completed'|'failed'|'deleted'), `message` (required for completed/failed).
 
 ### `execute_page_script`
 
-Executes JavaScript in browser context. Access to window, document, React/Vue instances, localStorage.
+Execute JavaScript in browser context. Access: window, document, DOM APIs, React/Vue instances, localStorage. Must return a value.
+
+### `get_network_requests`
+
+Get network requests from browser. Returns list with reqid, method, URL, status. Use `reqid` param to get full request/response details (headers, body, timing).
+
+### `get_console_messages`
+
+Get console messages from browser. Returns list with msgid, level (log/warn/error), message. Use `msgid` param to get full message details.
+
+### `get_stdio_messages`
+
+Get dev server stdout/stderr. Returns list with stdioid, stream type, content. Use `stdioid` param to get full message.
 
 ### `chrome_devtools`
 
@@ -615,33 +641,35 @@ These custom tools are automatically discovered and made available to the connec
 
 ## MCP Prompts
 
-### `capture_element`
+### `capture_element_context`
 
-Capture and analyze UI element context.
+Capture single element context. Interactive (user clicks) or automated (selector param).
 
-### `view_inspections`
+### `capture_area_context`
 
-View all pending, in-progress, and completed inspections.
+Capture multiple elements in area. Interactive (user draws rectangle) or automated (containerSelector/bounds param).
+
+### `list_inspections`
+
+View all element inspections in the queue with their status.
 
 ### `launch_chrome_devtools`
 
-Opens Chrome with DevTools API. Unlocks network analysis, console logs, performance metrics.
+Launch Chrome DevTools and navigate to a specified URL for debugging and inspection.
 
-**Parameter:** `url` (defaults to dev server)
-
-💡 Optional if Chrome is already open. Use when you need to launch a new Chrome instance.
+**Parameter:** `url` (required) - The URL to navigate to (e.g., http://localhost:3000)
 
 ### `get_network_requests`
 
 List network requests or get details of a specific one. Always refreshes the list first.
 
-**Parameter:** `reqid` (optional) - If provided, get details for that request. If omitted, just list all requests.
-
 ### `get_console_messages`
 
 List console messages or get details of a specific one. Always refreshes the list first.
 
-**Parameter:** `msgid` (optional) - If provided, get details for that message. If omitted, just list all messages.
+### `get_stdio_messages`
+
+List stdio (stdout/stderr) messages from the server process. Always refreshes the list first.
 
 ## Architecture
 
