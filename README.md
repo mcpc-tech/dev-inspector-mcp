@@ -3,11 +3,11 @@
 [![npm version](https://img.shields.io/npm/v/@mcpc-tech/unplugin-dev-inspector-mcp.svg)](https://www.npmjs.com/package/@mcpc-tech/unplugin-dev-inspector-mcp)
 [![npm downloads](https://img.shields.io/npm/dm/@mcpc-tech/unplugin-dev-inspector-mcp.svg)](https://www.npmjs.com/package/@mcpc-tech/unplugin-dev-inspector-mcp)
 
-**AI-powered visual debugging for React, Vue, Svelte, SolidJS, Preact & Next.js via MCP and ACP.**
+**The missing runtime context for AI coding agents.**
 
-DevInspector connects your web app directly to your AI agent. Click any element to instantly send its source code, style, and network context to the AI for analysis and fixing.
+AI can read your code, but can't see what's happening at runtime. DevInspector provides the missing context: source code location, DOM state, styles, network, console, terminal output, and screenshots.
 
-Works with any MCP-compatible AI client. Supports ACP agents: **Claude Code**, **Codex CLI**, **Gemini CLI**, **OpenCode**, and [more](https://agentclientprotocol.com/overview/agents).
+**Two modes**: Use with your IDE's AI (Cursor, VSCode) via MCP, or run AI agents directly in the browser via ACP (**Claude Code**, **Codex CLI**, **Gemini CLI**, **OpenCode**, [more](https://agentclientprotocol.com/overview/agents)).
 
 ## Table of Contents
 
@@ -47,14 +47,13 @@ Works with any MCP-compatible AI client. Supports ACP agents: **Claude Code**, *
 
 Click any element to inspect it, or **drag to select a region**. AI gets the full context: source code location, computed styles, component hierarchy, IDs, classes, text content, and **automatically captures screenshots** for pixel-perfect visual understanding.
 
+### Page Overview & Accessibility Tree
+
+`get_page_info` provides AI with a semantic understanding of the page: URL, viewport, and an **accessibility tree** showing landmarks, headings, forms, and links. AI can navigate the page structure without screenshots.
 
 ### Universal DevTools Access
 
 AI can access Network and Console logs from **any browser** (via client-side interception) or full Chrome DevTools (via chrome devtools mcp). It sees what you see, regardless of your environment.
-
-### Smart Select
-
-Let AI do the heavy lifting. "Smart Select" automatically analyzes recent console errors and failed network requests to construct the perfect context for your debugging session.
 
 ### Multi-Agent Workflow
 
