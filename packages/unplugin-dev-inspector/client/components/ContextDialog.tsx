@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { InspectionQueue, type InspectionItem } from "./InspectionQueue";
 import { useContextData } from "../hooks/useContextData";
 import { usePageInfo } from "../hooks/usePageInfo";
-import { Loader2, RefreshCw, AlertCircle, ChevronDown, ChevronRight, Globe } from "lucide-react";
+import { Loader2, RefreshCw, AlertCircle, ChevronDown, ChevronRight, Globe, Search, X, Copy, Check } from "lucide-react";
 import { cn } from "../lib/utils";
 import type { NetworkRequest } from "../types";
 import { MessageResponse } from "../../src/components/ai-elements/message";
@@ -217,8 +217,93 @@ export const ContextDialog: React.FC<ContextDialogProps> = ({
     isClientReady,
 }) => {
     const [activeTab, setActiveTab] = useState<TabType>("inspections");
+    const [consoleSearch, setConsoleSearch] = useState("");
+    const [networkSearch, setNetworkSearch] = useState("");
+    const [stdioSearch, setStdioSearch] = useState("");
+    const [copied, setCopied] = useState(false);
+    // Selection state for copy
+    const [selectedConsoleIds, setSelectedConsoleIds] = useState<Set<number>>(new Set());
+    const [selectedNetworkIds, setSelectedNetworkIds] = useState<Set<number>>(new Set());
+    const [selectedStdioIds, setSelectedStdioIds] = useState<Set<number>>(new Set());
     const pageInfo = usePageInfo();
     const { consoleMessages, networkRequests, stdioMessages, loading, error, refresh } = useContextData(client, isClientReady);
+
+    // Filtered lists
+    const filteredConsole = consoleSearch
+        ? consoleMessages.filter(msg =>
+            msg.text.toLowerCase().includes(consoleSearch.toLowerCase()) ||
+            msg.level.toLowerCase().includes(consoleSearch.toLowerCase())
+        )
+        : consoleMessages;
+
+    const filteredNetwork = networkSearch
+        ? networkRequests.filter(req =>
+            req.url.toLowerCase().includes(networkSearch.toLowerCase()) ||
+            req.method.toLowerCase().includes(networkSearch.toLowerCase())
+        )
+        : networkRequests;
+
+    const filteredStdio = stdioSearch
+        ? stdioMessages.filter(msg =>
+            msg.data.toLowerCase().includes(stdioSearch.toLowerCase()) ||
+            msg.stream.toLowerCase().includes(stdioSearch.toLowerCase())
+        )
+        : stdioMessages;
+
+    // Toggle selection helper
+    const toggleSelection = (id: number, setter: React.Dispatch<React.SetStateAction<Set<number>>>) => {
+        setter(prev => {
+            const next = new Set(prev);
+            next.has(id) ? next.delete(id) : next.add(id);
+            return next;
+        });
+    };
+
+    // Copy all tabs content (selected items only, or all if none selected)
+    const handleCopy = async () => {
+        const sections: string[] = [];
+
+        // Console
+        const consoleItems = selectedConsoleIds.size > 0
+            ? consoleMessages.filter(msg => selectedConsoleIds.has(msg.msgid))
+            : consoleMessages;
+        if (consoleItems.length > 0) {
+            sections.push(`## Console (${consoleItems.length})\n${consoleItems.map(msg => `[${msg.level}] ${msg.text}`).join("\n")}`);
+        }
+
+        // Network
+        const networkItems = selectedNetworkIds.size > 0
+            ? networkRequests.filter(req => selectedNetworkIds.has(req.reqid))
+            : networkRequests;
+        if (networkItems.length > 0) {
+            sections.push(`## Network (${networkItems.length})\n${networkItems.map(req => `${req.method} ${req.url} (${req.status})`).join("\n")}`);
+        }
+
+        // Terminal
+        const stdioItems = selectedStdioIds.size > 0
+            ? stdioMessages.filter(msg => selectedStdioIds.has(msg.stdioid))
+            : stdioMessages;
+        if (stdioItems.length > 0) {
+            sections.push(`## Terminal (${stdioItems.length})\n${stdioItems.map(msg => `[${msg.stream}] ${msg.data}`).join("\n")}`);
+        }
+
+        // Page
+        if (pageInfo) {
+            sections.push(`## Page\nURL: ${pageInfo.url}\nTitle: ${pageInfo.title}\nViewport: ${pageInfo.viewport.width} × ${pageInfo.viewport.height}\nLanguage: ${pageInfo.language}`);
+        }
+
+        const content = sections.join("\n\n");
+        if (content) {
+            await navigator.clipboard.writeText(content);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        }
+    };
+
+    // Get total selected count across all tabs
+    const getTotalSelectedCount = () => {
+        return selectedConsoleIds.size + selectedNetworkIds.size + selectedStdioIds.size;
+    };
 
     // Fetch data when dialog opens
     useEffect(() => {
@@ -244,15 +329,31 @@ export const ContextDialog: React.FC<ContextDialogProps> = ({
                 <DialogHeader className="flex-shrink-0 pr-8">
                     <div className="flex items-center justify-between gap-4">
                         <DialogTitle>Full Page Context</DialogTitle>
-                        <button
-                            type="button"
-                            onClick={() => refresh()}
-                            disabled={loading}
-                            className="flex items-center justify-center w-8 h-8 text-sm border border-border bg-background hover:bg-accent rounded-md transition-colors disabled:opacity-50"
-                            title="Refresh Data"
-                        >
-                            <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} />
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={handleCopy}
+                                disabled={loading}
+                                className="flex items-center gap-1.5 px-2 h-8 text-xs border border-border bg-background hover:bg-accent rounded-md transition-colors disabled:opacity-50"
+                                title={getTotalSelectedCount() > 0 ? `Copy ${getTotalSelectedCount()} selected items` : "Copy all context"}
+                            >
+                                {copied ? (
+                                    <Check className="w-3.5 h-3.5 text-green-500" />
+                                ) : (
+                                    <Copy className="w-3.5 h-3.5" />
+                                )}
+                                <span>{getTotalSelectedCount() > 0 ? `Copy (${getTotalSelectedCount()})` : "Copy All"}</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => refresh()}
+                                disabled={loading}
+                                className="flex items-center justify-center w-8 h-8 text-sm border border-border bg-background hover:bg-accent rounded-md transition-colors disabled:opacity-50"
+                                title="Refresh Data"
+                            >
+                                <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} />
+                            </button>
+                        </div>
                     </div>
                 </DialogHeader>
 
@@ -306,102 +407,179 @@ export const ContextDialog: React.FC<ContextDialogProps> = ({
 
                     {activeTab === "console" && (
                         <div className="p-4 space-y-2 h-full overflow-auto">
+                            {/* Search Input */}
+                            <div className="relative mb-2">
+                                <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                                <input
+                                    type="text"
+                                    value={consoleSearch}
+                                    onChange={(e) => setConsoleSearch(e.target.value)}
+                                    placeholder="Filter logs..."
+                                    className="w-full pl-7 pr-7 py-1.5 text-xs rounded border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                                />
+                                {consoleSearch && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setConsoleSearch("")}
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                    >
+                                        <X className="w-3.5 h-3.5" />
+                                    </button>
+                                )}
+                            </div>
                             {loading && (
                                 <div className="flex items-center justify-center py-12">
                                     <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                                 </div>
                             )}
-                            {!loading && consoleMessages.length === 0 && (
+                            {!loading && filteredConsole.length === 0 && (
                                 <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                                    <p className="text-sm">No console logs</p>
+                                    <p className="text-sm">{consoleSearch ? "No matching logs" : "No console logs"}</p>
                                 </div>
                             )}
                             {!loading &&
-                                consoleMessages.map((msg) => (
-                                    <div
+                                filteredConsole.map((msg) => (
+                                    <label
                                         key={msg.msgid}
-                                        className="p-3 rounded-md bg-muted/50 hover:bg-muted transition-colors"
+                                        className="flex items-start gap-2 p-3 rounded-md bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
                                     >
-                                        <div className="flex items-start gap-2">
-                                            <span
-                                                className={cn(
-                                                    "px-2 py-0.5 text-xs font-medium rounded flex-shrink-0",
-                                                    msg.level === "error" && "bg-red-500/20 text-red-500",
-                                                    msg.level === "warn" && "bg-yellow-500/20 text-yellow-600",
-                                                    msg.level === "info" && "bg-blue-500/20 text-blue-500",
-                                                    msg.level === "log" && "bg-muted text-muted-foreground",
-                                                    msg.level === "debug" && "bg-purple-500/20 text-purple-500"
-                                                )}
-                                            >
-                                                {msg.level}
-                                            </span>
-                                            <span className="text-sm text-foreground/90 flex-1 font-mono break-all overflow-hidden">
-                                                {msg.text}
-                                            </span>
-                                        </div>
-                                    </div>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedConsoleIds.has(msg.msgid)}
+                                            onChange={() => toggleSelection(msg.msgid, setSelectedConsoleIds)}
+                                            className="mt-0.5 rounded border-border"
+                                        />
+                                        <span
+                                            className={cn(
+                                                "px-2 py-0.5 text-xs font-medium rounded flex-shrink-0",
+                                                msg.level === "error" && "bg-red-500/20 text-red-500",
+                                                msg.level === "warn" && "bg-yellow-500/20 text-yellow-600",
+                                                msg.level === "info" && "bg-blue-500/20 text-blue-500",
+                                                msg.level === "log" && "bg-muted text-muted-foreground",
+                                                msg.level === "debug" && "bg-purple-500/20 text-purple-500"
+                                            )}
+                                        >
+                                            {msg.level}
+                                        </span>
+                                        <span className="text-sm text-foreground/90 flex-1 font-mono break-all overflow-hidden">
+                                            {msg.text}
+                                        </span>
+                                    </label>
                                 ))}
                         </div>
                     )}
 
                     {activeTab === "network" && (
                         <div className="p-4 space-y-2 h-full overflow-auto">
+                            {/* Search Input */}
+                            <div className="relative mb-2">
+                                <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                                <input
+                                    type="text"
+                                    value={networkSearch}
+                                    onChange={(e) => setNetworkSearch(e.target.value)}
+                                    placeholder="Filter requests..."
+                                    className="w-full pl-7 pr-7 py-1.5 text-xs rounded border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                                />
+                                {networkSearch && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setNetworkSearch("")}
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                    >
+                                        <X className="w-3.5 h-3.5" />
+                                    </button>
+                                )}
+                            </div>
                             {loading && (
                                 <div className="flex items-center justify-center py-12">
                                     <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                                 </div>
                             )}
-                            {!loading && networkRequests.length === 0 && (
+                            {!loading && filteredNetwork.length === 0 && (
                                 <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                                    <p className="text-sm">No network requests</p>
+                                    <p className="text-sm">{networkSearch ? "No matching requests" : "No network requests"}</p>
                                 </div>
                             )}
                             {!loading &&
-                                networkRequests.map((req) => (
-                                    <NetworkRequestItem
-                                        key={req.reqid}
-                                        request={req}
-                                        client={client}
-                                        isClientReady={isClientReady}
-                                    />
+                                filteredNetwork.map((req) => (
+                                    <div key={req.reqid} className="flex items-start gap-2">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedNetworkIds.has(req.reqid)}
+                                            onChange={() => toggleSelection(req.reqid, setSelectedNetworkIds)}
+                                            className="mt-3 rounded border-border flex-shrink-0"
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                            <NetworkRequestItem
+                                                request={req}
+                                                client={client}
+                                                isClientReady={isClientReady}
+                                            />
+                                        </div>
+                                    </div>
                                 ))}
                         </div>
                     )}
 
                     {activeTab === "stdio" && (
                         <div className="p-4 space-y-2 h-full overflow-auto">
+                            {/* Search Input */}
+                            <div className="relative mb-2">
+                                <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                                <input
+                                    type="text"
+                                    value={stdioSearch}
+                                    onChange={(e) => setStdioSearch(e.target.value)}
+                                    placeholder="Filter terminal..."
+                                    className="w-full pl-7 pr-7 py-1.5 text-xs rounded border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                                />
+                                {stdioSearch && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setStdioSearch("")}
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                    >
+                                        <X className="w-3.5 h-3.5" />
+                                    </button>
+                                )}
+                            </div>
                             {loading && (
                                 <div className="flex items-center justify-center py-12">
                                     <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                                 </div>
                             )}
-                            {!loading && stdioMessages.length === 0 && (
+                            {!loading && filteredStdio.length === 0 && (
                                 <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                                    <p className="text-sm">No stdio messages</p>
+                                    <p className="text-sm">{stdioSearch ? "No matching messages" : "No terminal messages"}</p>
                                 </div>
                             )}
                             {!loading &&
-                                stdioMessages.map((msg) => (
-                                    <div
+                                filteredStdio.map((msg) => (
+                                    <label
                                         key={msg.stdioid}
-                                        className="p-3 rounded-md bg-muted/50 hover:bg-muted transition-colors"
+                                        className="flex items-start gap-2 p-3 rounded-md bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
                                     >
-                                        <div className="flex items-start gap-2">
-                                            <span
-                                                className={cn(
-                                                    "px-2 py-0.5 text-xs font-medium rounded flex-shrink-0 uppercase",
-                                                    msg.stream === "stderr"
-                                                        ? "bg-red-500/20 text-red-500"
-                                                        : "bg-blue-500/20 text-blue-500"
-                                                )}
-                                            >
-                                                {msg.stream}
-                                            </span>
-                                            <pre className="text-sm text-foreground/90 flex-1 font-mono break-all overflow-hidden whitespace-pre-wrap">
-                                                {msg.data}
-                                            </pre>
-                                        </div>
-                                    </div>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedStdioIds.has(msg.stdioid)}
+                                            onChange={() => toggleSelection(msg.stdioid, setSelectedStdioIds)}
+                                            className="mt-0.5 rounded border-border"
+                                        />
+                                        <span
+                                            className={cn(
+                                                "px-2 py-0.5 text-xs font-medium rounded flex-shrink-0 uppercase",
+                                                msg.stream === "stderr"
+                                                    ? "bg-red-500/20 text-red-500"
+                                                    : "bg-blue-500/20 text-blue-500"
+                                            )}
+                                        >
+                                            {msg.stream}
+                                        </span>
+                                        <pre className="text-sm text-foreground/90 flex-1 font-mono break-all overflow-hidden whitespace-pre-wrap">
+                                            {msg.data}
+                                        </pre>
+                                    </label>
                                 ))}
                         </div>
                     )}

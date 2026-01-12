@@ -84,8 +84,8 @@ export const InspectionQueue: React.FC<InspectionQueueProps> = ({ items, onRemov
   };
 
   return (
-    <div className="w-full bg-card overflow-hidden" onClick={(e) => e.stopPropagation()}>
-      <div className="max-h-96 overflow-y-auto">
+    <div className="w-full bg-card overflow-hidden h-full">
+      <div className="h-full overflow-y-auto">
         {items.map((item) => {
           // Calculate context summary
           const ctx = item.selectedContext;

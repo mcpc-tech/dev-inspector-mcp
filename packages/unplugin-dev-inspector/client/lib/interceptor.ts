@@ -3,8 +3,8 @@ import { BatchInterceptor } from "@mswjs/interceptors";
 import { FetchInterceptor } from "@mswjs/interceptors/fetch";
 import { XMLHttpRequestInterceptor } from "@mswjs/interceptors/XMLHttpRequest";
 
-// Maximum response body length before truncation
-const MAX_RESPONSE_BODY_LENGTH = 10000;
+// Maximum body length before truncation
+const MAX_BODY_LENGTH = 10000;
 
 interface InterceptorConfig {
   disableChrome?: boolean;
@@ -100,6 +100,52 @@ export function initInterceptors(config?: InterceptorConfig) {
         responseHeaders[key] = value;
       });
 
+      // Parse URL to extract query parameters
+      let queryParams = "";
+      try {
+        const urlObj = new URL(request.url);
+        const params = Object.fromEntries(urlObj.searchParams.entries());
+        if (Object.keys(params).length > 0) {
+          queryParams = JSON.stringify(params, null, 2);
+        }
+      } catch {
+        queryParams = "";
+      }
+
+      // Try to read request body
+      let requestBody = "";
+      try {
+        const clonedRequest = request.clone();
+        const text = await clonedRequest.text();
+        
+        if (text) {
+          const requestContentType = request.headers.get("content-type") || "";
+          
+          if (requestContentType.includes("application/json")) {
+            try {
+              requestBody = JSON.stringify(JSON.parse(text), null, 2);
+            } catch {
+              requestBody = text;
+            }
+          } else if (requestContentType.includes("application/x-www-form-urlencoded")) {
+            const formObj = Object.fromEntries(new URLSearchParams(text).entries());
+            requestBody = JSON.stringify(formObj, null, 2);
+          } else if (requestContentType.includes("multipart/form-data")) {
+            requestBody = "<multipart/form-data>";
+          } else {
+            requestBody = text;
+          }
+
+          // Truncate if too large
+          if (requestBody.length > MAX_BODY_LENGTH) {
+            requestBody = requestBody.substring(0, MAX_BODY_LENGTH) + "\n... (truncated)";
+          }
+        }
+      } catch {
+        // Request body might not be available for some requests
+        requestBody = "";
+      }
+
       // Try to read response body (clone to avoid consuming it)
       let responseBody = "";
       try {
@@ -116,8 +162,8 @@ export function initInterceptors(config?: InterceptorConfig) {
         }
 
         // Truncate if too large
-        if (responseBody.length > MAX_RESPONSE_BODY_LENGTH) {
-          responseBody = responseBody.substring(0, MAX_RESPONSE_BODY_LENGTH) + "\n... (truncated)";
+        if (responseBody.length > MAX_BODY_LENGTH) {
+          responseBody = responseBody.substring(0, MAX_BODY_LENGTH) + "\n... (truncated)";
         }
       } catch {
         responseBody = "<Failed to read response body>";
@@ -126,11 +172,15 @@ export function initInterceptors(config?: InterceptorConfig) {
       // Format details for display
       const details = `Request:
   Method: ${request.method}
-  URL: ${request.url}
+  URL: ${request.url}${queryParams ? `
+  Query Parameters:
+${queryParams.split("\n").map((line) => `    ${line}`).join("\n")}` : ""}
   Headers:
 ${Object.entries(requestHeaders)
   .map(([k, v]) => `    ${k}: ${v}`)
-  .join("\n")}
+  .join("\n")}${requestBody ? `
+  Body:
+${requestBody.split("\n").map((line) => `    ${line}`).join("\n")}` : ""}
 
 Response:
   Status: ${response.status} ${response.statusText}
