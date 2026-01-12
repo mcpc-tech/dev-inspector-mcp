@@ -34,6 +34,36 @@ function createTextContent(text: string) {
   return { content: [{ type: "text" as const, text }] };
 }
 
+function wrapToolImplementation<TArgs extends Record<string, unknown> | undefined>(
+  toolName: string,
+  implementation: (args: TArgs) => unknown | Promise<unknown>,
+) {
+  return async (args: TArgs) => {
+    try {
+      const result = await implementation(args);
+
+      if (result === undefined || result === null) {
+        return createTextContent("(no result)");
+      }
+
+      if (typeof result === "object") {
+        if ("content" in result && Array.isArray((result as { content: unknown[] }).content)) {
+          return result as { content: unknown[] };
+        }
+        return createTextContent(JSON.stringify(result, null, 2));
+      }
+
+      return createTextContent(String(result));
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : "";
+      return createTextContent(
+        `# Error executing ${toolName}\n\n\`\`\`\n${errorMessage}\n\`\`\`\n\n${errorStack ? `## Stack Trace\n\`\`\`\n${errorStack}\n\`\`\`\n` : ""}`,
+      );
+    }
+  };
+}
+
 // Create MCP image content from base64 data URL
 function createImageContent(dataUrl: string) {
   // Extract base64 data from data URL (remove "data:image/png;base64," prefix)
@@ -137,7 +167,7 @@ function formatResult(sourceInfo: any, description: string, selectedContext?: an
   output += `
 
 ## Your Task
-1. Investigate the issue using 'chrome_devtools' tool (check console logs, network requests, performance)
+1. Investigate the issue using browser diagnostics tools: prefer 'chrome_devtools' when available; otherwise use 'get_console_messages' / 'get_network_requests' (and 'get_stdio_messages' if relevant)
 2. Use 'execute_page_script' to query element state if needed
 3. Update status with 'update_inspection_status':
    - "in-progress" with progress details while investigating
@@ -565,27 +595,45 @@ ${a11yTree.length > 0 ? a11yTree.join('\n') : '(empty or no semantic structure)'
     const builtInTools = [
       {
         ...TOOL_SCHEMAS.capture_element_context,
-        implementation: captureElementContext,
+        implementation: wrapToolImplementation(
+          TOOL_SCHEMAS.capture_element_context.name,
+          captureElementContext as unknown as (args: Record<string, unknown> | undefined) => unknown,
+        ),
       },
       {
         ...TOOL_SCHEMAS.capture_area_context,
-        implementation: captureAreaContext,
+        implementation: wrapToolImplementation(
+          TOOL_SCHEMAS.capture_area_context.name,
+          captureAreaContext as unknown as (args: Record<string, unknown> | undefined) => unknown,
+        ),
       },
       {
         ...TOOL_SCHEMAS.list_inspections,
-        implementation: getAllFeedbacks,
+        implementation: wrapToolImplementation(
+          TOOL_SCHEMAS.list_inspections.name,
+          getAllFeedbacks as unknown as (args: Record<string, unknown> | undefined) => unknown,
+        ),
       },
       {
         ...TOOL_SCHEMAS.update_inspection_status,
-        implementation: updateInspectionStatus,
+        implementation: wrapToolImplementation(
+          TOOL_SCHEMAS.update_inspection_status.name,
+          updateInspectionStatus as unknown as (args: Record<string, unknown> | undefined) => unknown,
+        ),
       },
       {
         ...TOOL_SCHEMAS.execute_page_script,
-        implementation: patchContext,
+        implementation: wrapToolImplementation(
+          TOOL_SCHEMAS.execute_page_script.name,
+          patchContext as unknown as (args: Record<string, unknown> | undefined) => unknown,
+        ),
       },
       {
         ...TOOL_SCHEMAS.get_page_info,
-        implementation: getPageInfo,
+        implementation: wrapToolImplementation(
+          TOOL_SCHEMAS.get_page_info.name,
+          getPageInfo as unknown as (args: Record<string, unknown> | undefined) => unknown,
+        ),
       },
     ];
 
