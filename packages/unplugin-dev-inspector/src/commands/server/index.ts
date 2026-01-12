@@ -84,12 +84,7 @@ Example:
     const root = process.cwd();
     await updateMcpConfigs(root, baseUrl, {});
 
-    // Keep process alive
-    process.on("SIGINT", () => {
-      console.log("\n👋 Shutting down dev-inspector server...");
-      // Cleanup is handled by process hooks in standalone-server.ts
-      process.exit(0);
-    });
+    // Shutdown is handled by unified shutdown-manager
   } catch (error) {
     console.error("Failed to start dev-inspector server:", error);
     process.exit(1);

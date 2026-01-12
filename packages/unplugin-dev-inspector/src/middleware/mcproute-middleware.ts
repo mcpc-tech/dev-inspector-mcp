@@ -6,6 +6,7 @@ import type { Connect } from "vite";
 import { createInspectorMcpServer, type ServerContext } from "../mcp";
 import { ConnectionManager } from "./connection-manager.js";
 import { handleCors } from "../utils/cors";
+import { registerCleanupHandler } from "../utils/shutdown-manager";
 
 // Shared connection manager instance for use by other middlewares
 let sharedConnectionManager: ConnectionManager | null = null;
@@ -26,6 +27,11 @@ export async function setupMcpMiddleware(
 ) {
   const connectionManager = new ConnectionManager();
   sharedConnectionManager = connectionManager;
+
+  // Register cleanup handler to close all connections on shutdown
+  registerCleanupHandler('mcp-connections', () => {
+    connectionManager.closeAll();
+  });
 
   middlewares.use(async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
     const url = req.url || "";

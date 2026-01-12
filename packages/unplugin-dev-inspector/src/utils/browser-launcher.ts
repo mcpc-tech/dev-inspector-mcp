@@ -1,6 +1,7 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 import { isChromeDisabled } from "./helpers";
+import { registerCleanupHandler } from "./shutdown-manager";
 import type { ServerContext } from "../mcp";
 
 let sharedClient: Client | null = null;
@@ -27,23 +28,10 @@ function registerProcessCleanupOnce(): void {
   if (cleanupRegistered) return;
   cleanupRegistered = true;
 
-  const requestCleanupThenReraise = (signal: NodeJS.Signals) => {
-    void closeSharedClient(signal).finally(() => {
-      try {
-        process.kill(process.pid, signal);
-      } catch {
-        // If re-raising fails, fall back to exiting.
-        process.exit(1);
-      }
-    });
-  };
-
-  process.once("beforeExit", () => {
-    void closeSharedClient("beforeExit");
+  // Register with unified shutdown manager
+  registerCleanupHandler('browser-client', async () => {
+    await closeSharedClient('shutdown');
   });
-  process.once("SIGINT", () => requestCleanupThenReraise("SIGINT"));
-  process.once("SIGTERM", () => requestCleanupThenReraise("SIGTERM"));
-  process.once("SIGHUP", () => requestCleanupThenReraise("SIGHUP"));
 }
 
 async function getOrCreateClient(sseUrl: string): Promise<Client> {

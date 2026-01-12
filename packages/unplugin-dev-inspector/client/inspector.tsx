@@ -24,7 +24,6 @@ import { InspectorBar } from "./components/InspectorBar";
 import { RegionOverlay } from "./components/RegionOverlay";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { AVAILABLE_AGENTS } from "./constants/agents";
 import { getDevServerBaseUrl, getShowInspectorBar } from "./utils/config-loader";
 
 interface InspectorContainerProps {
@@ -309,7 +308,13 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
           description,
           status: "pending",
           timestamp: Date.now(),
-          selectedContext: { screenshot },
+          selectedContext: {
+            includeElement: true,
+            includeStyles: false,
+            consoleIds: [],
+            networkIds: [],
+            screenshot,
+          },
         };
 
         setInspections(prev => [...prev, newItem]);
@@ -607,7 +612,7 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
               mode={bubbleMode}
               onSubmit={handleInspectionSubmit}
               onClose={handleBubbleClose}
-              client={client}
+              client={client as any}
               isClientReady={isClientReady}
               selectedAgent={selectedAgentName || undefined}
             />

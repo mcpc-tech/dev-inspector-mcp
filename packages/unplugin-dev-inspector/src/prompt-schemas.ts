@@ -34,8 +34,8 @@ export const PROMPT_SCHEMAS = {
 
   list_inspections: {
     name: "list_inspections",
-    title: "View All Inspections",
-    description: "View all element inspections in the queue with their status.",
+    title: "List All Inspections",
+    description: "List all element inspections in the queue with their status.",
     arguments: [],
   },
 
@@ -74,31 +74,6 @@ export const PROMPT_SCHEMAS = {
     title: "Get Stdio Messages",
     description:
       "List stdio (stdout/stderr) messages from the server process. Always refreshes the list first.",
-    arguments: [],
-  },
-
-  // Deprecated aliases (kept for backward compatibility)
-  capture_context: {
-    name: "capture_context",
-    title: "Capture Context",
-    description:
-      "[DEPRECATED] Use capture_element_context or capture_area_context.",
-    arguments: [],
-  },
-
-  capture_element: {
-    name: "capture_element",
-    title: "Capture Element Context",
-    description:
-      "[DEPRECATED] Use capture_element_context.",
-    arguments: [],
-  },
-
-  capture_area: {
-    name: "capture_area",
-    title: "Capture Area Context",
-    description:
-      "[DEPRECATED] Use capture_area_context.",
     arguments: [],
   },
 } as const;

@@ -373,7 +373,7 @@ export function useMcp(): { client: McpClientType | null; isClientReady: boolean
 
       // Interactive mode - user draws rectangle
       cancelPendingRequest("New capture request started");
-      window.dispatchEvent(new CustomEvent("activate-area-capture"));
+      window.dispatchEvent(new CustomEvent("activate-area-select"));
 
       return new Promise((resolve, reject) => {
         pendingResolve = resolve;

@@ -1,5 +1,6 @@
 import http from "node:http";
 import type { Connect } from "vite";
+import { registerCleanupHandler } from "./shutdown-manager";
 
 export interface StandaloneServerOptions {
   port?: number;
@@ -104,7 +105,7 @@ export class StandaloneServer {
               // req.url = req.url.slice(layer.route.length) || '/';
             }
 
-            await layer.handle(req, res, next);
+            layer.handle(req, res, next);
 
             if (layer.route !== "/") {
               req.url = originalUrl;
@@ -208,28 +209,9 @@ export async function startStandaloneServer(options: StandaloneServerOptions = {
   globalServer = new StandaloneServer();
   const { host, port } = await globalServer.start(options);
 
-  // Register cleanup hooks once when server starts
-  const shutdownHandler = async () => {
-    if (globalServer) {
-      try {
-        await stopStandaloneServer();
-      } catch (err) {
-        console.error('[dev-inspector] Error during shutdown:', err);
-      }
-    }
-  };
-
-  // Handle graceful shutdown
-  process.on('SIGINT', shutdownHandler);
-  process.on('SIGTERM', shutdownHandler);
-
-  // Handle process exit
-  process.on('exit', () => {
-    // Synchronous cleanup on exit
-    if (globalServer) {
-      globalServer.close();
-      globalServer = null;
-    }
+  // Register cleanup with unified shutdown manager
+  registerCleanupHandler('standalone-server', async () => {
+    await stopStandaloneServer();
   });
 
   return { server: globalServer, host, port, isNew: true };

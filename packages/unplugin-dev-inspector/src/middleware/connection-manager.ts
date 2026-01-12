@@ -150,4 +150,40 @@ export class ConnectionManager {
 
     return null;
   }
+
+  /**
+   * Close all connections. Called during shutdown.
+   */
+  closeAll() {
+    const sessionIds = Object.keys(this.transports);
+    if (sessionIds.length === 0) return;
+
+    console.log(`[dev-inspector] [connection-manager] Closing ${sessionIds.length} connections...`);
+
+    // Unbind all puppets first
+    for (const [_sessionId, boundPuppet] of this.boundPuppets) {
+      try {
+        boundPuppet.unbindPuppet();
+      } catch {
+        // Ignore errors
+      }
+    }
+    this.boundPuppets.clear();
+
+    // Close all transports
+    for (const sessionId of sessionIds) {
+      const transport = this.transports[sessionId];
+      if (transport) {
+        try {
+          transport.close?.();
+        } catch {
+          // Ignore close errors
+        }
+      }
+    }
+
+    this.transports = {};
+    this.watchersByClientId.clear();
+    this.latestInspectorSessionId = null;
+  }
 }
