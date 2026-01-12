@@ -14,7 +14,7 @@ import {
 } from "./helpers";
 import type { AcpOptions, Agent, Prompt } from "../../client/constants/types";
 import { initStdioInterceptor } from "./stdio-interceptor";
-import { startStandaloneServer } from "./standalone-server";
+import { startStandaloneServer, getDefaultPort } from "./standalone-server";
 
 export interface DevInspectorOptions extends McpConfigOptions, AcpOptions {
   /**
@@ -177,7 +177,7 @@ export const createDevInspectorPlugin = (
     // Standalone server instance (shared between Vite and Webpack)
     let standaloneServerStarted = false;
     let resolvedHost: string = "localhost";
-    let resolvedPort = options.port || 6137;
+    let resolvedPort = options.port || getDefaultPort();
 
     const transformImpl = transformFactory(options);
     const chromeDisabled = isChromeDisabled(options.disableChrome);
