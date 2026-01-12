@@ -15,7 +15,7 @@ function App() {
             Visual Inspector
           </h2>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', lineHeight: '1.5' }}>
-            The "Sign Up" button below is unresponsive. Use the Inspector to identify the invisible element blocking interactions.
+            Click the Sign Up button below to get started.
           </p>
 
           <div style={{ position: 'relative' }}>
@@ -23,7 +23,6 @@ function App() {
               Sign Up Free
             </button>
 
-            {/* THE BUG: Invisible overlay blocking clicks */}
             <div className="bug-overlay" style={{
               position: 'absolute',
               top: 0,
@@ -42,7 +41,7 @@ function App() {
             Network Inspector
           </h2>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', lineHeight: '1.5' }}>
-            User data is fetched from an external API but fails to render correctly. Analyze the network response to find the schema mismatch.
+            Load user profile data from an external API.
           </p>
 
           <button className="btn" style={{ backgroundColor: 'white', color: 'black', border: '1px solid #e1e1e1' }} onClick={() => {
@@ -57,10 +56,9 @@ function App() {
 
                 if (container) container.style.display = 'flex';
 
-                // Bugs:
                 if (nameEl) nameEl.innerText = data.name;
-                if (handleEl) handleEl.innerText = '@' + (data.handle || 'unknown'); // Bug: API returns 'username', not 'handle'
-                if (avatarEl) avatarEl.src = data.website; // Bug: API returns text domain, not image URL
+                if (handleEl) handleEl.innerText = '@' + (data.handle || 'unknown');
+                if (avatarEl) avatarEl.src = data.website;
               })
           }}>
             Load User Profile
