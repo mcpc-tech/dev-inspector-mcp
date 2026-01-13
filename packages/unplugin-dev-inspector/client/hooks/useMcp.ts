@@ -4,7 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { createClientExecClient } from "@mcpc-tech/cmcp";
 import { TOOL_SCHEMAS } from "../../src/tool-schemas.js";
 import { getDevServerBaseUrl } from "../utils/config-loader";
-import { formatCopyContext, formatElementAnnotations } from "../utils/format";
+import {
+  formatCopyContext,
+  formatElementAnnotations,
+  formatConsoleMessages,
+  formatNetworkRequests,
+  formatStdioMessages,
+} from "../utils/format";
 
 const STORAGE_KEY = "inspector-inspection-items";
 const INSPECTION_ID_KEY = "inspector-current-inspection-id";
@@ -93,7 +99,7 @@ function getAllFeedbacks() {
 
     const feedbackList = items
       .map((item: any, index: number) => {
-        const { id, sourceInfo, description, status, progress, result } = item;
+        const { id, sourceInfo, description, status, progress, result, selectedContext } = item;
         const statusText =
           status === "loading" && progress
             ? `LOADING (${progress.completed}/${progress.total} steps)`
@@ -106,6 +112,28 @@ function getAllFeedbacks() {
           relatedElements: sourceInfo.relatedElements,
         });
 
+        // Format selected context using shared format functions
+        let contextSection = "";
+        if (selectedContext) {
+          const parts: string[] = [];
+          
+          if (selectedContext.consoleMessages?.length > 0) {
+            parts.push(formatConsoleMessages(selectedContext.consoleMessages).trim());
+          }
+          
+          if (selectedContext.networkRequests?.length > 0) {
+            parts.push(formatNetworkRequests(selectedContext.networkRequests).trim());
+          }
+          
+          if (selectedContext.stdioMessages?.length > 0) {
+            parts.push(formatStdioMessages(selectedContext.stdioMessages).trim());
+          }
+          
+          if (parts.length > 0) {
+            contextSection = `\n${parts.join("\n\n")}\n`;
+          }
+        }
+
         return `## ${index + 1}. Feedback ID: \`${id}\`
 
 **Status**: ${statusText}
@@ -115,7 +143,7 @@ function getAllFeedbacks() {
 ${formatElementInfoSimple(sourceInfo.elementInfo)}
 **User Request**:
 ${description}
-${notesSection}
+${notesSection}${contextSection}
 ${result ? `**Result**: ${result}\n` : ""}---`;
       })
       .join("\n\n");
