@@ -16,6 +16,7 @@ import { useInspectorTheme } from "./context/ThemeContext";
 import { InspectorContainerContext } from "./context/InspectorContainerContext";
 import { useInspectionProgress } from "./hooks/useInspectionProgress";
 import { captureElementScreenshot } from "./utils/screenshot";
+import { saveInspectionItems, loadInspectionItems } from "./utils/inspectionStorage";
 import { getSourceInfo } from "./sourceDetector";
 import inspectorStyles from "./styles.css";
 import ReactDOM from "react-dom/client";
@@ -319,6 +320,9 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
 
         setInspections(prev => [...prev, newItem]);
 
+        // Sync to localStorage before event (React setState is async)
+        saveInspectionItems([...loadInspectionItems(), newItem]);
+
         // Dispatch for MCP tool to receive
         window.dispatchEvent(new CustomEvent("element-inspected", {
           detail: { inspections: [newItem] }
@@ -498,6 +502,9 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
       document.body.style.cursor = "crosshair";
       showNotif(`Saved (${updatedSessionInspections.length})`);
     } else {
+      // Sync to localStorage before event (React setState is async)
+      saveInspectionItems([...loadInspectionItems(), ...updatedSessionInspections]);
+
       // Final submit - dispatch all inspections from this session as an array
       window.dispatchEvent(
         new CustomEvent("element-inspected", {
