@@ -1,6 +1,6 @@
 {
   "name": "unplugin-dev-inspector-monorepo",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "private": true,
   "description": "Monorepo for unplugin-dev-inspector - Universal dev inspector plugin for React",
   "type": "module",
