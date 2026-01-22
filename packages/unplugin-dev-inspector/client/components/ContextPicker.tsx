@@ -116,7 +116,7 @@ const TabButton: React.FC<{
         type="button"
         onClick={onClick}
         className={cn(
-            "px-3 py-1.5 text-xs font-medium transition-colors relative",
+            "px-3 py-1.5 text-xs font-medium transition-colors relative whitespace-nowrap inline-flex items-center",
             isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
         )}
     >
