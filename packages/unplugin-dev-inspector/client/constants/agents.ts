@@ -34,6 +34,18 @@ export const AVAILABLE_AGENTS: Agent[] = [
     },
   },
   {
+    name: "GitHub Copilot",
+    command: "copilot",
+    args: ["--acp"],
+    env: [],
+    configHint: "GitHub's AI coding assistant with ACP support",
+    configLink: "https://github.com/github/copilot",
+    installCommand: "npm install -g @github/copilot@0.0.392",
+    meta: {
+      icon: svgToDataUri(AGENT_ICONS.githubcopilot),
+    },
+  },
+  {
     name: "Gemini CLI",
     command: "gemini",
     args: ["--experimental-acp"],
@@ -119,6 +131,7 @@ export const AVAILABLE_AGENTS: Agent[] = [
     ],
     configHint: "Tencent Cloud's coding assistant",
     configLink: "https://copilot.tencent.com/docs/cli/acp",
+    installCommand: "npm install -g @tencent-ai/codebuddy-code",
     meta: {
       icon: svgToDataUri(AGENT_ICONS.codebuddy),
     },

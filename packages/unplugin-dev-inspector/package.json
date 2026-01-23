@@ -1,6 +1,6 @@
 {
   "name": "@mcpc-tech/unplugin-dev-inspector-mcp",
-  "version": "0.1.42",
+  "version": "0.1.43",
   "description": "Universal dev inspector plugin for React/Vue - inspect component sources and API calls in any bundler",
   "type": "module",
   "license": "MIT",
@@ -179,10 +179,10 @@
     "zod": "^3.24.1"
   },
   "optionalDependencies": {
-    "@blowmage/cursor-agent-acp": "^0.1.0",
+    "@blowmage/cursor-agent-acp": "^0.7.1",
     "@yaonyan/droid-acp": "^0.0.8",
-    "@zed-industries/claude-code-acp": "^0.12.4",
-    "@zed-industries/codex-acp": "^0.7.1"
+    "@zed-industries/claude-code-acp": "^0.13.1",
+    "@zed-industries/codex-acp": "^0.8.2"
   },
   "devDependencies": {
     "@babel/types": "^7.28.5",
