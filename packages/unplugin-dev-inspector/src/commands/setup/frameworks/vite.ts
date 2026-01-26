@@ -137,12 +137,56 @@ export function transformViteConfig(code: string, options: SetupOptions): Transf
         s.appendLeft(pluginsArrayStart + 1, `\n${pluginIndent}${pluginCall},\n${indent}`);
       }
     } else {
-      return {
-        success: false,
-        modified: false,
-        error: "Could not find plugins array in config",
-        message: "Please add DevInspector manually to your plugins array",
-      };
+      // No plugins array found - try to inject one
+      let injected = false;
+
+      traverse(ast, {
+        ExportDefaultDeclaration(path: NodePath<t.ExportDefaultDeclaration>) {
+          if (injected) return;
+          const decl = path.node.declaration;
+          let configObj: t.ObjectExpression | null = null;
+
+          // Case 1: export default defineConfig({ ... })
+          if (decl.type === "CallExpression" && decl.arguments[0]?.type === "ObjectExpression") {
+            configObj = decl.arguments[0];
+          }
+          // Case 2: export default defineConfig(() => ({ ... }))
+          else if (decl.type === "CallExpression" && decl.arguments[0]?.type === "ArrowFunctionExpression") {
+            const fn = decl.arguments[0];
+            if (fn.body.type === "ObjectExpression") {
+              configObj = fn.body;
+            } else if (fn.body.type === "BlockStatement") {
+              for (const stmt of fn.body.body) {
+                if (stmt.type === "ReturnStatement" && stmt.argument?.type === "ObjectExpression") {
+                  configObj = stmt.argument;
+                  break;
+                }
+              }
+            }
+          }
+          // Case 3: export default { ... }
+          else if (decl.type === "ObjectExpression") {
+            configObj = decl;
+          }
+
+          if (configObj?.start != null) {
+            const finalConfig = { enabled: true, ...cliConfig };
+            const pluginCall = `${importedVarName}.vite(${serializeObject(finalConfig, indent, 3)})`;
+            const newPlugins = `\n${indent}plugins: [\n${pluginIndent}${pluginCall},\n${indent}],`;
+            s.appendLeft(configObj.start + 1, newPlugins);
+            injected = true;
+          }
+        },
+      });
+
+      if (!injected) {
+        return {
+          success: false,
+          modified: false,
+          error: "Could not find plugins array in config",
+          message: "Please add DevInspector manually to your plugins array",
+        };
+      }
     }
 
     // Server config injection
