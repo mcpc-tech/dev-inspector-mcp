@@ -674,6 +674,9 @@ importers:
       '@mcpc-tech/core':
         specifier: ^0.3.30
         version: 0.3.30(hono@4.11.5)(zod@3.25.76)
+      '@modelcontextprotocol/ext-apps':
+        specifier: ^1.0.1
+        version: 1.0.1(@modelcontextprotocol/sdk@1.20.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod@3.25.76)
       '@modelcontextprotocol/sdk':
         specifier: ^1.20.1
         version: 1.20.1
@@ -889,9 +892,6 @@ importers:
       '@blowmage/cursor-agent-acp':
         specifier: ^0.7.1
         version: 0.7.1(zod@3.25.76)
-      '@tencent-ai/codebuddy-code':
-        specifier: ^2.37.18
-        version: 2.37.18
       '@yaonyan/droid-acp':
         specifier: ^0.0.8
         version: 0.0.8(zod@3.25.76)
@@ -2445,39 +2445,6 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@lydell/node-pty-darwin-arm64@1.1.0':
-    resolution: {integrity: sha512-7kFD+owAA61qmhJCtoMbqj3Uvff3YHDiU+4on5F2vQdcMI3MuwGi7dM6MkFG/yuzpw8LF2xULpL71tOPUfxs0w==}
-    cpu: [arm64]
-    os: [darwin]
-
-  '@lydell/node-pty-darwin-x64@1.1.0':
-    resolution: {integrity: sha512-XZdvqj5FjAMjH8bdp0YfaZjur5DrCIDD1VYiE9EkkYVMDQqRUPHYV3U8BVEQVT9hYfjmpr7dNaELF2KyISWSNA==}
-    cpu: [x64]
-    os: [darwin]
-
-  '@lydell/node-pty-linux-arm64@1.1.0':
-    resolution: {integrity: sha512-yyDBmalCfHpLiQMT2zyLcqL2Fay4Xy7rIs8GH4dqKLnEviMvPGOK7LADVkKAsbsyXBSISL3Lt1m1MtxhPH6ckg==}
-    cpu: [arm64]
-    os: [linux]
-
-  '@lydell/node-pty-linux-x64@1.1.0':
-    resolution: {integrity: sha512-NcNqRTD14QT+vXcEuqSSvmWY+0+WUBn2uRE8EN0zKtDpIEr9d+YiFj16Uqds6QfcLCHfZmC+Ls7YzwTaqDnanA==}
-    cpu: [x64]
-    os: [linux]
-
-  '@lydell/node-pty-win32-arm64@1.1.0':
-    resolution: {integrity: sha512-JOMbCou+0fA7d/m97faIIfIU0jOv8sn2OR7tI45u3AmldKoKoLP8zHY6SAvDDnI3fccO1R2HeR1doVjpS7HM0w==}
-    cpu: [arm64]
-    os: [win32]
-
-  '@lydell/node-pty-win32-x64@1.1.0':
-    resolution: {integrity: sha512-3N56BZ+WDFnUMYRtsrr7Ky2mhWGl9xXcyqR6cexfuCqcz9RNWL+KoXRv/nZylY5dYaXkft4JaR1uVu+roiZDAw==}
-    cpu: [x64]
-    os: [win32]
-
-  '@lydell/node-pty@1.1.0':
-    resolution: {integrity: sha512-VDD8LtlMTOrPKWMXUAcB9+LTktzuunqrMwkYR1DMRBkS6LQrCt+0/Ws1o2rMml/n3guePpS7cxhHF7Nm5K4iMw==}
-
   '@mcpc-tech/acp-ai-provider@0.1.43':
     resolution: {integrity: sha512-gsb7CWXbPXWBx+XvX8HjjMpseOQws+b8MLknvdqGsty5ByGWAx7cLfTCpbw2D/qU8h5gyvSOR+XpsL4MRE3MpA==}
 
@@ -2585,6 +2552,19 @@ packages:
 
   '@mjackson/node-fetch-server@0.2.0':
     resolution: {integrity: sha512-EMlH1e30yzmTpGLQjlFmaDAjyOeZhng1/XCd7DExR8PNAnG/G1tyruZxEoUe11ClnwGhGrtsdnyyUx1frSzjng==}
+
+  '@modelcontextprotocol/ext-apps@1.0.1':
+    resolution: {integrity: sha512-rAPzBbB5GNgYk216paQjGKUgbNXSy/yeR95c0ni6Y4uvhWI2AeF+ztEOqQFLBMQy/MPM+02pbVK1HaQmQjMwYQ==}
+    peerDependencies:
+      '@modelcontextprotocol/sdk': ^1.24.0
+      react: ^17.0.0 || ^18.0.0 || ^19.0.0
+      react-dom: ^17.0.0 || ^18.0.0 || ^19.0.0
+      zod: ^3.25.0 || ^4.0.0
+    peerDependenciesMeta:
+      react:
+        optional: true
+      react-dom:
+        optional: true
 
   '@modelcontextprotocol/sdk@1.20.1':
     resolution: {integrity: sha512-j/P+yuxXfgxb+mW7OEoRCM3G47zCTDqUPivJo/VzpjbG8I9csTXtOprCf5FfOfHK4whOJny0aHuBEON+kS7CCA==}
@@ -2962,6 +2942,61 @@ packages:
   '@opentelemetry/semantic-conventions@1.38.0':
     resolution: {integrity: sha512-kocjix+/sSggfJhwXqClZ3i9Y/MI0fp7b+g7kCRm6psy2dsf8uApTRclwG18h8Avm7C9+fnt+O36PspJ/OzoWg==}
     engines: {node: '>=14'}
+
+  '@oven/bun-darwin-aarch64@1.3.7':
+    resolution: {integrity: sha512-Mh78f4B+vNTOhFpI7RWHRWDqSKTnFXj/MauRx7I/GmNwEfw56sUx98gWRwXyF4lkW+9VNU+33wuw6E+M22W66w==}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@oven/bun-darwin-x64-baseline@1.3.7':
+    resolution: {integrity: sha512-bUND1aQoTCfIL+idALT7FWtuX59ltOIRo954c7p/JkESbSIJ01jY06BSNVbkGk8RQM19v/7qiqZZqi4NyO4Utw==}
+    cpu: [x64]
+    os: [darwin]
+
+  '@oven/bun-darwin-x64@1.3.7':
+    resolution: {integrity: sha512-dFfKdSVz6Ois5zjEJboUC7igcYAVd+c//ajotd0L6WUQAKQrHMVq/+6LjOj/0zjC6VPFNGWzeF8erymNo1y0Jw==}
+    cpu: [x64]
+    os: [darwin]
+
+  '@oven/bun-linux-aarch64-musl@1.3.7':
+    resolution: {integrity: sha512-QDxrROdUnC1d/uoilXtUeFHaLhYdRN7dRIzw/Iqj/vrrhnkA6VS+HYoCWtyyVvci/K+JrPmDwxOWlSRpmV4INA==}
+    cpu: [arm64]
+    os: [linux]
+
+  '@oven/bun-linux-aarch64@1.3.7':
+    resolution: {integrity: sha512-m03OtzEs+/RkWtk6tBf8yw0GW4P8ajfzTXnTt984tQBgkMubGQYUyUnFasWgr3mD2820LhkVjhYeBf1rkz/biQ==}
+    cpu: [arm64]
+    os: [linux]
+
+  '@oven/bun-linux-x64-baseline@1.3.7':
+    resolution: {integrity: sha512-Jlb/AcrIFU3QDeR3EL4UVT1CIKqnLJDgbU+R0k/+NaSWMrBEpZV+gJJT5L1cmEKTNhU/d+c7hudxkjtqA7XXqA==}
+    cpu: [x64]
+    os: [linux]
+
+  '@oven/bun-linux-x64-musl-baseline@1.3.7':
+    resolution: {integrity: sha512-lySQQ7zJJsoa5hQH+PE5bQyQaTI8G2Erszhu4iQuDtsocwy3zSxjB6TxGWTd4HmetPl9aRvg3nb2KR8RVAd7ug==}
+    cpu: [x64]
+    os: [linux]
+
+  '@oven/bun-linux-x64-musl@1.3.7':
+    resolution: {integrity: sha512-aK8fvkCosrHRG3CNdVqMom1C8Rj3XkqZp0ZFSBXgaXlKP22RkxlEE9tS7OmSq9yVgEk6euTB3dW4NFo/jlXqeg==}
+    cpu: [x64]
+    os: [linux]
+
+  '@oven/bun-linux-x64@1.3.7':
+    resolution: {integrity: sha512-uttKQ/eIRVGc4uBtLRqmQqXGf57/dmQaF0AEd37RQNRRRd1P/VYnFMiMcVaot3HJ6IFjHjGtcPO9ekT49LxBYQ==}
+    cpu: [x64]
+    os: [linux]
+
+  '@oven/bun-windows-x64-baseline@1.3.7':
+    resolution: {integrity: sha512-wMgELfW5vFceh4qEOYb5iV5TjrjjnBJzE383ixA3kqGKzaubksSxNc11eZhS0ptcJ5a0UjN5hfbMh6sYoh+cRQ==}
+    cpu: [x64]
+    os: [win32]
+
+  '@oven/bun-windows-x64@1.3.7':
+    resolution: {integrity: sha512-3QdIGdSn3fkssCq/vPjtPLAQxo+eMUzcwJedn1c5mXDy1AoisjhoxhWnbVl8+uk+wt9N6JUPdISoe0N4OdwXfg==}
+    cpu: [x64]
+    os: [win32]
 
   '@oxc-project/types@0.110.0':
     resolution: {integrity: sha512-6Ct21OIlrEnFEJk5LT4e63pk3btsI6/TusD/GStLi7wYlGJNOl1GI9qvXAnRAxQU9zqA2Oz+UwhfTOU2rPZVow==}
@@ -3953,8 +3988,18 @@ packages:
     cpu: [arm64]
     os: [darwin]
 
+  '@rollup/rollup-darwin-arm64@4.57.0':
+    resolution: {integrity: sha512-/NNIj9A7yLjKdmkx5dC2XQ9DmjIECpGpwHoGmA5E1AhU0fuICSqSWScPhN1yLCkEdkCwJIDu2xIeLPs60MNIVg==}
+    cpu: [arm64]
+    os: [darwin]
+
   '@rollup/rollup-darwin-x64@4.52.4':
     resolution: {integrity: sha512-hZgP05pResAkRJxL1b+7yxCnXPGsXU0fG9Yfd6dUaoGk+FhdPKCJ5L1Sumyxn8kvw8Qi5PvQ8ulenUbRjzeCTw==}
+    cpu: [x64]
+    os: [darwin]
+
+  '@rollup/rollup-darwin-x64@4.57.0':
+    resolution: {integrity: sha512-xoh8abqgPrPYPr7pTYipqnUi1V3em56JzE/HgDgitTqZBZ3yKCWI+7KUkceM6tNweyUKYru1UMi7FC060RyKwA==}
     cpu: [x64]
     os: [darwin]
 
@@ -3980,6 +4025,11 @@ packages:
 
   '@rollup/rollup-linux-arm64-gnu@4.52.4':
     resolution: {integrity: sha512-4n4gVwhPHR9q/g8lKCyz0yuaD0MvDf7dV4f9tHt0C73Mp8h38UCtSCSE6R9iBlTbXlmA8CjpsZoujhszefqueg==}
+    cpu: [arm64]
+    os: [linux]
+
+  '@rollup/rollup-linux-arm64-gnu@4.57.0':
+    resolution: {integrity: sha512-Xws2KA4CLvZmXjy46SQaXSejuKPhwVdaNinldoYfqruZBaJHqVo6hnRa8SDo9z7PBW5x84SH64+izmldCgbezw==}
     cpu: [arm64]
     os: [linux]
 
@@ -4018,6 +4068,11 @@ packages:
     cpu: [x64]
     os: [linux]
 
+  '@rollup/rollup-linux-x64-gnu@4.57.0':
+    resolution: {integrity: sha512-OR5p5yG5OKSxHReWmwvM0P+VTPMwoBS45PXTMYaskKQqybkS3Kmugq1W+YbNWArF8/s7jQScgzXUhArzEQ7x0A==}
+    cpu: [x64]
+    os: [linux]
+
   '@rollup/rollup-linux-x64-musl@4.52.4':
     resolution: {integrity: sha512-dtBZYjDmCQ9hW+WgEkaffvRRCKm767wWhxsFW3Lw86VXz/uJRuD438/XvbZT//B96Vs8oTA8Q4A0AfHbrxP9zw==}
     cpu: [x64]
@@ -4033,6 +4088,11 @@ packages:
     cpu: [arm64]
     os: [win32]
 
+  '@rollup/rollup-win32-arm64-msvc@4.57.0':
+    resolution: {integrity: sha512-XnaaaSMGSI6Wk8F4KK3QP7GfuuhjGchElsVerCplUuxRIzdvZ7hRBpLR0omCmw+kI2RFJB80nenhOoGXlJ5TfQ==}
+    cpu: [arm64]
+    os: [win32]
+
   '@rollup/rollup-win32-ia32-msvc@4.52.4':
     resolution: {integrity: sha512-AIy/jdJ7WtJ/F6EcfOb2GjR9UweO0n43jNObQMb6oGxkYTfLcnN7vYYpG+CN3lLxrQkzWnMOoNSHTW54pgbVxw==}
     cpu: [ia32]
@@ -4045,6 +4105,11 @@ packages:
 
   '@rollup/rollup-win32-x64-msvc@4.52.4':
     resolution: {integrity: sha512-bf9PtUa0u8IXDVxzRToFQKsNCRz9qLYfR/MpECxl4mRoWYjAeFjgxj1XdZr2M/GNVpT05p+LgQOHopYDlUu6/w==}
+    cpu: [x64]
+    os: [win32]
+
+  '@rollup/rollup-win32-x64-msvc@4.57.0':
+    resolution: {integrity: sha512-Zv7v6q6aV+VslnpwzqKAmrk5JdVkLUzok2208ZXGipjb+msxBr/fJPZyeEXiFgH7k62Ak0SLIfxQRZQvTuf7rQ==}
     cpu: [x64]
     os: [win32]
 
@@ -4294,10 +4359,6 @@ packages:
     resolution: {integrity: sha512-4+9w8ZHOiGnpcGI6z1TVVfWaX/koK7fKeSYF3qlYg2xpBtbteP2ddBxiarL+HVgfSJGeK5RIxRQmKm4rTJJAwA==}
     peerDependencies:
       vite: ^5.2.0 || ^6 || ^7
-
-  '@tencent-ai/codebuddy-code@2.37.18':
-    resolution: {integrity: sha512-mii/eI3sqQXKlGSFaaqw8H3QMgSJMN+RO7ZOEHqa1TwNSihu6RHEdzFWuTV5c3Edw57ioD7gAc67WpB+Zy588Q==}
-    hasBin: true
 
   '@tokenlens/core@1.3.0':
     resolution: {integrity: sha512-d8YNHNC+q10bVpi95fELJwJyPVf1HfvBEI18eFQxRSZTdByXrP+f/ZtlhSzkx0Jl0aEmYVeBA5tPeeYRioLViQ==}
@@ -8801,6 +8862,7 @@ packages:
   tar@7.5.1:
     resolution: {integrity: sha512-nlGpxf+hv0v7GkWBK2V9spgactGOp0qvfWRxUMjqHyzrt3SgwE48DIv/FhqPHJYLHpgW1opq3nERbz5Anq7n1g==}
     engines: {node: '>=18'}
+    deprecated: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exhorbitant rates) by contacting i@izs.me
 
   terser-webpack-plugin@5.3.14:
     resolution: {integrity: sha512-vkZjpUjb6OMS7dhV+tILUW6BhpDR7P2L/aQSAv+Uwk+m8KATX9EccViHTJR2qDtACKPIYndLGCyl3FMo+r2LMw==}
@@ -11037,34 +11099,6 @@ snapshots:
   '@lmdb/lmdb-win32-x64@3.4.3':
     optional: true
 
-  '@lydell/node-pty-darwin-arm64@1.1.0':
-    optional: true
-
-  '@lydell/node-pty-darwin-x64@1.1.0':
-    optional: true
-
-  '@lydell/node-pty-linux-arm64@1.1.0':
-    optional: true
-
-  '@lydell/node-pty-linux-x64@1.1.0':
-    optional: true
-
-  '@lydell/node-pty-win32-arm64@1.1.0':
-    optional: true
-
-  '@lydell/node-pty-win32-x64@1.1.0':
-    optional: true
-
-  '@lydell/node-pty@1.1.0':
-    optionalDependencies:
-      '@lydell/node-pty-darwin-arm64': 1.1.0
-      '@lydell/node-pty-darwin-x64': 1.1.0
-      '@lydell/node-pty-linux-arm64': 1.1.0
-      '@lydell/node-pty-linux-x64': 1.1.0
-      '@lydell/node-pty-win32-arm64': 1.1.0
-      '@lydell/node-pty-win32-x64': 1.1.0
-    optional: true
-
   '@mcpc-tech/acp-ai-provider@0.1.43':
     dependencies:
       '@agentclientprotocol/sdk': 0.4.9
@@ -11190,6 +11224,31 @@ snapshots:
       langium: 3.3.1
 
   '@mjackson/node-fetch-server@0.2.0': {}
+
+  '@modelcontextprotocol/ext-apps@1.0.1(@modelcontextprotocol/sdk@1.20.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod@3.25.76)':
+    dependencies:
+      '@modelcontextprotocol/sdk': 1.20.1
+      zod: 3.25.76
+    optionalDependencies:
+      '@oven/bun-darwin-aarch64': 1.3.7
+      '@oven/bun-darwin-x64': 1.3.7
+      '@oven/bun-darwin-x64-baseline': 1.3.7
+      '@oven/bun-linux-aarch64': 1.3.7
+      '@oven/bun-linux-aarch64-musl': 1.3.7
+      '@oven/bun-linux-x64': 1.3.7
+      '@oven/bun-linux-x64-baseline': 1.3.7
+      '@oven/bun-linux-x64-musl': 1.3.7
+      '@oven/bun-linux-x64-musl-baseline': 1.3.7
+      '@oven/bun-windows-x64': 1.3.7
+      '@oven/bun-windows-x64-baseline': 1.3.7
+      '@rollup/rollup-darwin-arm64': 4.57.0
+      '@rollup/rollup-darwin-x64': 4.57.0
+      '@rollup/rollup-linux-arm64-gnu': 4.57.0
+      '@rollup/rollup-linux-x64-gnu': 4.57.0
+      '@rollup/rollup-win32-arm64-msvc': 4.57.0
+      '@rollup/rollup-win32-x64-msvc': 4.57.0
+      react: 19.2.0
+      react-dom: 19.2.0(react@19.2.0)
 
   '@modelcontextprotocol/sdk@1.20.1':
     dependencies:
@@ -11575,6 +11634,39 @@ snapshots:
   '@opentelemetry/semantic-conventions@1.28.0': {}
 
   '@opentelemetry/semantic-conventions@1.38.0': {}
+
+  '@oven/bun-darwin-aarch64@1.3.7':
+    optional: true
+
+  '@oven/bun-darwin-x64-baseline@1.3.7':
+    optional: true
+
+  '@oven/bun-darwin-x64@1.3.7':
+    optional: true
+
+  '@oven/bun-linux-aarch64-musl@1.3.7':
+    optional: true
+
+  '@oven/bun-linux-aarch64@1.3.7':
+    optional: true
+
+  '@oven/bun-linux-x64-baseline@1.3.7':
+    optional: true
+
+  '@oven/bun-linux-x64-musl-baseline@1.3.7':
+    optional: true
+
+  '@oven/bun-linux-x64-musl@1.3.7':
+    optional: true
+
+  '@oven/bun-linux-x64@1.3.7':
+    optional: true
+
+  '@oven/bun-windows-x64-baseline@1.3.7':
+    optional: true
+
+  '@oven/bun-windows-x64@1.3.7':
+    optional: true
 
   '@oxc-project/types@0.110.0': {}
 
@@ -12516,7 +12608,13 @@ snapshots:
   '@rollup/rollup-darwin-arm64@4.52.4':
     optional: true
 
+  '@rollup/rollup-darwin-arm64@4.57.0':
+    optional: true
+
   '@rollup/rollup-darwin-x64@4.52.4':
+    optional: true
+
+  '@rollup/rollup-darwin-x64@4.57.0':
     optional: true
 
   '@rollup/rollup-freebsd-arm64@4.52.4':
@@ -12532,6 +12630,9 @@ snapshots:
     optional: true
 
   '@rollup/rollup-linux-arm64-gnu@4.52.4':
+    optional: true
+
+  '@rollup/rollup-linux-arm64-gnu@4.57.0':
     optional: true
 
   '@rollup/rollup-linux-arm64-musl@4.52.4':
@@ -12555,6 +12656,9 @@ snapshots:
   '@rollup/rollup-linux-x64-gnu@4.52.4':
     optional: true
 
+  '@rollup/rollup-linux-x64-gnu@4.57.0':
+    optional: true
+
   '@rollup/rollup-linux-x64-musl@4.52.4':
     optional: true
 
@@ -12564,6 +12668,9 @@ snapshots:
   '@rollup/rollup-win32-arm64-msvc@4.52.4':
     optional: true
 
+  '@rollup/rollup-win32-arm64-msvc@4.57.0':
+    optional: true
+
   '@rollup/rollup-win32-ia32-msvc@4.52.4':
     optional: true
 
@@ -12571,6 +12678,9 @@ snapshots:
     optional: true
 
   '@rollup/rollup-win32-x64-msvc@4.52.4':
+    optional: true
+
+  '@rollup/rollup-win32-x64-msvc@4.57.0':
     optional: true
 
   '@rtsao/scc@1.1.0': {}
@@ -12810,16 +12920,6 @@ snapshots:
       '@tailwindcss/oxide': 4.1.17
       tailwindcss: 4.1.17
       vite: 7.3.0(@types/node@24.10.1)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.93.2)(terser@5.44.0)(yaml@2.8.1)
-
-  '@tencent-ai/codebuddy-code@2.37.18':
-    optionalDependencies:
-      '@lydell/node-pty': 1.1.0
-      '@lydell/node-pty-darwin-arm64': 1.1.0
-      '@lydell/node-pty-darwin-x64': 1.1.0
-      '@lydell/node-pty-linux-x64': 1.1.0
-      '@lydell/node-pty-win32-arm64': 1.1.0
-      '@lydell/node-pty-win32-x64': 1.1.0
-    optional: true
 
   '@tokenlens/core@1.3.0': {}
 
@@ -15104,7 +15204,7 @@ snapshots:
       eslint: 9.39.1(jiti@2.6.1)
       eslint-import-resolver-node: 0.3.9
       eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.1(jiti@2.6.1)))(eslint@9.39.1(jiti@2.6.1))
-      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.1(jiti@2.6.1)))(eslint@9.39.1(jiti@2.6.1)))(eslint@9.39.1(jiti@2.6.1))
+      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.1(jiti@2.6.1))
       eslint-plugin-jsx-a11y: 6.10.2(eslint@9.39.1(jiti@2.6.1))
       eslint-plugin-react: 7.37.5(eslint@9.39.1(jiti@2.6.1))
       eslint-plugin-react-hooks: 7.0.1(eslint@9.39.1(jiti@2.6.1))
@@ -15137,7 +15237,7 @@ snapshots:
       tinyglobby: 0.2.15
       unrs-resolver: 1.11.1
     optionalDependencies:
-      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.1(jiti@2.6.1)))(eslint@9.39.1(jiti@2.6.1)))(eslint@9.39.1(jiti@2.6.1))
+      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.1(jiti@2.6.1))
     transitivePeerDependencies:
       - supports-color
 
@@ -15151,7 +15251,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-plugin-import@2.32.0(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.1(jiti@2.6.1)))(eslint@9.39.1(jiti@2.6.1)))(eslint@9.39.1(jiti@2.6.1)):
+  eslint-plugin-import@2.32.0(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.1(jiti@2.6.1)):
     dependencies:
       '@rtsao/scc': 1.1.0
       array-includes: 3.1.9

@@ -82,10 +82,11 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "build": "pnpm build:plugin && pnpm build:client && pnpm build:react",
+    "build": "pnpm build:plugin && pnpm build:client && pnpm build:react && pnpm build:mcp-app",
     "build:plugin": "tsdown",
     "build:client": "tsdown --config tsdown.client.config.ts",
     "build:react": "tsdown --config tsdown.react.config.ts",
+    "build:mcp-app": "tsdown --config tsdown.mcp-app.config.ts",
     "dev:plugin": "tsdown --watch",
     "dev:client": "tsdown --config tsdown.client.config.ts --watch",
     "lint": "oxlint .",
@@ -124,6 +125,7 @@
     "@mcpc-tech/acp-ai-provider": "^0.1.50",
     "@mcpc-tech/cmcp": "^0.0.15",
     "@mcpc-tech/core": "^0.3.30",
+    "@modelcontextprotocol/ext-apps": "^1.0.1",
     "@modelcontextprotocol/sdk": "^1.20.1",
     "@mswjs/interceptors": "^0.40.0",
     "@radix-ui/primitive": "^1.1.3",
