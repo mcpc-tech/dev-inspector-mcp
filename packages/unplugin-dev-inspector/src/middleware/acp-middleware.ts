@@ -268,10 +268,18 @@ export function setupAcpMiddleware(
         }
       }
 
+      // Build env defaults from agent.env array (applied only if not already set)
+      const agentEnvDefaults: Record<string, string> = {};
+      for (const envItem of agent.env ?? []) {
+        if (envItem.default !== undefined && process.env[envItem.key] === undefined) {
+          agentEnvDefaults[envItem.key] = envItem.default;
+        }
+      }
+
       const provider = createACPProvider({
         command,
         args,
-        env: { ...process.env, ...envVars },
+        env: { ...agentEnvDefaults, ...process.env, ...envVars },
         session: {
           cwd,
           mcpServers: acpOptions?.mcpServers ?? [],
@@ -383,7 +391,7 @@ export function setupAcpMiddleware(
       const body = await readBody(req);
       const parsedBody = JSON.parse(body);
       const { messages, sessionId, isAutomated, inferContext } = parsedBody;
-      
+
       // Apply env substitution
       const agent = substituteEnvVars(parsedBody.agent);
       const envVars = substituteEnvVars(parsedBody.envVars);
@@ -495,10 +503,12 @@ export function setupAcpMiddleware(
                 type: "text",
                 text: `<system_instructions>
 ${systemPrompt}
-${isAutomated 
-  ? `- **chrome_devtools**: Access Chrome DevTools for network requests, console logs, page navigation, and element interaction` 
-  : `- **get_network_requests**: Get browser network requests (list or details by reqid) - uses local storage
-- **get_console_messages**: Get browser console logs (list or details by msgid) - uses local storage`}
+${
+  isAutomated
+    ? `- **chrome_devtools**: Access Chrome DevTools for network requests, console logs, page navigation, and element interaction`
+    : `- **get_network_requests**: Get browser network requests (list or details by reqid) - uses local storage
+- **get_console_messages**: Get browser console logs (list or details by msgid) - uses local storage`
+}
 </system_instructions>
 `,
               },

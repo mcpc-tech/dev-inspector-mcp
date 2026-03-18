@@ -128,6 +128,11 @@ export const AVAILABLE_AGENTS: Agent[] = [
         key: "CODEBUDDY_INTERNET_ENVIRONMENT",
         required: false,
       },
+      {
+        key: "CODEBUDDY_DEFER_TOOL_LOADING",
+        required: true,
+        default: "false",
+      },
     ],
     configHint: "Tencent Cloud's coding assistant",
     configLink: "https://copilot.tencent.com/docs/cli/acp",
@@ -135,8 +140,6 @@ export const AVAILABLE_AGENTS: Agent[] = [
     meta: {
       icon: svgToDataUri(AGENT_ICONS.codebuddy),
     },
-    // Delay to ensure mcp server is ready
-    acpDelay: 2000,
   },
 ];
 

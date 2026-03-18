@@ -1,4 +1,4 @@
-import type { McpServer as McpServerSDK } from '@agentclientprotocol/sdk';
+import type { McpServer as McpServerSDK } from "@agentclientprotocol/sdk";
 
 /**
  * MCP Server configuration for the Agent Client Protocol
@@ -50,6 +50,7 @@ export interface Agent extends AcpOptions {
   env: Array<{
     key: string;
     required: boolean;
+    default?: string;
   }>;
   authMethodId?: string;
   meta?: {
