@@ -1,7 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 
-
-
 // Simplified to only expose resolved theme (dark/light) based on system preference
 interface InspectorThemeContextType {
   resolvedTheme: "dark" | "light";

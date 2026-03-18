@@ -76,7 +76,9 @@ export class ConnectionManager {
     }
 
     if (sessionsToRemove.length > 0) {
-      console.log(`[dev-inspector] [connection-manager] Cleaned up ${sessionsToRemove.length} previous sessions for clientId=${clientId} (new session=${newSessionId})`);
+      console.log(
+        `[dev-inspector] [connection-manager] Cleaned up ${sessionsToRemove.length} previous sessions for clientId=${clientId} (new session=${newSessionId})`,
+      );
     }
 
     for (const sessionId of sessionsToRemove) {

@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { cn } from "../lib/utils";
 import {
@@ -63,7 +62,7 @@ export const InspectorBar = ({
   status,
   inspectionCount = 0,
   inspectionItems = [],
-  onRemoveInspection = () => { },
+  onRemoveInspection = () => {},
   toolsReady = true,
   mcpClient = null,
   onAgentChange,
@@ -86,7 +85,7 @@ export const InspectorBar = ({
 
   // Load available agents (merged with server config)
   useEffect(() => {
-    getAvailableAgents().then(agents => {
+    getAvailableAgents().then((agents) => {
       setAvailableAgents(agents);
     });
   }, []);
@@ -99,7 +98,11 @@ export const InspectorBar = ({
   }, [selectedAgent, isReady, onAgentChange]);
 
   // Use state machine to derive Dynamic Island state from messages
-  const { uiState, chatStatus, toolName, displayText } = useIslandState(messages, status, isExpanded);
+  const { uiState, chatStatus, toolName, displayText } = useIslandState(
+    messages,
+    status,
+    isExpanded,
+  );
 
   // Derived booleans for clarity
   const isWorking = chatStatus === "submitted" || chatStatus === "streaming";
@@ -132,7 +135,7 @@ export const InspectorBar = ({
       headers: { "Content-Type": "application/json" },
       body: payload,
       keepalive: true,
-    }).catch(() => { });
+    }).catch(() => {});
   };
 
   // Init session on mount or agent change
@@ -142,7 +145,9 @@ export const InspectorBar = ({
 
     let mounted = true;
     const currentAgent =
-      availableAgents.find((a) => a.name === selectedAgent) || availableAgents[0] || AVAILABLE_AGENTS[0];
+      availableAgents.find((a) => a.name === selectedAgent) ||
+      availableAgents[0] ||
+      AVAILABLE_AGENTS[0];
 
     const initSession = async () => {
       // Cleanup previous session if existence
@@ -222,7 +227,9 @@ export const InspectorBar = ({
 
   // Get current agent info
   const currentAgent =
-    availableAgents.find((a) => a.name === selectedAgent) || availableAgents[0] || AVAILABLE_AGENTS[0];
+    availableAgents.find((a) => a.name === selectedAgent) ||
+    availableAgents[0] ||
+    AVAILABLE_AGENTS[0];
 
   // Use custom draggable hook
   const { elementRef: containerRef, isDragging, handleMouseDown } = useDraggable();
@@ -275,10 +282,10 @@ export const InspectorBar = ({
           status: "in-progress",
           currentStep: inProgressStep
             ? {
-              title: inProgressStep.title,
-              index: completedCount + 1,
-              total: plan.steps.length,
-            }
+                title: inProgressStep.title,
+                index: completedCount + 1,
+                total: plan.steps.length,
+              }
             : undefined,
         });
       }
@@ -314,7 +321,6 @@ export const InspectorBar = ({
 
   const [selectedPromptForParams, setSelectedPromptForParams] = useState<Prompt | null>(null);
 
-
   const executePrompt = async (prompt: Prompt, args: Record<string, string> = {}) => {
     // If MCP client is available, execute the prompt to get its content
     if (mcpClient) {
@@ -322,13 +328,13 @@ export const InspectorBar = ({
         const result = await mcpClient.request(
           {
             method: "prompts/get",
-            params: { name: prompt.name, arguments: args }
+            params: { name: prompt.name, arguments: args },
           },
-          GetPromptResultSchema
+          GetPromptResultSchema,
         );
 
         const message = result.messages?.[0];
-        if (message?.content?.type === 'text' && message.content.text) {
+        if (message?.content?.type === "text" && message.content.text) {
           setInput(message.content.text);
           inputRef.current?.focus();
           return;
@@ -369,7 +375,10 @@ export const InspectorBar = ({
     // Clear inspection status for new query
     setInspectionStatus(null);
 
-    const agentToSubmit = availableAgents.find((a) => a.name === selectedAgent) || availableAgents[0] || AVAILABLE_AGENTS[0];
+    const agentToSubmit =
+      availableAgents.find((a) => a.name === selectedAgent) ||
+      availableAgents[0] ||
+      AVAILABLE_AGENTS[0];
     onSubmitAgent(input, agentToSubmit, sessionId || undefined);
     setInput("");
 
@@ -417,7 +426,11 @@ export const InspectorBar = ({
         className={cn(
           "fixed bottom-8 left-1/2 z-[999999]", // Fixed positioning
           "transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
-          isExpanded ? "w-[480px]" : showMessage ? "w-auto min-w-[200px] max-w-[480px]" : "w-[190px]",
+          isExpanded
+            ? "w-[480px]"
+            : showMessage
+              ? "w-auto min-w-[200px] max-w-[480px]"
+              : "w-[190px]",
           isDragging ? "cursor-grabbing" : "cursor-grab",
         )}
         onMouseDown={handleMouseDown}
@@ -458,19 +471,13 @@ export const InspectorBar = ({
           <div
             className={cn(
               "flex items-center transition-opacity duration-150 w-full relative",
-              showInput
-                ? "absolute left-3 opacity-0 pointer-events-none"
-                : "relative opacity-100",
+              showInput ? "absolute left-3 opacity-0 pointer-events-none" : "relative opacity-100",
             )}
           >
             {messages.length === 0 && (
               <>
                 <div className="flex items-center justify-center w-6 h-6 rounded-full bg-accent flex-shrink-0">
-                  <img
-                    src={currentAgent?.meta?.icon}
-                    alt={selectedAgent}
-                    className="w-3.5 h-3.5"
-                  />
+                  <img src={currentAgent?.meta?.icon} alt={selectedAgent} className="w-3.5 h-3.5" />
                 </div>
                 <span className="text-xs text-muted-foreground/70 ml-3 whitespace-nowrap">
                   ⌥I or hover to inspect
@@ -516,8 +523,8 @@ export const InspectorBar = ({
                 <div className="flex-1 flex justify-center min-w-0 pl-2">
                   <div className="flex flex-col min-w-0 max-w-full pr-2 max-h-[24px] overflow-hidden">
                     {inspectionStatus &&
-                      inspectionStatus.status === "in-progress" &&
-                      inspectionStatus.currentStep ? (
+                    inspectionStatus.status === "in-progress" &&
+                    inspectionStatus.currentStep ? (
                       <div className="flex items-center gap-1.5 text-sm font-medium text-foreground min-w-0">
                         <Terminal className="w-4 h-4 flex-shrink-0" />
                         <span className="truncate min-w-0">
@@ -555,7 +562,9 @@ export const InspectorBar = ({
                   {/* Expand button */}
                   <button
                     type="button"
-                    onClick={() => setActivePanel((current) => (current === "chat" ? "none" : "chat"))}
+                    onClick={() =>
+                      setActivePanel((current) => (current === "chat" ? "none" : "chat"))
+                    }
                     className={cn(
                       "flex items-center justify-center w-7 h-7 rounded-full transition-all flex-shrink-0",
                       activePanel === "chat"
@@ -649,8 +658,6 @@ export const InspectorBar = ({
 
             <div className="w-px h-4 bg-border flex-shrink-0" />
 
-
-
             <form
               onSubmit={handleSubmit}
               className="flex-1 flex items-center gap-2 min-w-0"
@@ -733,7 +740,9 @@ export const InspectorBar = ({
               {(messages.length > 0 || isWorking) && (
                 <button
                   type="button"
-                  onClick={() => setActivePanel((current) => (current === "chat" ? "none" : "chat"))}
+                  onClick={() =>
+                    setActivePanel((current) => (current === "chat" ? "none" : "chat"))
+                  }
                   className={cn(
                     "flex items-center justify-center w-7 h-7 rounded-full transition-all flex-shrink-0",
                     activePanel === "chat"
@@ -793,17 +802,25 @@ export const InspectorBar = ({
                     "absolute top-3 left-3 z-10 flex items-center justify-center w-8 h-8 rounded-full transition-all",
                     isPinned
                       ? "bg-black text-white shadow-md hover:bg-gray-800"
-                      : "bg-muted/80 text-muted-foreground hover:bg-accent hover:text-foreground"
+                      : "bg-muted/80 text-muted-foreground hover:bg-accent hover:text-foreground",
                   )}
                   title={isPinned ? "Unpin inspector" : "Pin inspector"}
                 >
-                  {isPinned ? <Pin className="w-3.5 h-3.5 fill-current" /> : <Pin className="w-3.5 h-3.5" />}
+                  {isPinned ? (
+                    <Pin className="w-3.5 h-3.5 fill-current" />
+                  ) : (
+                    <Pin className="w-3.5 h-3.5" />
+                  )}
                 </button>
               )}
               {/* Message Detail Section - Show InspectorBar messages */}
               {activePanel === "chat" && (
                 <div className="h-[500px]">
-                  <MessageDetail messages={messages} status={status} selectedAgent={selectedAgent} />
+                  <MessageDetail
+                    messages={messages}
+                    status={status}
+                    selectedAgent={selectedAgent}
+                  />
                 </div>
               )}
             </div>
@@ -822,37 +839,34 @@ export const InspectorBar = ({
       />
 
       {/* Config Info Modal - using Dialog component */}
-      {configInfoAgent && (() => {
-        const agent = availableAgents.find(a => a.name === configInfoAgent);
-        if (!agent) return null;
-        return (
-          <Dialog open={!!configInfoAgent} onOpenChange={() => setConfigInfoAgent(null)}>
-            <DialogContent onClose={() => setConfigInfoAgent(null)} className="w-80">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-3">
-                  {agent.meta?.icon && (
-                    <img src={agent.meta.icon} alt="" className="w-6 h-6" />
-                  )}
-                  {agent.name}
-                </DialogTitle>
-                {agent.configHint && (
-                  <DialogDescription>{agent.configHint}</DialogDescription>
+      {configInfoAgent &&
+        (() => {
+          const agent = availableAgents.find((a) => a.name === configInfoAgent);
+          if (!agent) return null;
+          return (
+            <Dialog open={!!configInfoAgent} onOpenChange={() => setConfigInfoAgent(null)}>
+              <DialogContent onClose={() => setConfigInfoAgent(null)} className="w-80">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-3">
+                    {agent.meta?.icon && <img src={agent.meta.icon} alt="" className="w-6 h-6" />}
+                    {agent.name}
+                  </DialogTitle>
+                  {agent.configHint && <DialogDescription>{agent.configHint}</DialogDescription>}
+                </DialogHeader>
+                {agent.configLink && (
+                  <a
+                    href={agent.configLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-sm text-blue-500 hover:text-blue-600 underline"
+                  >
+                    View ACP Documentation →
+                  </a>
                 )}
-              </DialogHeader>
-              {agent.configLink && (
-                <a
-                  href={agent.configLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-sm text-blue-500 hover:text-blue-600 underline"
-                >
-                  View ACP Documentation →
-                </a>
-              )}
-            </DialogContent>
-          </Dialog>
-        );
-      })()}
+              </DialogContent>
+            </Dialog>
+          );
+        })()}
     </>
   );
 };

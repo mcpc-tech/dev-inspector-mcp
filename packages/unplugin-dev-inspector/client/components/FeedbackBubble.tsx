@@ -52,18 +52,22 @@ export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
     // For region selections, default to all related elements selected
     const relatedCount = sourceInfo?.relatedElements?.length || 0;
     return {
-      includeElement: true,  // Default checked
-      includeStyles: true,   // Default checked
+      includeElement: true, // Default checked
+      includeStyles: true, // Default checked
       includeScreenshot: relatedCount > 0, // Default checked for region selection
       includePageInfo: true, // Default checked - page context is helpful
       consoleIds: [],
       networkIds: [],
       stdioIds: [],
       relatedElementIds: relatedCount > 0 ? Array.from({ length: relatedCount }, (_, i) => i) : [],
-      elementNotes: sourceInfo.relatedElements?.reduce((acc, el, idx) => {
-        if (el.note) acc[idx] = el.note;
-        return acc;
-      }, {} as Record<number, string>) || {},
+      elementNotes:
+        sourceInfo.relatedElements?.reduce(
+          (acc, el, idx) => {
+            if (el.note) acc[idx] = el.note;
+            return acc;
+          },
+          {} as Record<number, string>,
+        ) || {},
     };
   });
   const [contextData, setContextData] = useState<{
@@ -79,13 +83,14 @@ export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
   });
 
   // KISS: Extract repeated condition (was duplicated in handleKeyDown and handleSubmit)
-  const hasContext = useMemo(() =>
-    selectedContext.includeElement ||
-    selectedContext.includeStyles ||
-    selectedContext.consoleIds.length > 0 ||
-    selectedContext.networkIds.length > 0 ||
-    selectedContext.stdioIds.length > 0,
-    [selectedContext]
+  const hasContext = useMemo(
+    () =>
+      selectedContext.includeElement ||
+      selectedContext.includeStyles ||
+      selectedContext.consoleIds.length > 0 ||
+      selectedContext.networkIds.length > 0 ||
+      selectedContext.stdioIds.length > 0,
+    [selectedContext],
   );
 
   const handleDataReady = (data: {
@@ -117,18 +122,18 @@ export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
   // Unified context preparation (KISS principle - reuse for both Copy & Go and Submit)
   const prepareEnrichedContext = () => {
     // Get actual console and network data for selected IDs
-    const selectedConsole = contextData.consoleMessages.filter(msg =>
-      selectedContext.consoleIds.includes(msg.msgid)
+    const selectedConsole = contextData.consoleMessages.filter((msg) =>
+      selectedContext.consoleIds.includes(msg.msgid),
     );
 
     const selectedStdio = contextData.stdioMessages.filter((msg) =>
-      selectedContext.stdioIds.includes(msg.stdioid)
+      selectedContext.stdioIds.includes(msg.stdioid),
     );
 
     // Get network requests with their cached details
     const selectedNetwork = contextData.networkRequests
-      .filter(req => selectedContext.networkIds.includes(req.reqid))
-      .map(req => ({
+      .filter((req) => selectedContext.networkIds.includes(req.reqid))
+      .map((req) => ({
         ...req,
         details: contextData.networkDetails[req.reqid] || null,
       }));
@@ -146,15 +151,20 @@ export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
     const enrichedContext = prepareEnrichedContext();
 
     const markdown = formatCopyContext({
-      sourceInfo: enrichedContext.includeElement || enrichedContext.includeStyles ? sourceInfo : undefined,
+      sourceInfo:
+        enrichedContext.includeElement || enrichedContext.includeStyles ? sourceInfo : undefined,
       includeElement: enrichedContext.includeElement,
       includeStyles: enrichedContext.includeStyles,
       includePageInfo: enrichedContext.includePageInfo,
       pageInfo: enrichedContext.includePageInfo && pageInfo ? pageInfo : undefined,
       feedback: feedback || undefined,
-      consoleMessages: enrichedContext.consoleMessages.length > 0 ? enrichedContext.consoleMessages : undefined,
-      networkRequests: enrichedContext.networkRequests.length > 0 ? enrichedContext.networkRequests : undefined,
-      stdioMessages: enrichedContext.stdioMessages?.length ? enrichedContext.stdioMessages : undefined,
+      consoleMessages:
+        enrichedContext.consoleMessages.length > 0 ? enrichedContext.consoleMessages : undefined,
+      networkRequests:
+        enrichedContext.networkRequests.length > 0 ? enrichedContext.networkRequests : undefined,
+      stdioMessages: enrichedContext.stdioMessages?.length
+        ? enrichedContext.stdioMessages
+        : undefined,
       relatedElements: sourceInfo?.relatedElements,
       relatedElementIds: enrichedContext.relatedElementIds,
       elementNotes: enrichedContext.elementNotes,
@@ -166,9 +176,9 @@ export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
 
       if (hasScreenshot) {
         // Validate screenshot is a safe data URL to prevent XSS
-        const isValidDataUrl = enrichedContext.screenshot?.startsWith('data:image/') ?? false;
+        const isValidDataUrl = enrichedContext.screenshot?.startsWith("data:image/") ?? false;
         if (!isValidDataUrl) {
-          console.warn('Invalid screenshot data URL, skipping image in clipboard');
+          console.warn("Invalid screenshot data URL, skipping image in clipboard");
           await navigator.clipboard.writeText(markdown);
           setOpen(false);
           return;
@@ -178,14 +188,14 @@ export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
         // Note: We don't include image/png separately because apps will prefer it over text
         const htmlContent = `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
 <img src="${enrichedContext.screenshot}" alt="Element Screenshot" style="max-width: min(100%, 37.5rem); display: block; margin-bottom: 1rem; border-radius: 0.5rem; box-shadow: 0 0.125rem 0.5rem rgba(0,0,0,0.1);">
-<pre style="font-family: 'SF Mono', Monaco, 'Courier New', monospace; font-size: 0.75rem; white-space: pre-wrap; background: #f6f8fa; padding: 1rem; border-radius: 0.375rem; border: 1px solid #e1e4e8; overflow-x: auto;">${markdown.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+<pre style="font-family: 'SF Mono', Monaco, 'Courier New', monospace; font-size: 0.75rem; white-space: pre-wrap; background: #f6f8fa; padding: 1rem; border-radius: 0.375rem; border: 1px solid #e1e4e8; overflow-x: auto;">${markdown.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</pre>
 </div>`;
 
         // Copy HTML + text/plain (NO image/png to avoid preference issue)
         await navigator.clipboard.write([
           new ClipboardItem({
-            'text/html': new Blob([htmlContent], { type: 'text/html' }),
-            'text/plain': new Blob([markdown], { type: 'text/plain' }),
+            "text/html": new Blob([htmlContent], { type: "text/html" }),
+            "text/plain": new Blob([markdown], { type: "text/plain" }),
           }),
         ]);
       } else {
@@ -195,17 +205,17 @@ export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
       setOpen(false);
     } catch (err) {
       // Fallback to text-only if clipboard.write fails
-      console.warn('Clipboard copy failed, falling back to text-only:', err);
+      console.warn("Clipboard copy failed, falling back to text-only:", err);
       try {
         await navigator.clipboard.writeText(markdown);
         // Notify user that screenshot couldn't be copied
-        const event = new CustomEvent('inspector-notification', {
-          detail: { message: '⚠️ Screenshot not copied - only text was copied to clipboard' }
+        const event = new CustomEvent("inspector-notification", {
+          detail: { message: "⚠️ Screenshot not copied - only text was copied to clipboard" },
         });
         window.dispatchEvent(event);
         setOpen(false);
       } catch {
-        console.error('Failed to copy to clipboard');
+        console.error("Failed to copy to clipboard");
       }
     }
   };
@@ -219,23 +229,25 @@ export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
 
   const allStepsCompleted = plan?.steps.every((s) => s.status === "completed");
 
-  const title = mode === "success"
-    ? "Success"
-    : mode === "error"
-      ? "Error"
-      : mode === "loading" && allStepsCompleted
-        ? "Success"
-        : mode === "loading"
-          ? "Processing..."
-          : "Tell the AI";
+  const title =
+    mode === "success"
+      ? "Success"
+      : mode === "error"
+        ? "Error"
+        : mode === "loading" && allStepsCompleted
+          ? "Success"
+          : mode === "loading"
+            ? "Processing..."
+            : "Tell the AI";
 
-  const icon = (mode === "success" || (mode === "loading" && allStepsCompleted))
-    ? <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-500" />
-    : mode === "error"
-      ? <XCircle className="h-5 w-5 text-red-600 dark:text-red-500" />
-      : mode === "loading"
-        ? <Loader2 className="h-5 w-5 animate-spin text-blue-600 dark:text-blue-500" />
-        : null;
+  const icon =
+    mode === "success" || (mode === "loading" && allStepsCompleted) ? (
+      <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-500" />
+    ) : mode === "error" ? (
+      <XCircle className="h-5 w-5 text-red-600 dark:text-red-500" />
+    ) : mode === "loading" ? (
+      <Loader2 className="h-5 w-5 animate-spin text-blue-600 dark:text-blue-500" />
+    ) : null;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -249,7 +261,9 @@ export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
             {mode === "input" ? (
               "Describe what you want to fix or improve, then add context below"
             ) : (
-              <span className="font-mono">{sourceInfo.component} • {sourceInfo.file}:{sourceInfo.line}:{sourceInfo.column}</span>
+              <span className="font-mono">
+                {sourceInfo.component} • {sourceInfo.file}:{sourceInfo.line}:{sourceInfo.column}
+              </span>
             )}
           </DialogDescription>
         </DialogHeader>
@@ -308,9 +322,7 @@ export const FeedbackBubble: React.FC<FeedbackBubbleProps> = ({
                 <Button variant="outline" onClick={() => handleSubmit(true)}>
                   Submit & Continue
                 </Button>
-                <Button onClick={() => handleSubmit(false)}>
-                  Submit
-                </Button>
+                <Button onClick={() => handleSubmit(false)}>Submit</Button>
               </div>
             </>
           ) : (

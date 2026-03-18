@@ -3,7 +3,10 @@ import type { McpClientType } from "./useMcp";
 
 import type { Prompt } from "../constants/types";
 
-import { ListPromptsResultSchema, PromptListChangedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
+import {
+  ListPromptsResultSchema,
+  PromptListChangedNotificationSchema,
+} from "@modelcontextprotocol/sdk/types.js";
 
 export function usePrompts(mcpClient: McpClientType | null) {
   const [prompts, setPrompts] = useState<Prompt[]>([]);
@@ -19,13 +22,10 @@ export function usePrompts(mcpClient: McpClientType | null) {
       }
 
       setIsLoading(true);
-      
+
       try {
-        const result = await mcpClient.request(
-          { method: "prompts/list" },
-          ListPromptsResultSchema
-        );
-        
+        const result = await mcpClient.request({ method: "prompts/list" }, ListPromptsResultSchema);
+
         if (mounted && result.prompts) {
           setPrompts(result.prompts as Prompt[]);
         }
@@ -42,13 +42,10 @@ export function usePrompts(mcpClient: McpClientType | null) {
 
     // Listen for prompt list changes
     if (mcpClient) {
-      mcpClient.setNotificationHandler(
-        PromptListChangedNotificationSchema,
-        async () => {
-          console.log("[usePrompts] Received prompts/list_changed notification");
-          await fetchPrompts();
-        }
-      );
+      mcpClient.setNotificationHandler(PromptListChangedNotificationSchema, async () => {
+        console.log("[usePrompts] Received prompts/list_changed notification");
+        await fetchPrompts();
+      });
     }
 
     return () => {

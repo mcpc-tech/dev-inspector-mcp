@@ -23,7 +23,10 @@ export async function runServerCommand() {
       i++;
     } else if (args[i] === "--allowed-hosts" && args[i + 1]) {
       // Split by comma
-      const hosts = args[i + 1].split(',').map(h => h.trim()).filter(Boolean);
+      const hosts = args[i + 1]
+        .split(",")
+        .map((h) => h.trim())
+        .filter(Boolean);
       allowedHosts.push(...hosts);
       i++;
     } else if (args[i] === "--help" || args[i] === "-h") {

@@ -44,9 +44,7 @@ export function addLog(type: ConsoleLog["type"], args: any[]) {
   return log;
 }
 
-export function addNetworkRequest(
-  request: Omit<NetworkRequest, "id" | "timestamp">,
-) {
+export function addNetworkRequest(request: Omit<NetworkRequest, "id" | "timestamp">) {
   const req: NetworkRequest = {
     id: nextRequestId++,
     timestamp: Date.now(),

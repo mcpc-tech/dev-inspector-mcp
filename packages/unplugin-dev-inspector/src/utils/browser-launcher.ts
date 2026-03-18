@@ -29,8 +29,8 @@ function registerProcessCleanupOnce(): void {
   cleanupRegistered = true;
 
   // Register with unified shutdown manager
-  registerCleanupHandler('browser-client', async () => {
-    await closeSharedClient('shutdown');
+  registerCleanupHandler("browser-client", async () => {
+    await closeSharedClient("shutdown");
   });
 }
 
@@ -52,7 +52,7 @@ async function getOrCreateClient(sseUrl: string): Promise<Client> {
   connectPromise = sharedClient
     .connect(transport)
     .then(() => sharedClient as Client)
-    .catch(async error => {
+    .catch(async (error) => {
       await closeSharedClient("connect-failed");
       throw error;
     })

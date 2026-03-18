@@ -10,27 +10,27 @@ export function resolveNpmPackageBin(packageName: string): string | null {
   try {
     const require = createRequire(import.meta.url);
     const packageJsonPath = require.resolve(`${packageName}/package.json`);
-    const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
-    
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
+
     // Get bin entry - can be string or object
     let binPath: string | undefined;
-    if (typeof packageJson.bin === 'string') {
+    if (typeof packageJson.bin === "string") {
       binPath = packageJson.bin;
-    } else if (typeof packageJson.bin === 'object') {
+    } else if (typeof packageJson.bin === "object") {
       // Use the first bin entry or one matching the package name
       const binEntries = Object.entries(packageJson.bin);
-      const matchingEntry = binEntries.find(([name]) => name === packageJson.name.split('/').pop());
-      binPath = matchingEntry ? matchingEntry[1] as string : binEntries[0]?.[1] as string;
+      const matchingEntry = binEntries.find(([name]) => name === packageJson.name.split("/").pop());
+      binPath = matchingEntry ? (matchingEntry[1] as string) : (binEntries[0]?.[1] as string);
     }
-    
+
     if (!binPath) {
       console.warn(`[dev-inspector] [acp] No bin entry found in ${packageName}/package.json`);
       return null;
     }
-    
+
     const binFullPath = join(dirname(packageJsonPath), binPath);
     console.log(`[dev-inspector] [acp] Resolved ${packageName} bin to: ${binFullPath}`);
-    
+
     return binFullPath;
   } catch (error) {
     console.warn(`[dev-inspector] [acp] Failed to resolve npm package ${packageName}:`, error);

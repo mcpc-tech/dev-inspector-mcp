@@ -12,7 +12,9 @@ describe("substituteEnvVars", () => {
   it("should replace env vars in strings", () => {
     expect(substituteEnvVars("{API_KEY}", mockEnv)).toBe("secret-123");
     // Test lowercase support
-    expect(substituteEnvVars("{lowercase_key}", { ...mockEnv, lowercase_key: "value" })).toBe("value");
+    expect(substituteEnvVars("{lowercase_key}", { ...mockEnv, lowercase_key: "value" })).toBe(
+      "value",
+    );
     expect(substituteEnvVars("API_KEY", mockEnv)).toBe("API_KEY");
     expect(substituteEnvVars("{MISSING}", mockEnv)).toBe("{MISSING}");
   });

@@ -39,7 +39,10 @@ export async function runSetupCommand() {
       i++;
     } else if (args[i] === "--allowed-hosts" && args[i + 1]) {
       // Parse comma-separated list
-      const hosts = args[i + 1].split(',').map(h => h.trim()).filter(Boolean);
+      const hosts = args[i + 1]
+        .split(",")
+        .map((h) => h.trim())
+        .filter(Boolean);
       allowedHosts.push(...hosts);
       i++;
     } else if (args[i] === "--bundler" && args[i + 1]) {
@@ -55,7 +58,10 @@ export async function runSetupCommand() {
       defaultAgent = args[i + 1];
       i++;
     } else if (args[i] === "--visible-agents" && args[i + 1]) {
-      visibleAgents = args[i + 1].split(',').map(a => a.trim()).filter(Boolean);
+      visibleAgents = args[i + 1]
+        .split(",")
+        .map((a) => a.trim())
+        .filter(Boolean);
       i++;
     } else if (args[i] === "--public-base-url" && args[i + 1]) {
       publicBaseUrl = args[i + 1];
@@ -98,7 +104,7 @@ export async function runSetupCommand() {
         process.exit(1);
       }
       selectedConfigPath = configPath;
-      
+
       // More precise bundler detection using file endings
       const filename = configPath.toLowerCase();
       if (/vite\.config\.(ts|js|mjs)$/i.test(filename)) {
@@ -122,12 +128,12 @@ export async function runSetupCommand() {
         process.exit(1);
       }
       selectedBundler = bundlerType;
-      const fw = frameworks.find(f => f.type === bundlerType);
+      const fw = frameworks.find((f) => f.type === bundlerType);
       if (fw) selectedConfigPath = fw.detect(cwd);
     } else {
       const detected = frameworks
-        .map(f => ({ type: f.type, path: f.detect(cwd) }))
-        .filter(d => d.path !== null) as { type: string, path: string }[];
+        .map((f) => ({ type: f.type, path: f.detect(cwd) }))
+        .filter((d) => d.path !== null) as { type: string; path: string }[];
 
       if (detected.length === 0) {
         console.error("❌ No bundler config files found in current directory");
@@ -153,11 +159,11 @@ export async function runSetupCommand() {
     // Transform
     console.log(`\n${dryRun ? "🔍 Previewing" : "🔧 Transforming"} ${selectedBundler} config...`);
     const code = readFileSync(selectedConfigPath, "utf-8");
-    const options: SetupOptions = { 
-      dryRun, 
-      configPath: selectedConfigPath, 
-      entryPath, 
-      host, 
+    const options: SetupOptions = {
+      dryRun,
+      configPath: selectedConfigPath,
+      entryPath,
+      host,
       allowedHosts,
       updateConfig,
       disableChrome,
@@ -165,15 +171,15 @@ export async function runSetupCommand() {
       defaultAgent,
       visibleAgents,
       publicBaseUrl,
-      jsonOptions
+      jsonOptions,
     };
-    
-    const framework = frameworks.find(f => f.type === selectedBundler);
+
+    const framework = frameworks.find((f) => f.type === selectedBundler);
     if (!framework) {
       console.error(`❌ Unsupported bundler: ${selectedBundler}`);
       process.exit(1);
     }
-    
+
     const result = framework.transform(code, options);
 
     if (!result.success) {
@@ -190,7 +196,9 @@ export async function runSetupCommand() {
     // Execution
     const installed = installPackage("@mcpc-tech/unplugin-dev-inspector-mcp@latest", true);
     if (!installed) {
-      console.warn("⚠️  Package installation failed, but setup will continue with config transformation.");
+      console.warn(
+        "⚠️  Package installation failed, but setup will continue with config transformation.",
+      );
     }
 
     if (result.modified) {
@@ -226,7 +234,6 @@ export async function runSetupCommand() {
     }
 
     printNextSteps(selectedConfigPath, entryPath, selectedBundler, installed);
-
   } catch (error) {
     console.error("❌ Setup failed:", error instanceof Error ? error.message : error);
     process.exit(1);
@@ -269,11 +276,18 @@ function showPreview(result: TransformResult) {
   console.log("\n💡 Run without --dry-run to apply these changes");
 }
 
-function printNextSteps(configPath: string, entryPath: string | undefined, bundler: string, installed: boolean) {
+function printNextSteps(
+  configPath: string,
+  entryPath: string | undefined,
+  bundler: string,
+  installed: boolean,
+) {
   console.log(`\n📝 Next steps:`);
-  
+
   if (!installed) {
-    console.log(`   1. Install the package manually: npm install -D @mcpc-tech/unplugin-dev-inspector-mcp`);
+    console.log(
+      `   1. Install the package manually: npm install -D @mcpc-tech/unplugin-dev-inspector-mcp`,
+    );
     console.log(`   2. Review the changes in ${configPath} and package.json`);
     console.log(`   3. Start your dev server`);
   } else {
@@ -294,12 +308,16 @@ function printNextSteps(configPath: string, entryPath: string | undefined, bundl
     console.log(`   Terminal 1: npm run dev`);
     console.log(`   Terminal 2: npx dev-inspector-server`);
     console.log(`   `);
-    console.log(`   Or use concurrently: npx concurrently "npm run dev" "npx dev-inspector-server"`);
+    console.log(
+      `   Or use concurrently: npx concurrently "npm run dev" "npx dev-inspector-server"`,
+    );
     console.log(`   (Webpack mode works without standalone server: npm run dev -- --webpack)`);
   }
 
   if (bundler === "vite") {
-    console.log(`\n⚠️  Important: DevInspector should be placed BEFORE framework plugins (react/vue/svelte)`);
+    console.log(
+      `\n⚠️  Important: DevInspector should be placed BEFORE framework plugins (react/vue/svelte)`,
+    );
     console.log(`   Please verify the plugin order in your config.`);
   }
 }

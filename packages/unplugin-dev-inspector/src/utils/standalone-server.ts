@@ -47,11 +47,11 @@ export class StandaloneServer {
       if (this.allowedHosts.length > 0) {
         const hostHeader = req.headers.host;
         if (hostHeader) {
-          const hostname = hostHeader.split(':')[0];
-          // Allow localhost/127.0.0.1 by default if they are accessing via those IPs even if not in allowedHosts? 
+          const hostname = hostHeader.split(":")[0];
+          // Allow localhost/127.0.0.1 by default if they are accessing via those IPs even if not in allowedHosts?
           // Better to stick to strict check if allowedHosts is provided.
-          const isAllowed = this.allowedHosts.some(allowed => {
-            if (allowed.startsWith('.')) {
+          const isAllowed = this.allowedHosts.some((allowed) => {
+            if (allowed.startsWith(".")) {
               return hostname.endsWith(allowed) || hostname === allowed.slice(1);
             }
             return hostname === allowed;
@@ -64,11 +64,12 @@ export class StandaloneServer {
             // Let's keep it simple: if allowedHosts is set, MUST match.
 
             // Exception: always allow localhost references for local tools?
-            const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+            const isLocal =
+              hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
 
             if (!isAllowed && !isLocal) {
               res.statusCode = 403;
-              res.end('Host Restricted');
+              res.end("Host Restricted");
               return;
             }
           }
@@ -76,10 +77,10 @@ export class StandaloneServer {
       }
 
       // Ping route
-      if (req.url === '/ping') {
+      if (req.url === "/ping") {
         res.statusCode = 200;
-        res.setHeader('Content-Type', 'text/plain');
-        res.end('pong');
+        res.setHeader("Content-Type", "text/plain");
+        res.end("pong");
         return;
       }
 
@@ -155,7 +156,12 @@ export class StandaloneServer {
    */
   async start(options: StandaloneServerOptions = {}): Promise<{ host: string; port: number }> {
     const startPort = options.port || getDefaultPort();
-    this.host = typeof options.host === 'string' ? options.host : (options.host === true ? '0.0.0.0' : 'localhost')
+    this.host =
+      typeof options.host === "string"
+        ? options.host
+        : options.host === true
+          ? "0.0.0.0"
+          : "localhost";
     this.allowedHosts = options.allowedHosts || [];
 
     // Try to find a free port
@@ -210,7 +216,7 @@ export async function startStandaloneServer(options: StandaloneServerOptions = {
   const { host, port } = await globalServer.start(options);
 
   // Register cleanup with unified shutdown manager
-  registerCleanupHandler('standalone-server', async () => {
+  registerCleanupHandler("standalone-server", async () => {
     await stopStandaloneServer();
   });
 
@@ -233,7 +239,7 @@ export function stopStandaloneServer(): Promise<void> {
 
     server.close((err) => {
       if (err) {
-        console.error('[dev-inspector] Error closing standalone server:', err);
+        console.error("[dev-inspector] Error closing standalone server:", err);
       }
       resolve();
     });

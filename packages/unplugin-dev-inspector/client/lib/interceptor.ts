@@ -117,10 +117,10 @@ export function initInterceptors(config?: InterceptorConfig) {
       try {
         const clonedRequest = request.clone();
         const text = await clonedRequest.text();
-        
+
         if (text) {
           const requestContentType = request.headers.get("content-type") || "";
-          
+
           if (requestContentType.includes("application/json")) {
             try {
               requestBody = JSON.stringify(JSON.parse(text), null, 2);
@@ -172,15 +172,29 @@ export function initInterceptors(config?: InterceptorConfig) {
       // Format details for display
       const details = `Request:
   Method: ${request.method}
-  URL: ${request.url}${queryParams ? `
+  URL: ${request.url}${
+    queryParams
+      ? `
   Query Parameters:
-${queryParams.split("\n").map((line) => `    ${line}`).join("\n")}` : ""}
+${queryParams
+  .split("\n")
+  .map((line) => `    ${line}`)
+  .join("\n")}`
+      : ""
+  }
   Headers:
 ${Object.entries(requestHeaders)
   .map(([k, v]) => `    ${k}: ${v}`)
-  .join("\n")}${requestBody ? `
+  .join("\n")}${
+        requestBody
+          ? `
   Body:
-${requestBody.split("\n").map((line) => `    ${line}`).join("\n")}` : ""}
+${requestBody
+  .split("\n")
+  .map((line) => `    ${line}`)
+  .join("\n")}`
+          : ""
+      }
 
 Response:
   Status: ${response.status} ${response.statusText}

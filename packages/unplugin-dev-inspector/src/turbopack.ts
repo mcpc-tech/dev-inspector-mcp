@@ -62,21 +62,14 @@ async function ensureStandaloneServer(options: TurbopackDevInspectorOptions): Pr
   // Initialize console/stdio interception
   initStdioInterceptor();
 
-  await setupMcpMiddleware(
-    server as unknown as Connect.Server,
-    serverContext,
-  );
+  await setupMcpMiddleware(server as unknown as Connect.Server, serverContext);
 
-  setupAcpMiddleware(
-    server as unknown as Connect.Server,
-    serverContext,
-    {
-      acpMode: options.acpMode,
-      acpModel: options.acpModel,
-      acpDelay: options.acpDelay,
-      mcpServers: options.mcpServers,
-    },
-  );
+  setupAcpMiddleware(server as unknown as Connect.Server, serverContext, {
+    acpMode: options.acpMode,
+    acpModel: options.acpModel,
+    acpDelay: options.acpDelay,
+    mcpServers: options.mcpServers,
+  });
 
   // Auto-update MCP configs
   const root = process.cwd();
@@ -116,9 +109,7 @@ async function ensureStandaloneServer(options: TurbopackDevInspectorOptions): Pr
       `[dev-inspector] 📴 Chrome integration disabled (DEV_INSPECTOR_DISABLE_CHROME=1 or disableChrome: true)`,
     );
   } else {
-    console.log(
-      `[dev-inspector] ⚠️  autoOpenBrowser: false - Console/Network context unavailable`,
-    );
+    console.log(`[dev-inspector] ⚠️  autoOpenBrowser: false - Console/Network context unavailable`);
     console.log(
       `[dev-inspector] 💡 Use "launch_chrome_devtools" prompt or "chrome_devtools" tool to open browser manually.\n`,
     );

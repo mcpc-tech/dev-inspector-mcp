@@ -7,19 +7,19 @@ let originalStderrWrite: WriteFn | null = null;
 let isIntercepting = false;
 
 function toText(chunk: unknown): string {
-    return typeof chunk === "string" ? chunk : String(chunk);
+  return typeof chunk === "string" ? chunk : String(chunk);
 }
 
 function wrapWrite(stream: "stdout" | "stderr", original: WriteFn): WriteFn {
-    return ((chunk: unknown, ...args: unknown[]) => {
-        try {
-            addStdioLog(stream, toText(chunk));
-        } catch {
-            // Never break stdout/stderr writes.
-        }
+  return ((chunk: unknown, ...args: unknown[]) => {
+    try {
+      addStdioLog(stream, toText(chunk));
+    } catch {
+      // Never break stdout/stderr writes.
+    }
 
-        return original(chunk as any, ...(args as any));
-    }) as WriteFn;
+    return original(chunk as any, ...(args as any));
+  }) as WriteFn;
 }
 
 /**

@@ -4,7 +4,14 @@ import type { NodePath } from "@babel/traverse";
 import type * as t from "@babel/types";
 import MagicString from "magic-string";
 import type { SetupOptions, TransformResult } from "../types";
-import { detectConfigFile, getInsertPosition, parseObjectExpression, serializeObject, detectIndent, unwrapNode } from "../utils";
+import {
+  detectConfigFile,
+  getInsertPosition,
+  parseObjectExpression,
+  serializeObject,
+  detectIndent,
+  unwrapNode,
+} from "../utils";
 
 const traverse = (traverseModule as any).default || traverseModule;
 
@@ -35,7 +42,7 @@ export function transformViteConfig(code: string, options: SetupOptions): Transf
       ImportDeclaration(path: NodePath<t.ImportDeclaration>) {
         if (path.node.source.value === PLUGIN_IMPORT) {
           hasImport = true;
-          const spec = path.node.specifiers.find(s => s.type === "ImportDefaultSpecifier");
+          const spec = path.node.specifiers.find((s) => s.type === "ImportDefaultSpecifier");
           if (spec?.local.type === "Identifier") {
             importedVarName = spec.local.name;
           }
@@ -67,7 +74,7 @@ export function transformViteConfig(code: string, options: SetupOptions): Transf
             ) {
               hasPluginUsage = true;
               // Use undefined check for types safety
-              if (typeof element.start === 'number' && typeof element.end === 'number') {
+              if (typeof element.start === "number" && typeof element.end === "number") {
                 // For replacement, we want to replace the WHOLE element (including 'as any'),
                 // so we use rawElement's range if available, otherwise element's range.
                 // Actually, if we use rawElement, we replace 'Call() as any' with 'NewCall()'.
@@ -80,12 +87,14 @@ export function transformViteConfig(code: string, options: SetupOptions): Transf
                 usageStart = element.start;
                 usageEnd = element.end;
               }
-              if (element.arguments.length > 0 && element.arguments[0].type === "ObjectExpression") {
+              if (
+                element.arguments.length > 0 &&
+                element.arguments[0].type === "ObjectExpression"
+              ) {
                 existingOptionsNode = element.arguments[0];
               }
             }
           });
-
 
           if (elements.length > 0 && elements[0]?.start != null) {
             firstPluginStart = elements[0].start;
@@ -125,7 +134,11 @@ export function transformViteConfig(code: string, options: SetupOptions): Transf
       const mergedConfig = existingOptionsNode ? parseObjectExpression(existingOptionsNode) : {};
       Object.assign(mergedConfig, cliConfig);
       if (usageStart > -1 && usageEnd > -1) {
-        s.overwrite(usageStart, usageEnd, `${importedVarName}.vite(${serializeObject(mergedConfig, indent, 3)})`);
+        s.overwrite(
+          usageStart,
+          usageEnd,
+          `${importedVarName}.vite(${serializeObject(mergedConfig, indent, 3)})`,
+        );
       }
     } else if (hasPluginsArray) {
       // Add new plugin
@@ -151,7 +164,10 @@ export function transformViteConfig(code: string, options: SetupOptions): Transf
             configObj = decl.arguments[0];
           }
           // Case 2: export default defineConfig(() => ({ ... }))
-          else if (decl.type === "CallExpression" && decl.arguments[0]?.type === "ArrowFunctionExpression") {
+          else if (
+            decl.type === "CallExpression" &&
+            decl.arguments[0]?.type === "ArrowFunctionExpression"
+          ) {
             const fn = decl.arguments[0];
             if (fn.body.type === "ObjectExpression") {
               configObj = fn.body;
@@ -194,7 +210,8 @@ export function transformViteConfig(code: string, options: SetupOptions): Transf
       // Helper to inject server config into an ObjectExpression
       const injectServerConfig = (configObj: t.ObjectExpression) => {
         const serverProp = configObj.properties.find(
-          p => p.type === "ObjectProperty" && p.key.type === "Identifier" && p.key.name === "server"
+          (p) =>
+            p.type === "ObjectProperty" && p.key.type === "Identifier" && p.key.name === "server",
         ) as t.ObjectProperty | undefined;
 
         const serverIndent = indent.repeat(2);
@@ -206,14 +223,14 @@ export function transformViteConfig(code: string, options: SetupOptions): Transf
             injection += `\n${serverIndent}host: '${options.host}',`;
           }
           if (options.allowedHosts?.length && !currentBlock.includes("allowedHosts:")) {
-            injection += `\n${serverIndent}allowedHosts: [${options.allowedHosts.map(h => `'${h}'`).join(', ')}],`;
+            injection += `\n${serverIndent}allowedHosts: [${options.allowedHosts.map((h) => `'${h}'`).join(", ")}],`;
           }
           if (injection) s.appendLeft(serverContentStart, injection);
         } else if (configObj.start != null) {
           let injection = `\n${indent}server: {\n`;
           if (options.host) injection += `${serverIndent}host: '${options.host}',\n`;
           if (options.allowedHosts?.length) {
-            injection += `${serverIndent}allowedHosts: [${options.allowedHosts.map(h => `'${h}'`).join(', ')}],\n`;
+            injection += `${serverIndent}allowedHosts: [${options.allowedHosts.map((h) => `'${h}'`).join(", ")}],\n`;
           }
           injection += `${indent}},`;
           s.appendLeft(configObj.start + 1, injection);
@@ -221,7 +238,9 @@ export function transformViteConfig(code: string, options: SetupOptions): Transf
       };
 
       // Helper to extract config object from function body
-      const extractConfigFromFunction = (fn: t.ArrowFunctionExpression | t.FunctionExpression): t.ObjectExpression | null => {
+      const extractConfigFromFunction = (
+        fn: t.ArrowFunctionExpression | t.FunctionExpression,
+      ): t.ObjectExpression | null => {
         // Arrow function with direct return: () => ({ ... })
         if (fn.type === "ArrowFunctionExpression" && fn.body.type === "ObjectExpression") {
           return fn.body;
@@ -242,10 +261,7 @@ export function transformViteConfig(code: string, options: SetupOptions): Transf
           const decl = path.node.declaration;
 
           // Case 1: export default defineConfig({ ... })
-          if (
-            decl.type === "CallExpression" &&
-            decl.arguments[0]?.type === "ObjectExpression"
-          ) {
+          if (decl.type === "CallExpression" && decl.arguments[0]?.type === "ObjectExpression") {
             injectServerConfig(decl.arguments[0]);
             return;
           }
@@ -257,7 +273,9 @@ export function transformViteConfig(code: string, options: SetupOptions): Transf
             (decl.arguments[0]?.type === "ArrowFunctionExpression" ||
               decl.arguments[0]?.type === "FunctionExpression")
           ) {
-            const configObj = extractConfigFromFunction(decl.arguments[0] as t.ArrowFunctionExpression | t.FunctionExpression);
+            const configObj = extractConfigFromFunction(
+              decl.arguments[0] as t.ArrowFunctionExpression | t.FunctionExpression,
+            );
             if (configObj) {
               injectServerConfig(configObj);
             }
@@ -276,9 +294,19 @@ export function transformViteConfig(code: string, options: SetupOptions): Transf
       return { success: true, modified: false, message: "DevInspector is already configured" };
     }
 
-    return { success: true, modified: true, code: s.toString(), message: "Successfully added/updated DevInspector in Vite config" };
+    return {
+      success: true,
+      modified: true,
+      code: s.toString(),
+      message: "Successfully added/updated DevInspector in Vite config",
+    };
   } catch (error) {
-    return { success: false, modified: false, error: error instanceof Error ? error.message : String(error), message: "Failed to transform Vite config" };
+    return {
+      success: false,
+      modified: false,
+      error: error instanceof Error ? error.message : String(error),
+      message: "Failed to transform Vite config",
+    };
   }
 }
 

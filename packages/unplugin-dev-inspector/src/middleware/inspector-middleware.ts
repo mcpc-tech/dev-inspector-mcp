@@ -27,10 +27,7 @@ const MAX_BODY_SIZE = 10 * 1024 * 1024;
  */
 function getInspectorScript(): string | null {
   const possiblePaths = [
-    path.resolve(
-      process.cwd(),
-      "packages/unplugin-dev-inspector/client/dist/inspector.js",
-    ),
+    path.resolve(process.cwd(), "packages/unplugin-dev-inspector/client/dist/inspector.js"),
     path.resolve(__dirname, "../../client/dist/inspector.js"),
     path.resolve(__dirname, "../client/dist/inspector.js"),
     path.resolve(
@@ -49,18 +46,13 @@ function getInspectorScript(): string | null {
     }
   }
 
-  console.warn(
-    "⚠️  Inspector script not found. Run `pnpm build:client` first.",
-  );
+  console.warn("⚠️  Inspector script not found. Run `pnpm build:client` first.");
   return null;
 }
 
 function getInspectorCSS(): string | null {
   const possiblePaths = [
-    path.resolve(
-      process.cwd(),
-      "packages/unplugin-dev-inspector/client/dist/inspector.css",
-    ),
+    path.resolve(process.cwd(), "packages/unplugin-dev-inspector/client/dist/inspector.css"),
     path.resolve(__dirname, "../../client/dist/inspector.css"),
     path.resolve(__dirname, "../client/dist/inspector.css"),
     path.resolve(
@@ -88,7 +80,10 @@ function getSidebarScript(): string | null {
     path.resolve(process.cwd(), "packages/unplugin-dev-inspector/client/dist/sidebar.js"),
     path.resolve(__dirname, "../../client/dist/sidebar.js"),
     path.resolve(__dirname, "../client/dist/sidebar.js"),
-    path.resolve(process.cwd(), "node_modules/@mcpc-tech/unplugin-dev-inspector-mcp/client/dist/sidebar.js"),
+    path.resolve(
+      process.cwd(),
+      "node_modules/@mcpc-tech/unplugin-dev-inspector-mcp/client/dist/sidebar.js",
+    ),
   ];
 
   for (const scriptPath of possiblePaths) {
@@ -108,7 +103,10 @@ function getSidebarCSS(): string | null {
     path.resolve(process.cwd(), "packages/unplugin-dev-inspector/client/dist/sidebar.css"),
     path.resolve(__dirname, "../../client/dist/sidebar.css"),
     path.resolve(__dirname, "../client/dist/sidebar.css"),
-    path.resolve(process.cwd(), "node_modules/@mcpc-tech/unplugin-dev-inspector-mcp/client/dist/sidebar.css"),
+    path.resolve(
+      process.cwd(),
+      "node_modules/@mcpc-tech/unplugin-dev-inspector-mcp/client/dist/sidebar.css",
+    ),
   ];
 
   for (const cssPath of possiblePaths) {
@@ -128,7 +126,10 @@ function getSidebarHTML(): string | null {
     path.resolve(process.cwd(), "packages/unplugin-dev-inspector/client/sidebar.html"),
     path.resolve(__dirname, "../../client/sidebar.html"),
     path.resolve(__dirname, "../client/sidebar.html"),
-    path.resolve(process.cwd(), "node_modules/@mcpc-tech/unplugin-dev-inspector-mcp/client/sidebar.html"),
+    path.resolve(
+      process.cwd(),
+      "node_modules/@mcpc-tech/unplugin-dev-inspector-mcp/client/sidebar.html",
+    ),
   ];
 
   for (const htmlPath of possiblePaths) {
@@ -174,10 +175,7 @@ export interface InspectorConfig {
   defaultPrompts?: boolean | string[];
 }
 
-export function setupInspectorMiddleware(
-  middlewares: Connect.Server,
-  config?: InspectorConfig,
-) {
+export function setupInspectorMiddleware(middlewares: Connect.Server, config?: InspectorConfig) {
   let cachedScript: string | null = null;
   let cachedCSS: string | null = null;
   let cachedSidebarScript: string | null = null;
@@ -185,240 +183,227 @@ export function setupInspectorMiddleware(
   let cachedSidebarHTML: string | null = null;
   let filesChecked = false;
 
-  middlewares.use(
-    (req: IncomingMessage, res: ServerResponse, next: () => void) => {
-      // Handle CORS for inspector endpoints
-      if (req.url?.startsWith("/__inspector__")) {
-        if (handleCors(req, res)) return;
-      }
+  middlewares.use((req: IncomingMessage, res: ServerResponse, next: () => void) => {
+    // Handle CORS for inspector endpoints
+    if (req.url?.startsWith("/__inspector__")) {
+      if (handleCors(req, res)) return;
+    }
 
-      if (!filesChecked) {
-        cachedScript = getInspectorScript();
-        cachedCSS = getInspectorCSS();
-        cachedSidebarScript = getSidebarScript();
-        cachedSidebarCSS = getSidebarCSS();
-        cachedSidebarHTML = getSidebarHTML();
-        filesChecked = true;
-      }
+    if (!filesChecked) {
+      cachedScript = getInspectorScript();
+      cachedCSS = getInspectorCSS();
+      cachedSidebarScript = getSidebarScript();
+      cachedSidebarCSS = getSidebarCSS();
+      cachedSidebarHTML = getSidebarHTML();
+      filesChecked = true;
+    }
 
-      // Serve sidebar HTML page
-      if (req.url === "/__inspector__/sidebar" || req.url === "/__inspector__/sidebar/") {
-        if (cachedSidebarHTML) {
-          res.statusCode = 200;
-          res.setHeader("Content-Type", "text/html");
-          res.setHeader("Cache-Control", "no-cache");
-          res.end(cachedSidebarHTML);
-          return;
-        }
-        res.statusCode = 404;
-        res.end("Sidebar not found. Run `pnpm build:client` first.");
-        return;
-      }
-
-      // Serve sidebar JS bundle
-      if (req.url === "/__inspector__/sidebar.js") {
-        if (cachedSidebarScript) {
-          res.statusCode = 200;
-          res.setHeader("Content-Type", "application/javascript");
-          res.setHeader("Cache-Control", "no-cache");
-          res.end(cachedSidebarScript);
-          return;
-        }
-        res.statusCode = 404;
-        res.end("Sidebar script not found");
-        return;
-      }
-
-      // Serve sidebar CSS
-      if (req.url === "/__inspector__/sidebar.css") {
-        if (cachedSidebarCSS) {
-          res.statusCode = 200;
-          res.setHeader("Content-Type", "text/css");
-          res.setHeader("Cache-Control", "no-cache");
-          res.end(cachedSidebarCSS);
-          return;
-        }
-        res.statusCode = 404;
-        res.end("Sidebar CSS not found");
-        return;
-      }
-
-      if (req.url === "/__inspector__/inspector.js") {
-        if (cachedScript) {
-          res.statusCode = 200;
-          res.setHeader("Content-Type", "application/javascript");
-          res.setHeader("Cache-Control", "no-cache");
-          res.end(cachedScript);
-          return;
-        }
-        res.statusCode = 404;
-        res.end("Inspector script not found");
-        return;
-      }
-
-      // Serve code-split chunks from /__inspector__/
-      if (req.url?.startsWith("/__inspector__/") && req.url.endsWith(".js")) {
-        const chunkName = req.url.replace("/__inspector__/", "");
-        const possibleChunkPaths = [
-          path.resolve(
-            process.cwd(),
-            "packages/unplugin-dev-inspector/client/dist",
-            chunkName,
-          ),
-          path.resolve(__dirname, "../../client/dist", chunkName),
-          path.resolve(__dirname, "../client/dist", chunkName),
-          path.resolve(
-            process.cwd(),
-            "node_modules/@mcpc-tech/unplugin-dev-inspector-mcp/client/dist",
-            chunkName,
-          ),
-        ];
-
-        for (const chunkPath of possibleChunkPaths) {
-          try {
-            if (fs.existsSync(chunkPath)) {
-              const content = fs.readFileSync(chunkPath, "utf-8");
-              res.statusCode = 200;
-              res.setHeader("Content-Type", "application/javascript");
-              res.setHeader(
-                "Cache-Control",
-                "public, max-age=31536000, immutable",
-              );
-              res.end(content);
-              return;
-            }
-          } catch (error) {
-            continue;
-          }
-        }
-        // If chunk not found, fall through to next handler
-      }
-
-      if (req.url === "/__inspector__/inspector.css") {
-        if (cachedCSS) {
-          res.statusCode = 200;
-          res.setHeader("Content-Type", "text/css");
-          res.setHeader("Cache-Control", "no-cache");
-          res.end(cachedCSS);
-          return;
-        }
-        res.statusCode = 404;
-        res.end("Inspector CSS not found");
-        return;
-      }
-
-      if (req.url === "/__inspector__/config.json") {
+    // Serve sidebar HTML page
+    if (req.url === "/__inspector__/sidebar" || req.url === "/__inspector__/sidebar/") {
+      if (cachedSidebarHTML) {
         res.statusCode = 200;
-        res.setHeader("Content-Type", "application/json");
+        res.setHeader("Content-Type", "text/html");
         res.setHeader("Cache-Control", "no-cache");
-        res.end(JSON.stringify(config || {}));
+        res.end(cachedSidebarHTML);
         return;
       }
+      res.statusCode = 404;
+      res.end("Sidebar not found. Run `pnpm build:client` first.");
+      return;
+    }
 
-      if (req.url === "/__inspector__/log" && req.method === "POST") {
-        let body = "";
-        let bodySize = 0;
+    // Serve sidebar JS bundle
+    if (req.url === "/__inspector__/sidebar.js") {
+      if (cachedSidebarScript) {
+        res.statusCode = 200;
+        res.setHeader("Content-Type", "application/javascript");
+        res.setHeader("Cache-Control", "no-cache");
+        res.end(cachedSidebarScript);
+        return;
+      }
+      res.statusCode = 404;
+      res.end("Sidebar script not found");
+      return;
+    }
 
-        req.on("data", (chunk) => {
-          bodySize += chunk.length;
-          // Reject immediately if too large - don't accumulate
-          if (bodySize > MAX_BODY_SIZE) {
-            res.statusCode = 413;
-            res.end("Request body too large");
-            req.destroy();
+    // Serve sidebar CSS
+    if (req.url === "/__inspector__/sidebar.css") {
+      if (cachedSidebarCSS) {
+        res.statusCode = 200;
+        res.setHeader("Content-Type", "text/css");
+        res.setHeader("Cache-Control", "no-cache");
+        res.end(cachedSidebarCSS);
+        return;
+      }
+      res.statusCode = 404;
+      res.end("Sidebar CSS not found");
+      return;
+    }
+
+    if (req.url === "/__inspector__/inspector.js") {
+      if (cachedScript) {
+        res.statusCode = 200;
+        res.setHeader("Content-Type", "application/javascript");
+        res.setHeader("Cache-Control", "no-cache");
+        res.end(cachedScript);
+        return;
+      }
+      res.statusCode = 404;
+      res.end("Inspector script not found");
+      return;
+    }
+
+    // Serve code-split chunks from /__inspector__/
+    if (req.url?.startsWith("/__inspector__/") && req.url.endsWith(".js")) {
+      const chunkName = req.url.replace("/__inspector__/", "");
+      const possibleChunkPaths = [
+        path.resolve(process.cwd(), "packages/unplugin-dev-inspector/client/dist", chunkName),
+        path.resolve(__dirname, "../../client/dist", chunkName),
+        path.resolve(__dirname, "../client/dist", chunkName),
+        path.resolve(
+          process.cwd(),
+          "node_modules/@mcpc-tech/unplugin-dev-inspector-mcp/client/dist",
+          chunkName,
+        ),
+      ];
+
+      for (const chunkPath of possibleChunkPaths) {
+        try {
+          if (fs.existsSync(chunkPath)) {
+            const content = fs.readFileSync(chunkPath, "utf-8");
+            res.statusCode = 200;
+            res.setHeader("Content-Type", "application/javascript");
+            res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+            res.end(content);
             return;
           }
-          // Only accumulate if under limit
-          body += chunk.toString();
-        });
+        } catch (error) {
+          continue;
+        }
+      }
+      // If chunk not found, fall through to next handler
+    }
 
-        req.on("end", () => {
-          if (bodySize > MAX_BODY_SIZE) return;
-
-          try {
-            const { type, data } = JSON.parse(body);
-            if (type === "console") {
-              addLog(data.type, data.args);
-            } else if (type === "network") {
-              addNetworkRequest(data);
-            }
-            res.statusCode = 200;
-            res.end("ok");
-          } catch {
-            res.statusCode = 400;
-            res.end("Invalid JSON");
-          }
-        });
+    if (req.url === "/__inspector__/inspector.css") {
+      if (cachedCSS) {
+        res.statusCode = 200;
+        res.setHeader("Content-Type", "text/css");
+        res.setHeader("Cache-Control", "no-cache");
+        res.end(cachedCSS);
         return;
       }
+      res.statusCode = 404;
+      res.end("Inspector CSS not found");
+      return;
+    }
 
-      // GET /__inspector__/request-details/:id - Fetch network request details by ID
-      const requestDetailsMatch = req.url?.match(
-        /^\/__inspector__\/request-details\/(\d+)$/,
-      );
-      if (requestDetailsMatch && req.method === "GET") {
-        const reqid = parseInt(requestDetailsMatch[1]);
+    if (req.url === "/__inspector__/config.json") {
+      res.statusCode = 200;
+      res.setHeader("Content-Type", "application/json");
+      res.setHeader("Cache-Control", "no-cache");
+      res.end(JSON.stringify(config || {}));
+      return;
+    }
 
-        // Validate ID is a positive integer
-        if (!Number.isInteger(reqid) || reqid <= 0) {
-          res.statusCode = 400;
-          res.end("Invalid request ID");
+    if (req.url === "/__inspector__/log" && req.method === "POST") {
+      let body = "";
+      let bodySize = 0;
+
+      req.on("data", (chunk) => {
+        bodySize += chunk.length;
+        // Reject immediately if too large - don't accumulate
+        if (bodySize > MAX_BODY_SIZE) {
+          res.statusCode = 413;
+          res.end("Request body too large");
+          req.destroy();
           return;
         }
+        // Only accumulate if under limit
+        body += chunk.toString();
+      });
 
-        const request = getRequestById(reqid);
+      req.on("end", () => {
+        if (bodySize > MAX_BODY_SIZE) return;
 
-        if (request && request.details) {
+        try {
+          const { type, data } = JSON.parse(body);
+          if (type === "console") {
+            addLog(data.type, data.args);
+          } else if (type === "network") {
+            addNetworkRequest(data);
+          }
           res.statusCode = 200;
-          res.setHeader("Content-Type", "text/plain");
-          res.end(request.details);
-        } else if (request) {
-          res.statusCode = 200;
-          res.setHeader("Content-Type", "application/json");
-          res.end(JSON.stringify(request, null, 2));
-        } else {
-          res.statusCode = 404;
-          res.end("Request not found");
+          res.end("ok");
+        } catch {
+          res.statusCode = 400;
+          res.end("Invalid JSON");
         }
+      });
+      return;
+    }
+
+    // GET /__inspector__/request-details/:id - Fetch network request details by ID
+    const requestDetailsMatch = req.url?.match(/^\/__inspector__\/request-details\/(\d+)$/);
+    if (requestDetailsMatch && req.method === "GET") {
+      const reqid = parseInt(requestDetailsMatch[1]);
+
+      // Validate ID is a positive integer
+      if (!Number.isInteger(reqid) || reqid <= 0) {
+        res.statusCode = 400;
+        res.end("Invalid request ID");
         return;
       }
 
-      // GET /__inspector__/stdio - Get all stdio logs
-      if (req.url === "/__inspector__/stdio" && req.method === "GET") {
-        const stdioLogs = getStdioLogs();
+      const request = getRequestById(reqid);
+
+      if (request && request.details) {
+        res.statusCode = 200;
+        res.setHeader("Content-Type", "text/plain");
+        res.end(request.details);
+      } else if (request) {
         res.statusCode = 200;
         res.setHeader("Content-Type", "application/json");
-        res.end(JSON.stringify(stdioLogs));
+        res.end(JSON.stringify(request, null, 2));
+      } else {
+        res.statusCode = 404;
+        res.end("Request not found");
+      }
+      return;
+    }
+
+    // GET /__inspector__/stdio - Get all stdio logs
+    if (req.url === "/__inspector__/stdio" && req.method === "GET") {
+      const stdioLogs = getStdioLogs();
+      res.statusCode = 200;
+      res.setHeader("Content-Type", "application/json");
+      res.end(JSON.stringify(stdioLogs));
+      return;
+    }
+
+    // GET /__inspector__/stdio/:id - Get specific stdio log by ID
+    const stdioDetailsMatch = req.url?.match(/^\/__inspector__\/stdio\/(\d+)$/);
+    if (stdioDetailsMatch && req.method === "GET") {
+      const stdioid = parseInt(stdioDetailsMatch[1]);
+
+      if (!Number.isInteger(stdioid) || stdioid <= 0) {
+        res.statusCode = 400;
+        res.end("Invalid stdio ID");
         return;
       }
 
-      // GET /__inspector__/stdio/:id - Get specific stdio log by ID
-      const stdioDetailsMatch = req.url?.match(
-        /^\/__inspector__\/stdio\/(\d+)$/,
-      );
-      if (stdioDetailsMatch && req.method === "GET") {
-        const stdioid = parseInt(stdioDetailsMatch[1]);
+      const stdioLog = getStdioById(stdioid);
 
-        if (!Number.isInteger(stdioid) || stdioid <= 0) {
-          res.statusCode = 400;
-          res.end("Invalid stdio ID");
-          return;
-        }
-
-        const stdioLog = getStdioById(stdioid);
-
-        if (stdioLog) {
-          res.statusCode = 200;
-          res.setHeader("Content-Type", "application/json");
-          res.end(JSON.stringify(stdioLog));
-        } else {
-          res.statusCode = 404;
-          res.end("Stdio log not found");
-        }
-        return;
+      if (stdioLog) {
+        res.statusCode = 200;
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify(stdioLog));
+      } else {
+        res.statusCode = 404;
+        res.end("Stdio log not found");
       }
+      return;
+    }
 
-      next();
-    },
-  );
+    next();
+  });
 }

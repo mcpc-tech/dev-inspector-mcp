@@ -9,13 +9,10 @@ import type {
 /**
  * Format DOM element info only (for Code tab)
  */
-export function formatDomElement(
-  elementInfo: InspectedElement["elementInfo"],
-): string {
+export function formatDomElement(elementInfo: InspectedElement["elementInfo"]): string {
   if (!elementInfo) return "";
 
-  const { tagName, textContent, className, id: elemId, domPath, boundingBox } =
-    elementInfo;
+  const { tagName, textContent, className, id: elemId, domPath, boundingBox } = elementInfo;
   const idAttr = elemId ? ` id="${elemId}"` : "";
   const classAttr = className ? ` class="${className}"` : "";
 
@@ -31,8 +28,7 @@ Path: ${domPath || "N/A"}
     output += `
 ### Position & Size
 - **Position**: (${Math.round(boundingBox.x)}, ${Math.round(boundingBox.y)})
-- **Size**: ${Math.round(boundingBox.width)}px × ${Math.round(boundingBox.height)
-      }px
+- **Size**: ${Math.round(boundingBox.width)}px × ${Math.round(boundingBox.height)}px
 `;
   }
 
@@ -42,9 +38,7 @@ Path: ${domPath || "N/A"}
 /**
  * Format computed styles only (for Styles tab)
  */
-export function formatComputedStyles(
-  elementInfo: InspectedElement["elementInfo"],
-): string {
+export function formatComputedStyles(elementInfo: InspectedElement["elementInfo"]): string {
   if (!elementInfo) return "";
 
   const { computedStyles, styles } = elementInfo;
@@ -117,11 +111,7 @@ export function formatConsoleMessages(messages: ConsoleMessage[]): string {
 
   const formatted = messages
     .map((msg) => {
-      const levelIcon = msg.level === "error"
-        ? "❌"
-        : msg.level === "warn"
-          ? "⚠️"
-          : "📝";
+      const levelIcon = msg.level === "error" ? "❌" : msg.level === "warn" ? "⚠️" : "📝";
       return `- ${levelIcon} [${msg.level}] ${msg.text}`;
     })
     .join("\n");
@@ -182,9 +172,7 @@ ${formatted}
  * Format typography styles only
  */
 export function formatTypography(
-  typography: NonNullable<
-    InspectedElement["elementInfo"]
-  >["computedStyles"]["typography"],
+  typography: NonNullable<InspectedElement["elementInfo"]>["computedStyles"]["typography"],
 ): string {
   if (!typography) return "";
 
@@ -248,9 +236,7 @@ export function formatElementAnnotations(options: {
     });
   }
 
-  return notes.length > 0
-    ? `\n**Element Annotations**:\n${notes.join("\n")}\n`
-    : "";
+  return notes.length > 0 ? `\n**Element Annotations**:\n${notes.join("\n")}\n` : "";
 }
 
 /**
@@ -287,7 +273,8 @@ export function formatCopyContext(options: {
 
   let output = "# Element Context\n\n";
 
-  const hasRelatedElements = relatedElements &&
+  const hasRelatedElements =
+    relatedElements &&
     relatedElements.length > 0 &&
     relatedElementIds &&
     relatedElementIds.length > 0;
@@ -313,9 +300,7 @@ export function formatCopyContext(options: {
     relatedElementIds &&
     relatedElementIds.length > 0
   ) {
-    const selectedElements = relatedElements.filter((_, idx) =>
-      relatedElementIds.includes(idx)
-    );
+    const selectedElements = relatedElements.filter((_, idx) => relatedElementIds.includes(idx));
     if (selectedElements.length > 0) {
       output += "## Related Elements\n\n";
 
@@ -354,8 +339,7 @@ export function formatCopyContext(options: {
             if (el.elementInfo.textContent) {
               const preview = el.elementInfo.textContent.trim().slice(0, 30);
               if (preview) {
-                output += ` "${preview}${el.elementInfo.textContent.length > 30 ? "..." : ""
-                  }"`;
+                output += ` "${preview}${el.elementInfo.textContent.length > 30 ? "..." : ""}"`;
               }
             }
             output += "`";

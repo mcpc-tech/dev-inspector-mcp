@@ -228,32 +228,48 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
             primaryElement = container;
             // Get all interactive/meaningful children
             const children = container.querySelectorAll("*");
-            elements = [container, ...Array.from(children).filter(el => {
-              // Filter to meaningful elements (not empty, has content or is interactive)
-              const tag = el.tagName.toLowerCase();
-              const isInteractive = ["button", "a", "input", "select", "textarea", "img", "video", "audio"].includes(tag);
-              const hasText = el.textContent?.trim();
-              const hasId = el.id;
-              const hasClass = el.className;
-              return isInteractive || hasText || hasId || hasClass;
-            }).slice(0, 50)]; // Limit to 50 elements
+            elements = [
+              container,
+              ...Array.from(children)
+                .filter((el) => {
+                  // Filter to meaningful elements (not empty, has content or is interactive)
+                  const tag = el.tagName.toLowerCase();
+                  const isInteractive = [
+                    "button",
+                    "a",
+                    "input",
+                    "select",
+                    "textarea",
+                    "img",
+                    "video",
+                    "audio",
+                  ].includes(tag);
+                  const hasText = el.textContent?.trim();
+                  const hasId = el.id;
+                  const hasClass = el.className;
+                  return isInteractive || hasText || hasId || hasClass;
+                })
+                .slice(0, 50),
+            ]; // Limit to 50 elements
           }
         } else if (bounds) {
           // Elements within bounds
           const { x, y, width, height } = bounds;
           const allElements = document.querySelectorAll("*");
-          elements = Array.from(allElements).filter(el => {
-            const rect = el.getBoundingClientRect();
-            // Check if element intersects with bounds
-            return (
-              rect.left < x + width &&
-              rect.right > x &&
-              rect.top < y + height &&
-              rect.bottom > y &&
-              rect.width > 0 &&
-              rect.height > 0
-            );
-          }).slice(0, 50); // Limit to 50 elements
+          elements = Array.from(allElements)
+            .filter((el) => {
+              const rect = el.getBoundingClientRect();
+              // Check if element intersects with bounds
+              return (
+                rect.left < x + width &&
+                rect.right > x &&
+                rect.top < y + height &&
+                rect.bottom > y &&
+                rect.width > 0 &&
+                rect.height > 0
+              );
+            })
+            .slice(0, 50); // Limit to 50 elements
 
           // Use the first element as primary
           primaryElement = elements[0] || null;
@@ -261,9 +277,11 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
 
         if (!primaryElement || elements.length === 0) {
           // Dispatch error event
-          window.dispatchEvent(new CustomEvent("element-inspected", {
-            detail: { error: "No elements found matching the criteria" }
-          }));
+          window.dispatchEvent(
+            new CustomEvent("element-inspected", {
+              detail: { error: "No elements found matching the criteria" },
+            }),
+          );
           return;
         }
 
@@ -271,7 +289,7 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
         const primaryInfo = getSourceInfo(primaryElement);
 
         // Get related elements info (excluding primary)
-        const relatedElements = elements.slice(1).map(el => {
+        const relatedElements = elements.slice(1).map((el) => {
           const info = getSourceInfo(el);
           return {
             file: info.file,
@@ -318,28 +336,30 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
           },
         };
 
-        setInspections(prev => [...prev, newItem]);
+        setInspections((prev) => [...prev, newItem]);
 
         // Sync to localStorage before event (React setState is async)
         saveInspectionItems([...loadInspectionItems(), newItem]);
 
         // Dispatch for MCP tool to receive
-        window.dispatchEvent(new CustomEvent("element-inspected", {
-          detail: { inspections: [newItem] }
-        }));
-
+        window.dispatchEvent(
+          new CustomEvent("element-inspected", {
+            detail: { inspections: [newItem] },
+          }),
+        );
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
-        window.dispatchEvent(new CustomEvent("element-inspected", {
-          detail: { error: `Automated capture failed: ${errorMsg}` }
-        }));
+        window.dispatchEvent(
+          new CustomEvent("element-inspected", {
+            detail: { error: `Automated capture failed: ${errorMsg}` },
+          }),
+        );
       }
     };
 
     window.addEventListener("automated-capture", handleAutomatedCapture);
     return () => window.removeEventListener("automated-capture", handleAutomatedCapture);
   }, [setInspections]);
-
 
   useInspectorHover({
     isActive: isActive && !regionMode, // Disable hover when in region mode
@@ -435,7 +455,11 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
     btnRef,
   });
 
-  const handleInspectionSubmit = (description: string, continueInspecting = false, context?: SelectedContext) => {
+  const handleInspectionSubmit = (
+    description: string,
+    continueInspecting = false,
+    context?: SelectedContext,
+  ) => {
     if (!sourceInfo) return;
 
     // Detect if we have related elements (Region capture)
@@ -445,10 +469,10 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
     let defaultDescription = description;
     if (!defaultDescription && isRegionCapture) {
       const count = (sourceInfo.relatedElements?.length || 0) + 1;
-      const primary = sourceInfo.elementInfo?.tagName.toLowerCase() || 'element';
+      const primary = sourceInfo.elementInfo?.tagName.toLowerCase() || "element";
 
       // Check if any notes exist to add AI hint
-      const hasNotes = sourceInfo.note || sourceInfo.relatedElements?.some(el => el.note);
+      const hasNotes = sourceInfo.note || sourceInfo.relatedElements?.some((el) => el.note);
       const actionHint = hasNotes ? ". Please read notes on these elements." : "";
 
       defaultDescription = `Region: ${count} elements (primary: ${primary})${actionHint}`;
@@ -466,19 +490,21 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
         column: sourceInfo.column,
         elementInfo: sourceInfo.elementInfo,
 
-        relatedElements: sourceInfo.relatedElements?.map(el => ({
+        relatedElements: sourceInfo.relatedElements?.map((el) => ({
           file: el.file,
           component: el.component,
           line: el.line,
           column: el.column,
-          elementInfo: el.elementInfo ? {
-            tagName: el.elementInfo.tagName,
-            textContent: el.elementInfo.textContent,
-            className: el.elementInfo.className,
-            id: el.elementInfo.id,
-            styles: el.elementInfo.styles || {},
-          } : undefined,
-          note: el.note
+          elementInfo: el.elementInfo
+            ? {
+                tagName: el.elementInfo.tagName,
+                textContent: el.elementInfo.textContent,
+                className: el.elementInfo.className,
+                id: el.elementInfo.id,
+                styles: el.elementInfo.styles || {},
+              }
+            : undefined,
+          note: el.note,
         })),
       },
       description: finalDescription,
@@ -518,11 +544,11 @@ const InspectorContainer: React.FC<InspectorContainerProps> = ({ shadowRoot, mou
       setCurrentSessionInspections([]);
       setIsActive(false);
       document.body.style.cursor = "";
-      showNotif(`${updatedSessionInspections.length} inspection${updatedSessionInspections.length > 1 ? 's' : ''} saved`);
+      showNotif(
+        `${updatedSessionInspections.length} inspection${updatedSessionInspections.length > 1 ? "s" : ""} saved`,
+      );
     }
   };
-
-
 
   const handleAgentSubmit = (query: string, agent: any, sessionId?: string) => {
     sendMessage(

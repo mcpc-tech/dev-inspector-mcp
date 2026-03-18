@@ -29,7 +29,7 @@ export async function setupMcpMiddleware(
   sharedConnectionManager = connectionManager;
 
   // Register cleanup handler to close all connections on shutdown
-  registerCleanupHandler('mcp-connections', () => {
+  registerCleanupHandler("mcp-connections", () => {
     connectionManager.closeAll();
   });
 
@@ -267,20 +267,24 @@ async function handleSseConnection(
     const clientId = url.searchParams.get("clientId") || `agent-${sessionId}`;
     const puppetId = url.searchParams.get("puppetId") || "inspector";
     // Disable Chrome for if not automated
-    const isAutomated = url.searchParams.get("isAutomated") === 'true';
-    console.log(`[dev-inspector] New SSE connection: sessionId=${sessionId}, clientId=${clientId}, puppetId=${puppetId}, isAutomated=${isAutomated}`);
+    const isAutomated = url.searchParams.get("isAutomated") === "true";
+    console.log(
+      `[dev-inspector] New SSE connection: sessionId=${sessionId}, clientId=${clientId}, puppetId=${puppetId}, isAutomated=${isAutomated}`,
+    );
 
     if (isAutomated && serverContext) {
       serverContext.isAutomated = true;
     }
-    
+
     // Create MCP server for this SSE connection
     const mcpServer = await createInspectorMcpServer({
       ...serverContext,
       isAutomated,
     });
 
-    console.log(`[dev-inspector] [sse] New connection request: clientId=${clientId}, puppetId=${puppetId}, sessionId=${sessionId}`);
+    console.log(
+      `[dev-inspector] [sse] New connection request: clientId=${clientId}, puppetId=${puppetId}, sessionId=${sessionId}`,
+    );
 
     connectionManager.registerTransport(sessionId, transport);
 
@@ -288,7 +292,9 @@ async function handleSseConnection(
       console.log(`[dev-inspector] [sse] Handling Inspector connection: ${sessionId}`);
       connectionManager.handleInspectorConnection(sessionId);
     } else {
-      console.log(`[dev-inspector] [sse] Handling Watcher connection: ${sessionId} (binding to ${puppetId})`);
+      console.log(
+        `[dev-inspector] [sse] Handling Watcher connection: ${sessionId} (binding to ${puppetId})`,
+      );
       // Watcher connection: bind to inspector
       connectionManager.handleWatcherConnection(sessionId, clientId, puppetId, transport);
     }

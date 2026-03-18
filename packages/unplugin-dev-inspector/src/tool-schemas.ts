@@ -48,7 +48,8 @@ Returns: array of element contexts (max 50).`,
             width: { type: "number" },
             height: { type: "number" },
           },
-          description: "Page coordinates - captures elements intersecting this area. Use get_page_info for context.",
+          description:
+            "Page coordinates - captures elements intersecting this area. Use get_page_info for context.",
         },
       },
     },
@@ -149,7 +150,8 @@ Returns: array of element contexts (max 50).`,
 
   get_page_info: {
     name: "get_page_info",
-    description: "Get page overview with accessibility tree. Returns URL, title, viewport, document size, and semantic structure (landmarks, headings, forms, links). Start here to understand the page.",
+    description:
+      "Get page overview with accessibility tree. Returns URL, title, viewport, document size, and semantic structure (landmarks, headings, forms, links). Start here to understand the page.",
     inputSchema: {
       type: "object" as const,
       properties: {},

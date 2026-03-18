@@ -38,7 +38,7 @@ export function useIslandState(
     if (lastMessage && lastMessage.role === "assistant") {
       const processed = processMessage(lastMessage);
       displayText = processed.displayText;
-      
+
       // Prioritize active tool call based on strict "latest part" logic
       // toolName = processed.toolCall || extractToolName(lastMessage);
       toolName = extractLatestToolName(lastMessage);
@@ -55,7 +55,7 @@ export function useIslandState(
       toolName,
       displayText,
       isStreaming,
-      lastMessage
+      lastMessage,
     };
   }, [messages, status, isExpanded]);
 }

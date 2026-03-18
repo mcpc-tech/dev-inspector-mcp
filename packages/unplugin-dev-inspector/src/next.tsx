@@ -22,7 +22,7 @@ export function DevInspector({
   host = "localhost",
   port = "8888",
   baseUrl,
-  disableChrome = true
+  disableChrome = true,
 }: DevInspectorProps) {
   useEffect(() => {
     if (typeof window === "undefined") return;

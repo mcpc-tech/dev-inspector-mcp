@@ -21,12 +21,15 @@ export function isChromeDisabled(disableOption?: boolean): boolean {
   return disableOption ?? true;
 }
 
-export function getPublicBaseUrl(options?: { publicBaseUrl?: string; host?: string; port?: number }): string {
+export function getPublicBaseUrl(options?: {
+  publicBaseUrl?: string;
+  host?: string;
+  port?: number;
+}): string {
   const fromEnv = process.env.DEV_INSPECTOR_PUBLIC_BASE_URL;
   if (fromEnv) return stripTrailingSlash(fromEnv);
-  
+
   if (options?.publicBaseUrl) return stripTrailingSlash(options.publicBaseUrl);
-  
 
   const host = options?.host || "localhost";
   const port = options?.port || 5173;

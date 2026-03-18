@@ -44,53 +44,53 @@ export const useInspectorHover = ({
 
       if (tooltipRef.current) {
         const info = getSourceInfo(target);
-        
+
         // Simplified content for cleaner look
         const componentName = info.component || target.tagName.toLowerCase();
-        const sourceLoc = info.file ? `${info.file.split('/').pop()}:${info.line}` : '';
-        
+        const sourceLoc = info.file ? `${info.file.split("/").pop()}:${info.line}` : "";
+
         // Securely create content using DOM API to prevent XSS
         tooltipRef.current.replaceChildren();
-        
-        const container = document.createElement('div');
+
+        const container = document.createElement("div");
         container.className = "flex items-center gap-2";
-        
-        const nameSpan = document.createElement('span');
+
+        const nameSpan = document.createElement("span");
         nameSpan.className = "font-bold text-blue-600";
         nameSpan.textContent = componentName;
         container.appendChild(nameSpan);
-        
+
         if (sourceLoc) {
-             const locSpan = document.createElement('span');
-             locSpan.className = "text-slate-400 text-[10px]";
-             locSpan.textContent = sourceLoc;
-             container.appendChild(locSpan);
+          const locSpan = document.createElement("span");
+          locSpan.className = "text-slate-400 text-[10px]";
+          locSpan.textContent = sourceLoc;
+          container.appendChild(locSpan);
         }
-        
+
         tooltipRef.current.appendChild(container);
-        
+
         // Ensure visible before measuring
         tooltipRef.current.style.display = "block";
-        
+
         // Position logic: prefer top-left, flip if too close to top
         const tooltipHeight = tooltipRef.current.offsetHeight;
         const gap = 4;
-        const showAbove = rect.top > (tooltipHeight + gap);
+        const showAbove = rect.top > tooltipHeight + gap;
 
         tooltipRef.current.style.left = rect.left + "px";
-        
+
         if (showAbove) {
-             tooltipRef.current.style.top = (rect.top - gap) + "px";
-             tooltipRef.current.style.transform = "translateY(-100%)";
+          tooltipRef.current.style.top = rect.top - gap + "px";
+          tooltipRef.current.style.transform = "translateY(-100%)";
         } else {
-             tooltipRef.current.style.top = (rect.bottom + gap) + "px";
-             tooltipRef.current.style.transform = "none";
+          tooltipRef.current.style.top = rect.bottom + gap + "px";
+          tooltipRef.current.style.transform = "none";
         }
-        
+
         // Ensure strictly within viewport width
         const tooltipRect = tooltipRef.current.getBoundingClientRect();
         if (tooltipRect.right > window.innerWidth) {
-            tooltipRef.current.style.left = (window.innerWidth - tooltipRect.width - 10) + "px";
+          tooltipRef.current.style.left = window.innerWidth - tooltipRect.width - 10 + "px";
         }
       }
     };

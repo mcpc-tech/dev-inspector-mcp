@@ -274,7 +274,7 @@ export function extractLatestToolName(message: any): string | null {
       ) {
         return part.input.toolName;
       }
-      
+
       // Check for direct toolName (fallback)
       if ("toolName" in part && typeof part.toolName === "string") {
         return part.toolName;
@@ -285,7 +285,7 @@ export function extractLatestToolName(message: any): string | null {
     if (part.type === "text" && "text" in part && typeof part.text === "string") {
       // If text is non-empty, then TEXT is the latest part. Return null (no tool).
       if (part.text.trim().length > 0) {
-        return null; 
+        return null;
       }
       // If text IS empty/whitespace, continue looking backwards?
       // Yes, usually ignore whitespace.

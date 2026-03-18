@@ -16,7 +16,11 @@ function Dialog({ open, onOpenChange, children }: DialogProps) {
 }
 
 function DialogTrigger({ children, ...props }: React.ComponentProps<"button">) {
-  return <button type="button" {...props}>{children}</button>;
+  return (
+    <button type="button" {...props}>
+      {children}
+    </button>
+  );
 }
 
 function DialogClose({ children, onClick, ...props }: React.ComponentProps<"button">) {
@@ -88,10 +92,7 @@ function DialogContent({
 
 function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
-    <div
-      className={cn("flex flex-col gap-2 text-center sm:text-left", className)}
-      {...props}
-    />
+    <div className={cn("flex flex-col gap-2 text-center sm:text-left", className)} {...props} />
   );
 }
 
@@ -105,21 +106,11 @@ function DialogFooter({ className, ...props }: React.ComponentProps<"div">) {
 }
 
 function DialogTitle({ className, ...props }: React.ComponentProps<"h2">) {
-  return (
-    <h2
-      className={cn("text-lg leading-none font-semibold", className)}
-      {...props}
-    />
-  );
+  return <h2 className={cn("text-lg leading-none font-semibold", className)} {...props} />;
 }
 
 function DialogDescription({ className, ...props }: React.ComponentProps<"p">) {
-  return (
-    <p
-      className={cn("text-muted-foreground text-sm", className)}
-      {...props}
-    />
-  );
+  return <p className={cn("text-muted-foreground text-sm", className)} {...props} />;
 }
 
 // Keep these exports for backwards compatibility but they're no longer needed

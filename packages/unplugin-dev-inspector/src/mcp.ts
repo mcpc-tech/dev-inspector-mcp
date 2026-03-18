@@ -91,11 +91,7 @@ export interface ServerContext {
 }
 
 export async function createInspectorMcpServer(serverContext?: ServerContext): Promise<any> {
-  const {
-    disableChrome,
-    prompts: userPrompts = [],
-    defaultPrompts = true,
-  } = serverContext || {};
+  const { disableChrome, prompts: userPrompts = [], defaultPrompts = true } = serverContext || {};
 
   const chromeDisabled = isChromeDisabled(disableChrome);
   const isAutomated = serverContext?.isAutomated ?? false;
@@ -146,7 +142,13 @@ export async function createInspectorMcpServer(serverContext?: ServerContext): P
   const mcpServer = await mcpc(
     [
       { name: "dev-inspector", version: "1.0.0", title: "Dev environment inspection tool" },
-      { capabilities: { tools: { listChanged: true }, sampling: {}, prompts: { listChanged: true } } },
+      {
+        capabilities: {
+          tools: { listChanged: true },
+          sampling: {},
+          prompts: { listChanged: true },
+        },
+      },
     ],
     chromeDevToolsServers,
   );
@@ -160,10 +162,20 @@ export async function createInspectorMcpServer(serverContext?: ServerContext): P
       async ({ reqid }: { reqid?: number }) => {
         if (reqid !== undefined) {
           const req = getRequestById(reqid);
-          return { content: [{ type: "text" as const, text: req ? (req.details || JSON.stringify(req, null, 2)) : "Not found" }] };
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: req ? req.details || JSON.stringify(req, null, 2) : "Not found",
+              },
+            ],
+          };
         }
         const text = getNetworkRequests()
-          .map((r) => `reqid=${r.id} ${r.method} ${truncate(r.url, TRUNCATE_URL_LENGTH)} [${r.status}]`)
+          .map(
+            (r) =>
+              `reqid=${r.id} ${r.method} ${truncate(r.url, TRUNCATE_URL_LENGTH)} [${r.status}]`,
+          )
           .reverse()
           .join("\n");
         return { content: [{ type: "text" as const, text: text || "No network requests" }] };
@@ -177,11 +189,17 @@ export async function createInspectorMcpServer(serverContext?: ServerContext): P
       async ({ msgid }: { msgid?: number }) => {
         if (msgid !== undefined) {
           const log = getLogById(msgid);
-          return { content: [{ type: "text" as const, text: log ? JSON.stringify(log, null, 2) : "Not found" }] };
+          return {
+            content: [
+              { type: "text" as const, text: log ? JSON.stringify(log, null, 2) : "Not found" },
+            ],
+          };
         }
         const text = getLogs()
           .map((l) => {
-            const msg = l.args.map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a))).join(" ");
+            const msg = l.args
+              .map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a)))
+              .join(" ");
             return `msgid=${l.id} [${l.type}] ${truncate(msg, TRUNCATE_MESSAGE_LENGTH)}`;
           })
           .reverse()
@@ -199,7 +217,11 @@ export async function createInspectorMcpServer(serverContext?: ServerContext): P
     async ({ stdioid }: { stdioid?: number }) => {
       if (stdioid !== undefined) {
         const log = getStdioById(stdioid);
-        return { content: [{ type: "text" as const, text: log ? JSON.stringify(log, null, 2) : "Not found" }] };
+        return {
+          content: [
+            { type: "text" as const, text: log ? JSON.stringify(log, null, 2) : "Not found" },
+          ],
+        };
       }
       const text = getStdioLogs()
         .map((l) => `stdioid=${l.id} [${l.stream}] ${truncate(l.data, TRUNCATE_MESSAGE_LENGTH)}`)
@@ -221,13 +243,15 @@ export async function createInspectorMcpServer(serverContext?: ServerContext): P
   ]);
 
   // Helper: Map user prompts
-  const mapUserPrompts = () => userPrompts.map((p) => ({ name: p.name, description: p.description, arguments: p.arguments }));
+  const mapUserPrompts = () =>
+    userPrompts.map((p) => ({ name: p.name, description: p.description, arguments: p.arguments }));
 
   // Helper: Filter prompts by config
   const filterPrompts = <T extends { name: string }>(prompts: T[]): T[] => {
     if (defaultPrompts === true) return prompts;
     if (defaultPrompts === false) return [];
-    if (Array.isArray(defaultPrompts)) return prompts.filter((p) => defaultPrompts.includes(p.name));
+    if (Array.isArray(defaultPrompts))
+      return prompts.filter((p) => defaultPrompts.includes(p.name));
     return prompts;
   };
 
@@ -241,7 +265,10 @@ export async function createInspectorMcpServer(serverContext?: ServerContext): P
 
   // Helper: Call client tool
   const callClientTool = async (name: string, args: Record<string, unknown> = {}) => {
-    return (await callMcpMethod(mcpServer, "tools/call", { name, arguments: args })) as CallToolResult;
+    return (await callMcpMethod(mcpServer, "tools/call", {
+      name,
+      arguments: args,
+    })) as CallToolResult;
   };
 
   // Prompts list handler
@@ -254,7 +281,10 @@ export async function createInspectorMcpServer(serverContext?: ServerContext): P
       PROMPT_SCHEMAS.get_stdio_messages,
       ...(!chromeDisabled
         ? [
-            { ...PROMPT_SCHEMAS.launch_chrome_devtools, description: `Launch Chrome DevTools. Default: ${defaultUrl}` },
+            {
+              ...PROMPT_SCHEMAS.launch_chrome_devtools,
+              description: `Launch Chrome DevTools. Default: ${defaultUrl}`,
+            },
             PROMPT_SCHEMAS.get_network_requests,
             PROMPT_SCHEMAS.get_console_messages,
           ]
@@ -282,12 +312,16 @@ export async function createInspectorMcpServer(serverContext?: ServerContext): P
     // Built-in prompts
     switch (promptName) {
       case "capture_element_context": {
-        const result = await callClientTool("capture_element_context", { selector: args?.selector });
+        const result = await callClientTool("capture_element_context", {
+          selector: args?.selector,
+        });
         return toolResultToPrompt(result);
       }
 
       case "capture_area_context": {
-        const result = await callClientTool("capture_area_context", { containerSelector: args?.containerSelector });
+        const result = await callClientTool("capture_area_context", {
+          containerSelector: args?.containerSelector,
+        });
         return toolResultToPrompt(result);
       }
 
@@ -328,17 +362,24 @@ export async function createInspectorMcpServer(serverContext?: ServerContext): P
         if (chromeDisabled) {
           if (reqid) {
             const req = getRequestById(parseInt(reqid as string));
-            return textMessage(req ? (req.details || JSON.stringify(req, null, 2)) : "Not found");
+            return textMessage(req ? req.details || JSON.stringify(req, null, 2) : "Not found");
           }
           const text = getNetworkRequests()
-            .map((r) => `reqid=${r.id} ${r.method} ${truncate(r.url, TRUNCATE_URL_LENGTH)} [${r.status}]`)
+            .map(
+              (r) =>
+                `reqid=${r.id} ${r.method} ${truncate(r.url, TRUNCATE_URL_LENGTH)} [${r.status}]`,
+            )
             .reverse()
             .join("\n");
           return textMessage(`Network Requests:\n${text || "No requests"}`);
         }
         // Chrome mode
         if (reqid) {
-          return toolResultToPrompt(await callChromeTool("chrome_get_network_request", { reqid: parseInt(reqid as string) }));
+          return toolResultToPrompt(
+            await callChromeTool("chrome_get_network_request", {
+              reqid: parseInt(reqid as string),
+            }),
+          );
         }
         return toolResultToPrompt(await callChromeTool("chrome_list_network_requests"));
       }
@@ -352,7 +393,9 @@ export async function createInspectorMcpServer(serverContext?: ServerContext): P
           }
           const text = getLogs()
             .map((l) => {
-              const msg = l.args.map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a))).join(" ");
+              const msg = l.args
+                .map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a)))
+                .join(" ");
               return `msgid=${l.id} [${l.type}] ${truncate(msg, TRUNCATE_MESSAGE_LENGTH)}`;
             })
             .reverse()
@@ -361,7 +404,11 @@ export async function createInspectorMcpServer(serverContext?: ServerContext): P
         }
         // Chrome mode
         if (msgid) {
-          return toolResultToPrompt(await callChromeTool("chrome_get_console_message", { msgid: parseInt(msgid as string) }));
+          return toolResultToPrompt(
+            await callChromeTool("chrome_get_console_message", {
+              msgid: parseInt(msgid as string),
+            }),
+          );
         }
         return toolResultToPrompt(await callChromeTool("chrome_list_console_messages"));
       }

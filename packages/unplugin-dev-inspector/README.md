@@ -75,6 +75,7 @@ yarn add -D @mcpc-tech/unplugin-dev-inspector-mcp
 ```
 
 > **Note:** If you don't need the ACP agents (Inspector Bar mode), add `--no-optional` to skip installing agent packages:
+>
 > ```bash
 > npm i -D @mcpc-tech/unplugin-dev-inspector-mcp --no-optional
 > pnpm add -D @mcpc-tech/unplugin-dev-inspector-mcp --no-optional
@@ -150,7 +151,7 @@ If you prefer to configure it manually:
 
 If your project doesn't use HTML files (e.g., miniapp platforms that only bundle JS):
 
-```typescript
+````typescript
 // vite.config.ts
 ```typescript
 // vite.config.ts
@@ -159,7 +160,7 @@ DevInspector.vite({
   autoInject: false,  // Disable HTML injection
   entry: 'src/main.ts' // Inject inspector into entry file
 })
-```
+````
 
 ##### TypeScript Types (Required for `virtual:dev-inspector-mcp`)
 
@@ -265,7 +266,6 @@ export default function RootLayout({ children }) {
 - **Webpack mode:** `next dev` (uses webpack configuration)
 - **Turbopack mode:** `next dev --turbopack` (uses turbopack configuration, Next.js 16+ default)
 
-
 ### React Router v7+
 
 ```typescript
@@ -298,8 +298,6 @@ export default defineConfig({
 ### 🚧 In Progress
 
 - **Angular** - Support coming soon
-
-
 
 ## Configuration
 
@@ -345,7 +343,7 @@ DevInspector.vite({
 
 ### Agent Installation
 
-DevInspector supports multiple AI agents via [ACP](https://agentclientprotocol.com). 
+DevInspector supports multiple AI agents via [ACP](https://agentclientprotocol.com).
 
 **For npm-based agents** (Claude Code, Codex CLI, Cursor Agent, Droid), you can pre-install them as dev dependencies for faster loading.
 
@@ -403,7 +401,7 @@ Alternatively, install them later as dev dependencies:
 # npm
 npm i -D @zed-industries/claude-code-acp
 
-# pnpm  
+# pnpm
 pnpm add -D @zed-industries/claude-code-acp
 
 # Or add directly to package.json
@@ -423,6 +421,7 @@ pnpm add -D @zed-industries/claude-code-acp
 > **About optionalDependencies:** Agent packages are installed by default. If you don't need them, use `--no-optional` when installing.
 
 **Why install as `devDependencies`?**
+
 - Ensures faster startup (uses local package via `require.resolve` instead of `npx`)
 - Won't affect production bundle (tree-shaken out unless imported)
 - Standard practice for development tools
@@ -443,10 +442,10 @@ export default {
   plugins: [
     DevInspector.vite({
       enabled: true,
-      
+
       // Option 1: Only show specific agents (filters merged agents)
       visibleAgents: ['Claude Code', 'Gemini CLI', 'Goose'],
-      
+
       // Option 2: Add custom agents (merges with defaults)
       agents: [
         {
@@ -462,7 +461,7 @@ export default {
           meta: { icon: "https://example.com/icon.svg" }
         }
       ],
-      
+
       // Option 3: Combine both - add custom agents and filter visibility
       agents: [
         {
@@ -474,7 +473,7 @@ export default {
         }
       ],
       visibleAgents: ['Claude Code', 'My Custom Agent'], // Only show these
-      
+
       // Set default agent to show on startup
       defaultAgent: "Claude Code"
     }),
@@ -513,7 +512,6 @@ DevInspector.vite({
   ]
 })
 ```
-
 
 ## What It Does
 
@@ -555,6 +553,7 @@ DevInspector offers two ways to interact with your AI, depending on your prefere
 ### `capture_element_context`
 
 Capture single element context. Two modes:
+
 - **Interactive (default)**: User clicks element to select
 - **Automated**: Use `selector` param for programmatic capture
 
@@ -563,6 +562,7 @@ Returns: source location, DOM hierarchy, computed styles, dimensions, user notes
 ### `capture_area_context`
 
 Capture multiple elements in an area. Two modes:
+
 - **Interactive (default)**: User draws rectangle to select area
 - **Automated**: Use `containerSelector` or `bounds` param
 

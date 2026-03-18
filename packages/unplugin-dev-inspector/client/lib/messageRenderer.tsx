@@ -78,11 +78,7 @@ function renderMcpContentItems(contentItems: McpContentItem[], keyPrefix: string
         if (item.type === "text" && "text" in item) {
           const textItem = item as McpTextContent;
           return (
-            <CodeBlock
-              key={`${keyPrefix}-text-${idx}`}
-              code={textItem.text}
-              language="markdown"
-            />
+            <CodeBlock key={`${keyPrefix}-text-${idx}`} code={textItem.text} language="markdown" />
           );
         }
         if (item.type === "image" && "data" in item && "mimeType" in item) {
@@ -115,21 +111,21 @@ function renderMcpContentItems(contentItems: McpContentItem[], keyPrefix: string
 type UITool = { name?: string };
 type UIMessagePart<TMeta = Record<string, unknown>, _TToolMap = Record<string, UITool>> =
   | {
-    type: "text";
-    text: string;
-    state?: string;
-    providerMetadata?: TMeta;
-  }
+      type: "text";
+      text: string;
+      state?: string;
+      providerMetadata?: TMeta;
+    }
   | {
-    type: "reasoning";
-    text: string;
-    state?: string;
-    providerMetadata?: TMeta;
-  }
+      type: "reasoning";
+      text: string;
+      state?: string;
+      providerMetadata?: TMeta;
+    }
   | (Record<string, unknown> & {
-    type: string;
-    state?: string;
-  });
+      type: string;
+      state?: string;
+    });
 
 /**
  * Normalize tool name by stripping provider prefixes and namespaces
@@ -211,10 +207,11 @@ export function renderMessagePart(
                   <li key={`plan-${i}`} className="flex items-start justify-between gap-3">
                     <div className="flex-1">
                       <div
-                        className={`text-sm ${status === "done"
-                          ? "line-through text-muted-foreground"
-                          : "text-foreground"
-                          }`}
+                        className={`text-sm ${
+                          status === "done"
+                            ? "line-through text-muted-foreground"
+                            : "text-foreground"
+                        }`}
                       >
                         {content}
                       </div>
@@ -226,10 +223,11 @@ export function renderMessagePart(
                     </div>
                     <div className="shrink-0 text-xs">
                       <span
-                        className={`px-2 py-1 rounded-full font-medium text-[10px] uppercase tracking-wide ${status === "pending"
-                          ? "bg-muted text-muted-foreground"
-                          : "bg-primary/10 text-primary"
-                          }`}
+                        className={`px-2 py-1 rounded-full font-medium text-[10px] uppercase tracking-wide ${
+                          status === "pending"
+                            ? "bg-muted text-muted-foreground"
+                            : "bg-primary/10 text-primary"
+                        }`}
                       >
                         {status ?? "pending"}
                       </span>
@@ -276,9 +274,7 @@ export function renderMessagePart(
           {part.input !== undefined && <ToolInput input={toolInput.args} />}
           {hasOutput && (
             <ToolOutput
-              output={
-                part.output ? renderMcpContent(part.output, `${messageId}-${index}`) : null
-              }
+              output={part.output ? renderMcpContent(part.output, `${messageId}-${index}`) : null}
               errorText={part.errorText as string | undefined}
             />
           )}

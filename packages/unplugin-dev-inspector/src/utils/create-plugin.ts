@@ -166,8 +166,7 @@ export const createDevInspectorPlugin = (
     // Interpolate environment variables for all options
     const options = substituteEnvVars(rawOptions);
     const enabled = options.enabled ?? process.env.NODE_ENV !== "production";
-    const virtualModuleName = options.virtualModuleName ??
-      "virtual:dev-inspector-mcp";
+    const virtualModuleName = options.virtualModuleName ?? "virtual:dev-inspector-mcp";
     // Alternative module name for Webpack (doesn't support virtual: scheme)
     const webpackModuleName = virtualModuleName.replace("virtual:", "");
 
@@ -183,9 +182,7 @@ export const createDevInspectorPlugin = (
     const chromeDisabled = isChromeDisabled(options.disableChrome);
 
     // Start standalone server for MCP/Inspector (unified for all bundlers)
-    const ensureStandaloneServer = async (
-      root: string,
-    ) => {
+    const ensureStandaloneServer = async (root: string) => {
       if (standaloneServerStarted) return;
       standaloneServerStarted = true;
 
@@ -217,21 +214,14 @@ export const createDevInspectorPlugin = (
       // Initialize console/stdio interception
       initStdioInterceptor();
 
-      await setupMcpMiddleware(
-        server as unknown as Connect.Server,
-        serverContext,
-      );
+      await setupMcpMiddleware(server as unknown as Connect.Server, serverContext);
 
-      setupAcpMiddleware(
-        server as unknown as Connect.Server,
-        serverContext,
-        {
-          acpMode: options.acpMode,
-          acpModel: options.acpModel,
-          acpDelay: options.acpDelay,
-          mcpServers: options.mcpServers,
-        },
-      );
+      setupAcpMiddleware(server as unknown as Connect.Server, serverContext, {
+        acpMode: options.acpMode,
+        acpModel: options.acpModel,
+        acpDelay: options.acpDelay,
+        mcpServers: options.mcpServers,
+      });
 
       // Auto-update MCP configs
       await updateMcpConfigs(root, baseUrl, {
@@ -279,9 +269,7 @@ export const createDevInspectorPlugin = (
 
     // Resolve entry file for auto-injection
     const entryOption = process.env.DEV_INSPECTOR_ENTRY || options.entry;
-    const resolvedEntry = entryOption
-      ? path.resolve(process.cwd(), entryOption)
-      : null;
+    const resolvedEntry = entryOption ? path.resolve(process.cwd(), entryOption) : null;
 
     const transform: TransformFunction = (code, id) => {
       // Never transform production builds.
@@ -346,9 +334,7 @@ export function registerInspectorTool(_tool) {
             host,
             port,
           });
-          const injectedBaseUrl = publicBaseUrl
-            ? stripTrailingSlash(publicBaseUrl)
-            : undefined;
+          const injectedBaseUrl = publicBaseUrl ? stripTrailingSlash(publicBaseUrl) : undefined;
 
           // Return dev-only code that works in both Vite and Webpack
           // Uses typeof check to avoid SSR issues and works with both bundlers
@@ -393,10 +379,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
       host: '${host}',
       port: '${port}',
       base: '/',
-      baseUrl: ${injectedBaseUrl
-              ? `'${injectedBaseUrl.replace(/'/g, "\\'")}'`
-              : "undefined"
-            },
+      baseUrl: ${injectedBaseUrl ? `'${injectedBaseUrl.replace(/'/g, "\\'")}'` : "undefined"},
       showInspectorBar: ${showInspectorBar},
       disableChrome: ${chromeDisabled}
     };
@@ -453,10 +436,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
       host: '${host}',
       port: '${port}',
       base: '${base}',
-      baseUrl: ${publicBaseUrl
-                ? `'${publicBaseUrl.replace(/'/g, "\\'")}'`
-                : "undefined"
-              },
+      baseUrl: ${publicBaseUrl ? `'${publicBaseUrl.replace(/'/g, "\\'")}'` : "undefined"},
       showInspectorBar: ${showInspectorBar},
       disableChrome: ${chromeDisabled}
     };
@@ -489,21 +469,15 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
         if (!enabled) return;
         if (compiler.options.mode !== "development") return;
 
-        compiler.hooks.beforeCompile.tapAsync(
-          "UnpluginDevInspector",
-          async (_params, callback) => {
-            try {
-              await ensureStandaloneServer(compiler.context);
-              callback();
-            } catch (e) {
-              console.error(
-                "[dev-inspector] Failed to start standalone server:",
-                e,
-              );
-              callback();
-            }
-          },
-        );
+        compiler.hooks.beforeCompile.tapAsync("UnpluginDevInspector", async (_params, callback) => {
+          try {
+            await ensureStandaloneServer(compiler.context);
+            callback();
+          } catch (e) {
+            console.error("[dev-inspector] Failed to start standalone server:", e);
+            callback();
+          }
+        });
       },
     };
   });

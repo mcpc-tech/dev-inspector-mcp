@@ -24,11 +24,11 @@ export function detectIndent(code: string): string {
   if (match) {
     const indent = match[1];
     // Return the base unit (first tab or first 2/4 spaces)
-    if (indent[0] === '\t') return '\t';
-    if (indent.length >= 4 && indent.startsWith('    ')) return '    ';
-    if (indent.length >= 2) return '  ';
+    if (indent[0] === "\t") return "\t";
+    if (indent.length >= 4 && indent.startsWith("    ")) return "    ";
+    if (indent.length >= 2) return "  ";
   }
-  return '  '; // Default to 2 spaces
+  return "  "; // Default to 2 spaces
 }
 
 /**
@@ -63,7 +63,7 @@ export function serializeObject(obj: any, baseIndent: string = "  ", depth: numb
   if (typeof obj !== "object") return String(obj);
 
   if (Array.isArray(obj)) {
-    const items = obj.map(item => serializeObject(item, baseIndent, depth)).join(", ");
+    const items = obj.map((item) => serializeObject(item, baseIndent, depth)).join(", ");
     return `[${items}]`;
   }
 
@@ -72,8 +72,8 @@ export function serializeObject(obj: any, baseIndent: string = "  ", depth: numb
 
   const indent = baseIndent.repeat(depth);
   const propIndent = baseIndent.repeat(depth + 1);
-  
-  const props = keys.map(key => {
+
+  const props = keys.map((key) => {
     const value = serializeObject(obj[key], baseIndent, depth + 1);
     const safeKey = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key) ? key : `'${key}'`;
     return `${propIndent}${safeKey}: ${value}`;
@@ -87,16 +87,16 @@ export function serializeObject(obj: any, baseIndent: string = "  ", depth: numb
  */
 export function parseObjectExpression(node: t.ObjectExpression): Record<string, any> {
   const result: Record<string, any> = {};
-  node.properties.forEach(prop => {
+  node.properties.forEach((prop) => {
     if (prop.type === "ObjectProperty" && prop.key.type === "Identifier") {
-        let value: any = undefined;
-        if (prop.value.type === "StringLiteral") value = prop.value.value;
-        else if (prop.value.type === "BooleanLiteral") value = prop.value.value;
-        else if (prop.value.type === "NumericLiteral") value = prop.value.value;
-        
-        if (value !== undefined) {
-            result[prop.key.name] = value;
-        }
+      let value: any = undefined;
+      if (prop.value.type === "StringLiteral") value = prop.value.value;
+      else if (prop.value.type === "BooleanLiteral") value = prop.value.value;
+      else if (prop.value.type === "NumericLiteral") value = prop.value.value;
+
+      if (value !== undefined) {
+        result[prop.key.name] = value;
+      }
     }
   });
   return result;
@@ -114,7 +114,7 @@ export function unwrapNode(node: t.Node | null | undefined): t.Node | null | und
     current.type === "TSSatisfiesExpression" ||
     current.type === "TSTypeAssertion"
   ) {
-      current = (current as any).expression;
+    current = (current as any).expression;
   }
   return current;
 }

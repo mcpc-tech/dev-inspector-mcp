@@ -140,7 +140,7 @@ export async function getAvailableAgents(): Promise<Agent[]> {
 
   // Filter by visibleAgents if specified
   if (config.visibleAgents && config.visibleAgents.length > 0) {
-    agents = agents.filter(agent => config.visibleAgents!.includes(agent.name));
+    agents = agents.filter((agent) => config.visibleAgents!.includes(agent.name));
   }
 
   return agents;
@@ -174,7 +174,7 @@ export function getAvailableAgentsSync(): Agent[] {
 
   // Filter by visibleAgents if specified
   if (configCache?.visibleAgents && configCache.visibleAgents.length > 0) {
-    agents = agents.filter(agent => configCache!.visibleAgents!.includes(agent.name));
+    agents = agents.filter((agent) => configCache!.visibleAgents!.includes(agent.name));
   }
 
   return agents;

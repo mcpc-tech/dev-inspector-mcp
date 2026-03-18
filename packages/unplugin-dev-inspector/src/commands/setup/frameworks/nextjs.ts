@@ -14,7 +14,11 @@ const PLUGIN_VAR_NAME = "DevInspector";
 export function transformNextConfig(code: string, _options: SetupOptions): TransformResult {
   try {
     if (code.includes(PLUGIN_IMPORT)) {
-      return { success: true, modified: false, message: "DevInspector is already configured in this file" };
+      return {
+        success: true,
+        modified: false,
+        message: "DevInspector is already configured in this file",
+      };
     }
 
     const s = new MagicString(code);
@@ -57,7 +61,9 @@ export function transformNextConfig(code: string, _options: SetupOptions): Trans
 
     // Add webpack and turbopack configuration
     if (nextConfigStart > -1 && !hasWebpackProperty && !hasTurbopackProperty) {
-      const i1 = indent, i2 = indent.repeat(2), i3 = indent.repeat(3);
+      const i1 = indent,
+        i2 = indent.repeat(2),
+        i3 = indent.repeat(3);
       const webpackConfig = `
 ${i1}webpack: (config) => {
 ${i2}config.plugins.push(${PLUGIN_VAR_NAME}.webpack({ enabled: true }));
@@ -74,21 +80,40 @@ ${i1}},`;
         message: `${hasWebpackProperty ? "webpack" : "turbopack"} property already exists. Please add DevInspector manually`,
       };
     } else {
-      return { success: false, modified: false, error: "Could not find nextConfig object", message: "Please add DevInspector manually" };
+      return {
+        success: false,
+        modified: false,
+        error: "Could not find nextConfig object",
+        message: "Please add DevInspector manually",
+      };
     }
 
-    return { success: true, modified: true, code: s.toString(), message: "Successfully added DevInspector to Next.js config" };
+    return {
+      success: true,
+      modified: true,
+      code: s.toString(),
+      message: "Successfully added DevInspector to Next.js config",
+    };
   } catch (error) {
-    return { success: false, modified: false, error: error instanceof Error ? error.message : String(error), message: "Failed to transform Next.js config" };
+    return {
+      success: false,
+      modified: false,
+      error: error instanceof Error ? error.message : String(error),
+      message: "Failed to transform Next.js config",
+    };
   }
 }
 
 export function transformNextLayout(code: string): TransformResult {
   try {
     const COMPONENT_IMPORT = "@mcpc-tech/unplugin-dev-inspector-mcp/next";
-    
+
     if (code.includes("DevInspector") || code.includes(COMPONENT_IMPORT)) {
-      return { success: true, modified: false, message: "DevInspector component is already in this file" };
+      return {
+        success: true,
+        modified: false,
+        message: "DevInspector component is already in this file",
+      };
     }
 
     const s = new MagicString(code);
@@ -125,12 +150,27 @@ export function transformNextLayout(code: string): TransformResult {
     if (bodyStart > -1) {
       s.appendLeft(bodyStart, `\n${indent.repeat(4)}<DevInspector />`);
     } else {
-      return { success: false, modified: false, error: "Could not find <body> element", message: "Please add <DevInspector /> manually" };
+      return {
+        success: false,
+        modified: false,
+        error: "Could not find <body> element",
+        message: "Please add <DevInspector /> manually",
+      };
     }
 
-    return { success: true, modified: true, code: s.toString(), message: "Successfully added DevInspector component to layout" };
+    return {
+      success: true,
+      modified: true,
+      code: s.toString(),
+      message: "Successfully added DevInspector component to layout",
+    };
   } catch (error) {
-    return { success: false, modified: false, error: error instanceof Error ? error.message : String(error), message: "Failed to transform layout file" };
+    return {
+      success: false,
+      modified: false,
+      error: error instanceof Error ? error.message : String(error),
+      message: "Failed to transform layout file",
+    };
   }
 }
 

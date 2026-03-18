@@ -116,19 +116,19 @@ function getAllFeedbacks() {
         let contextSection = "";
         if (selectedContext) {
           const parts: string[] = [];
-          
+
           if (selectedContext.consoleMessages?.length > 0) {
             parts.push(formatConsoleMessages(selectedContext.consoleMessages).trim());
           }
-          
+
           if (selectedContext.networkRequests?.length > 0) {
             parts.push(formatNetworkRequests(selectedContext.networkRequests).trim());
           }
-          
+
           if (selectedContext.stdioMessages?.length > 0) {
             parts.push(formatStdioMessages(selectedContext.stdioMessages).trim());
           }
-          
+
           if (parts.length > 0) {
             contextSection = `\n${parts.join("\n\n")}\n`;
           }
@@ -360,7 +360,10 @@ export function useMcp(): { client: McpClientType | null; isClientReady: boolean
     // and @mcpc-tech/cmcp which uses @modelcontextprotocol/sdk (^1.15.0).
     // The Client types differ slightly between versions but are functionally compatible.
     const client = createClientExecClient(
-      new Client({ name: "inspector", version: "0.1.0" }, { capabilities: { tools: {} } }) as unknown as Parameters<typeof createClientExecClient>[0],
+      new Client(
+        { name: "inspector", version: "0.1.0" },
+        { capabilities: { tools: {} } },
+      ) as unknown as Parameters<typeof createClientExecClient>[0],
       "inspector",
     );
 
@@ -375,9 +378,11 @@ export function useMcp(): { client: McpClientType | null; isClientReady: boolean
           pendingResolve = resolve;
           pendingReject = reject;
 
-          window.dispatchEvent(new CustomEvent("automated-capture", {
-            detail: { selector }
-          }));
+          window.dispatchEvent(
+            new CustomEvent("automated-capture", {
+              detail: { selector },
+            }),
+          );
 
           setTimeout(() => {
             if (pendingReject === reject) {
@@ -406,7 +411,12 @@ export function useMcp(): { client: McpClientType | null; isClientReady: boolean
     }
 
     // Capture multiple elements in area (interactive or via containerSelector/bounds)
-    async function captureAreaContext(args: { containerSelector?: string; bounds?: { x: number; y: number; width: number; height: number } } = {}) {
+    async function captureAreaContext(
+      args: {
+        containerSelector?: string;
+        bounds?: { x: number; y: number; width: number; height: number };
+      } = {},
+    ) {
       const { containerSelector, bounds } = args;
 
       // Automated mode with containerSelector or bounds
@@ -416,9 +426,11 @@ export function useMcp(): { client: McpClientType | null; isClientReady: boolean
           pendingResolve = resolve;
           pendingReject = reject;
 
-          window.dispatchEvent(new CustomEvent("automated-capture", {
-            detail: { containerSelector, bounds }
-          }));
+          window.dispatchEvent(
+            new CustomEvent("automated-capture", {
+              detail: { containerSelector, bounds },
+            }),
+          );
 
           setTimeout(() => {
             if (pendingReject === reject) {
@@ -506,82 +518,90 @@ export function useMcp(): { client: McpClientType | null; isClientReady: boolean
 
     // A11y tree helpers (defined once, reused)
     const IMPLICIT_ROLES: Record<string, string | ((el: Element) => string)> = {
-      'HEADER': 'banner',
-      'NAV': 'navigation',
-      'MAIN': 'main',
-      'ASIDE': 'complementary',
-      'FOOTER': 'contentinfo',
-      'SECTION': 'region',
-      'ARTICLE': 'article',
-      'FORM': 'form',
-      'BUTTON': 'button',
-      'A': (el) => el.hasAttribute('href') ? 'link' : '',
-      'IMG': 'img',
-      'UL': 'list',
-      'OL': 'list',
-      'LI': 'listitem',
-      'TABLE': 'table',
-      'H1': 'heading',
-      'H2': 'heading',
-      'H3': 'heading',
-      'H4': 'heading',
-      'H5': 'heading',
-      'H6': 'heading',
-      'INPUT': (el) => {
-        const type = el.getAttribute('type');
-        if (type === 'submit' || type === 'button') return 'button';
-        if (type === 'checkbox') return 'checkbox';
-        if (type === 'radio') return 'radio';
-        return 'textbox';
+      HEADER: "banner",
+      NAV: "navigation",
+      MAIN: "main",
+      ASIDE: "complementary",
+      FOOTER: "contentinfo",
+      SECTION: "region",
+      ARTICLE: "article",
+      FORM: "form",
+      BUTTON: "button",
+      A: (el) => (el.hasAttribute("href") ? "link" : ""),
+      IMG: "img",
+      UL: "list",
+      OL: "list",
+      LI: "listitem",
+      TABLE: "table",
+      H1: "heading",
+      H2: "heading",
+      H3: "heading",
+      H4: "heading",
+      H5: "heading",
+      H6: "heading",
+      INPUT: (el) => {
+        const type = el.getAttribute("type");
+        if (type === "submit" || type === "button") return "button";
+        if (type === "checkbox") return "checkbox";
+        if (type === "radio") return "radio";
+        return "textbox";
       },
-      'TEXTAREA': 'textbox',
-      'SELECT': 'combobox',
-      'DIALOG': 'dialog',
+      TEXTAREA: "textbox",
+      SELECT: "combobox",
+      DIALOG: "dialog",
     };
 
-    const SKIP_TAGS = new Set(['DIV', 'SPAN', 'SCRIPT', 'STYLE', 'NOSCRIPT', 'BR', 'HR']);
+    const SKIP_TAGS = new Set(["DIV", "SPAN", "SCRIPT", "STYLE", "NOSCRIPT", "BR", "HR"]);
 
     function getImplicitRole(el: Element): string | null {
       const mapping = IMPLICIT_ROLES[el.tagName];
       if (!mapping) return null;
-      return typeof mapping === 'function' ? mapping(el) : mapping;
+      return typeof mapping === "function" ? mapping(el) : mapping;
     }
 
     function getDirectTextContent(el: Element): string {
-      let text = '';
+      let text = "";
       for (let i = 0; i < el.childNodes.length; i++) {
         const node = el.childNodes[i];
         if (node.nodeType === Node.TEXT_NODE) {
-          text += node.textContent?.trim() || '';
+          text += node.textContent?.trim() || "";
         }
       }
       return text.slice(0, 50);
     }
 
-    function getA11yTree(element: Element, depth = 0, maxDepth = 4, lines: string[] = []): string[] {
+    function getA11yTree(
+      element: Element,
+      depth = 0,
+      maxDepth = 4,
+      lines: string[] = [],
+    ): string[] {
       if (depth > maxDepth || lines.length >= 100) return lines;
 
-      const role = element.getAttribute('role') || getImplicitRole(element);
-      const ariaLabel = element.getAttribute('aria-label');
+      const role = element.getAttribute("role") || getImplicitRole(element);
+      const ariaLabel = element.getAttribute("aria-label");
       const hasSemanticMeaning = role || !SKIP_TAGS.has(element.tagName) || element.id || ariaLabel;
 
-      if (hasSemanticMeaning && role !== 'none' && role !== 'presentation') {
+      if (hasSemanticMeaning && role !== "none" && role !== "presentation") {
         // Compute accessible name
-        const ariaLabelledBy = element.getAttribute('aria-labelledby');
-        let name = ariaLabel
-          || (ariaLabelledBy ? document.getElementById(ariaLabelledBy)?.textContent?.trim() : null)
-          || element.getAttribute('alt')
-          || element.getAttribute('title')
-          || element.getAttribute('placeholder')
-          || (element.tagName !== 'INPUT' && element.tagName !== 'TEXTAREA' ? getDirectTextContent(element) : '');
+        const ariaLabelledBy = element.getAttribute("aria-labelledby");
+        let name =
+          ariaLabel ||
+          (ariaLabelledBy ? document.getElementById(ariaLabelledBy)?.textContent?.trim() : null) ||
+          element.getAttribute("alt") ||
+          element.getAttribute("title") ||
+          element.getAttribute("placeholder") ||
+          (element.tagName !== "INPUT" && element.tagName !== "TEXTAREA"
+            ? getDirectTextContent(element)
+            : "");
 
-        if (name && name.length > 50) name = name.slice(0, 47) + '...';
+        if (name && name.length > 50) name = name.slice(0, 47) + "...";
 
         const tag = element.tagName.toLowerCase();
-        const id = element.id ? `#${element.id}` : '';
-        const roleStr = role && role !== tag ? ` [${role}]` : '';
-        const nameStr = name ? `: "${name}"` : '';
-        lines.push(`${'  '.repeat(depth)}<${tag}${id}${roleStr}${nameStr}>`);
+        const id = element.id ? `#${element.id}` : "";
+        const roleStr = role && role !== tag ? ` [${role}]` : "";
+        const nameStr = name ? `: "${name}"` : "";
+        lines.push(`${"  ".repeat(depth)}<${tag}${id}${roleStr}${nameStr}>`);
       }
 
       for (let i = 0; i < element.children.length && lines.length < 100; i++) {
@@ -604,7 +624,7 @@ export function useMcp(): { client: McpClientType | null; isClientReady: boolean
 
 ## Accessibility Tree
 \`\`\`
-${a11yTree.length > 0 ? a11yTree.join('\n') : '(empty or no semantic structure)'}
+${a11yTree.length > 0 ? a11yTree.join("\n") : "(empty or no semantic structure)"}
 \`\`\`
 
 ## Next Steps
@@ -625,7 +645,9 @@ ${a11yTree.length > 0 ? a11yTree.join('\n') : '(empty or no semantic structure)'
         ...TOOL_SCHEMAS.capture_element_context,
         implementation: wrapToolImplementation(
           TOOL_SCHEMAS.capture_element_context.name,
-          captureElementContext as unknown as (args: Record<string, unknown> | undefined) => unknown,
+          captureElementContext as unknown as (
+            args: Record<string, unknown> | undefined,
+          ) => unknown,
         ),
       },
       {
@@ -646,7 +668,9 @@ ${a11yTree.length > 0 ? a11yTree.join('\n') : '(empty or no semantic structure)'
         ...TOOL_SCHEMAS.update_inspection_status,
         implementation: wrapToolImplementation(
           TOOL_SCHEMAS.update_inspection_status.name,
-          updateInspectionStatus as unknown as (args: Record<string, unknown> | undefined) => unknown,
+          updateInspectionStatus as unknown as (
+            args: Record<string, unknown> | undefined,
+          ) => unknown,
         ),
       },
       {

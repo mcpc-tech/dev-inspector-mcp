@@ -4,7 +4,14 @@ import type { NodePath } from "@babel/traverse";
 import type * as t from "@babel/types";
 import MagicString from "magic-string";
 import type { SetupOptions, TransformResult } from "../types";
-import { detectConfigFile, getInsertPosition, parseObjectExpression, serializeObject, unwrapNode, detectIndent } from "../utils";
+import {
+  detectConfigFile,
+  getInsertPosition,
+  parseObjectExpression,
+  serializeObject,
+  unwrapNode,
+  detectIndent,
+} from "../utils";
 
 const traverse = (traverseModule as any).default || traverseModule;
 
@@ -33,14 +40,15 @@ export function transformWebpackConfig(code: string, options: SetupOptions): Tra
         if (path.node.loc) lastImportEnd = Math.max(lastImportEnd, path.node.loc.end.line);
         if (path.node.source.value === PLUGIN_IMPORT) {
           hasImport = true;
-          const spec = path.node.specifiers.find(s => s.type === "ImportDefaultSpecifier");
+          const spec = path.node.specifiers.find((s) => s.type === "ImportDefaultSpecifier");
           if (spec?.local.type === "Identifier") {
             importedVarName = spec.local.name;
           }
         }
       },
       VariableDeclaration(path: NodePath<t.VariableDeclaration>) {
-        if (path.node.loc && !isESM) lastImportEnd = Math.max(lastImportEnd, path.node.loc.end.line);
+        if (path.node.loc && !isESM)
+          lastImportEnd = Math.max(lastImportEnd, path.node.loc.end.line);
         for (const decl of path.node.declarations) {
           if (
             decl.init?.type === "CallExpression" &&
@@ -66,7 +74,7 @@ export function transformWebpackConfig(code: string, options: SetupOptions): Tra
 
           elements.forEach((rawElement) => {
             const element = unwrapNode(rawElement) as any;
-            
+
             if (
               element &&
               element.type === "CallExpression" &&
@@ -77,11 +85,14 @@ export function transformWebpackConfig(code: string, options: SetupOptions): Tra
               element.callee.property.name === "webpack"
             ) {
               hasPluginUsage = true;
-              if (typeof element.start === 'number' && typeof element.end === 'number') {
-                  usageStart = element.start;
-                  usageEnd = element.end;
+              if (typeof element.start === "number" && typeof element.end === "number") {
+                usageStart = element.start;
+                usageEnd = element.end;
               }
-               if (element.arguments.length > 0 && element.arguments[0].type === "ObjectExpression") {
+              if (
+                element.arguments.length > 0 &&
+                element.arguments[0].type === "ObjectExpression"
+              ) {
                 existingOptionsNode = element.arguments[0];
               }
             }
@@ -126,14 +137,24 @@ export function transformWebpackConfig(code: string, options: SetupOptions): Tra
       const mergedConfig = existingOptionsNode ? parseObjectExpression(existingOptionsNode) : {};
       Object.assign(mergedConfig, cliConfig);
       if (usageStart > -1 && usageEnd > -1) {
-        s.overwrite(usageStart, usageEnd, `${importedVarName}.webpack(${serializeObject(mergedConfig, indent, 3)})`);
+        s.overwrite(
+          usageStart,
+          usageEnd,
+          `${importedVarName}.webpack(${serializeObject(mergedConfig, indent, 3)})`,
+        );
       }
     } else if (firstPluginStart > -1) {
       const finalConfig = { enabled: true, ...cliConfig };
-      s.appendLeft(firstPluginStart, `${importedVarName}.webpack(${serializeObject(finalConfig, indent, 3)}),\n${pluginIndent}`);
+      s.appendLeft(
+        firstPluginStart,
+        `${importedVarName}.webpack(${serializeObject(finalConfig, indent, 3)}),\n${pluginIndent}`,
+      );
     } else if (pluginsArrayStart > -1) {
       const finalConfig = { enabled: true, ...cliConfig };
-      s.appendLeft(pluginsArrayStart + 1, `\n${pluginIndent}${importedVarName}.webpack(${serializeObject(finalConfig, indent, 3)}),\n${indent}`);
+      s.appendLeft(
+        pluginsArrayStart + 1,
+        `\n${pluginIndent}${importedVarName}.webpack(${serializeObject(finalConfig, indent, 3)}),\n${indent}`,
+      );
     } else {
       return {
         success: false,
@@ -144,15 +165,34 @@ export function transformWebpackConfig(code: string, options: SetupOptions): Tra
     }
 
     if (s.toString() === code) {
-      return { success: true, modified: false, message: "DevInspector is already configured in this file" };
+      return {
+        success: true,
+        modified: false,
+        message: "DevInspector is already configured in this file",
+      };
     }
 
-    return { success: true, modified: true, code: s.toString(), message: "Successfully added DevInspector to Webpack config" };
+    return {
+      success: true,
+      modified: true,
+      code: s.toString(),
+      message: "Successfully added DevInspector to Webpack config",
+    };
   } catch (error) {
-    return { success: false, modified: false, error: error instanceof Error ? error.message : String(error), message: "Failed to transform Webpack config" };
+    return {
+      success: false,
+      modified: false,
+      error: error instanceof Error ? error.message : String(error),
+      message: "Failed to transform Webpack config",
+    };
   }
 }
 
 export function detectWebpackConfig(cwd: string): string | null {
-  return detectConfigFile(cwd, ["webpack.config.ts", "webpack.config.js", "webpack.config.cjs", "webpack.config.mjs"]);
+  return detectConfigFile(cwd, [
+    "webpack.config.ts",
+    "webpack.config.js",
+    "webpack.config.cjs",
+    "webpack.config.mjs",
+  ]);
 }

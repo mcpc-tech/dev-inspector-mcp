@@ -53,11 +53,11 @@ function ensureShutdownHooksRegistered(): void {
     void executeShutdown();
   };
 
-  process.once('SIGINT', handleSignal);
-  process.once('SIGTERM', handleSignal);
-  process.once('SIGHUP', handleSignal);
+  process.once("SIGINT", handleSignal);
+  process.once("SIGTERM", handleSignal);
+  process.once("SIGHUP", handleSignal);
 
-  process.once('beforeExit', () => {
+  process.once("beforeExit", () => {
     if (!isShuttingDown) {
       void executeShutdown();
     }
