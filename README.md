@@ -9,6 +9,11 @@ AI can read your code, but can't see what's happening at runtime. DevInspector p
 
 **Two modes**: Use with your IDE's AI (Cursor, VSCode) via MCP, or run AI agents directly in the browser via ACP (**Claude Code**, **Codex CLI**, **Gemini CLI**, **OpenCode**, [more](https://agentclientprotocol.com/overview/agents)).
 
+> **Using Claude Code or another AI agent?** Install the DevInspector skill so your agent knows how to set up and troubleshoot the inspector:
+> ```bash
+> npx skills add mcpc-tech/dev-inspector-mcp
+> ```
+
 ## Table of Contents
 
 - [Demo Video](#demo-video)
@@ -18,6 +23,7 @@ AI can read your code, but can't see what's happening at runtime. DevInspector p
   - [Installation](#installation)
   - [Automated Setup](#automated-setup-recommended)
   - [Framework Setup](#framework-setup)
+- [Agent Skills](#agent-skills)
 - [Configuration](#configuration)
   - [Auto-Update MCP Config](#auto-update-mcp-config)
   - [Agent Installation](#agent-installation)
@@ -263,6 +269,20 @@ Set `disableChrome: true` in plugin options or `DEV_INSPECTOR_DISABLE_CHROME=1` 
 ### Supported Frameworks
 
 React, Vue, Svelte, SolidJS, Preact, Next.js (Webpack + Turbopack), React Router v7+. Angular support in progress.
+
+## Agent Skills
+
+DevInspector ships a built-in **Agent Skill** for Claude Code (and compatible AI agents) that teaches the agent how to integrate and troubleshoot the inspector.
+
+Install it with one command:
+
+```bash
+npx skills add mcpc-tech/dev-inspector-mcp
+```
+
+The skill covers setup for all supported bundlers, common gotchas, and troubleshooting -- so the agent can guide you through the entire integration without back-and-forth.
+
+> **What are Agent Skills?** Skills are Markdown-based instruction sets that AI agents load at session start to gain domain-specific knowledge. See the [Claude Code docs](https://code.claude.com/docs/en/skills) for more.
 
 ## Configuration
 
