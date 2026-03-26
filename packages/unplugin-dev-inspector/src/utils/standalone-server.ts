@@ -58,16 +58,10 @@ export class StandaloneServer {
           });
 
           if (!isAllowed) {
-            // Check if it's localhost access which is usually safe?
-            // Vite allows localhost access even if allowedHosts is set, usually.
-            // But specifically for 0.0.0.0, we want to restrict external access.
-            // Let's keep it simple: if allowedHosts is set, MUST match.
-
-            // Exception: always allow localhost references for local tools?
             const isLocal =
               hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
 
-            if (!isAllowed && !isLocal) {
+            if (!isLocal) {
               res.statusCode = 403;
               res.end("Host Restricted");
               return;

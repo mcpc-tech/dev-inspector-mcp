@@ -11,9 +11,8 @@ import type { Connect } from "vite";
 
 import type { DevInspectorOptions } from "./core";
 
-// Module-level flag to prevent duplicate server/browser launches
+// Module-level flag to prevent duplicate server launches
 let serverStarted = false;
-let browserLaunchScheduled = false;
 
 // Store the actual port after server starts
 let actualPort: number | null = null;
@@ -48,6 +47,8 @@ async function ensureStandaloneServer(options: TurbopackDevInspectorOptions): Pr
     host,
     port,
     disableChrome: chromeDisabled,
+    prompts: options.prompts,
+    defaultPrompts: options.defaultPrompts,
   };
 
   const displayHost = host === "0.0.0.0" ? "localhost" : host;
@@ -90,7 +91,7 @@ async function ensureStandaloneServer(options: TurbopackDevInspectorOptions): Pr
   // Auto-open browser with Chrome DevTools
   if (options.autoOpenBrowser && !chromeDisabled) {
     const { launchBrowserWithDevTools } = await import("./utils/browser-launcher");
-    const targetUrl = options.browserUrl || `http://${displayHost}:3000`;
+    const targetUrl = options.browserUrl || publicBase;
     setTimeout(async () => {
       const success = await launchBrowserWithDevTools({
         url: targetUrl,

@@ -20,7 +20,7 @@ interface DevInspectorProps {
 
 export function DevInspector({
   host = "localhost",
-  port = "8888",
+  port = "6137",
   baseUrl,
   disableChrome = true,
 }: DevInspectorProps) {

@@ -98,7 +98,7 @@ export async function createInspectorMcpServer(serverContext?: ServerContext): P
   const getDefaultUrl = () =>
     process.env.DEV_INSPECTOR_PUBLIC_BASE_URL
       ? stripTrailingSlash(process.env.DEV_INSPECTOR_PUBLIC_BASE_URL)
-      : `http://${serverContext?.host || "localhost"}:${serverContext?.port || 5173}`;
+      : `http://${serverContext?.host || "localhost"}:${serverContext?.port || 6137}`;
 
   console.log(`[dev-inspector] Chrome DevTools: ${chromeDisabled ? "disabled" : "enabled"}`);
 

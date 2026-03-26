@@ -32,7 +32,7 @@ export function getPublicBaseUrl(options?: {
   if (options?.publicBaseUrl) return stripTrailingSlash(options.publicBaseUrl);
 
   const host = options?.host || "localhost";
-  const port = options?.port || 5173;
+  const port = options?.port || 6137;
   return `http://${host}:${port}`;
 }
 

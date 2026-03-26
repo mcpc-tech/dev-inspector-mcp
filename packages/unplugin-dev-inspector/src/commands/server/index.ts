@@ -1,4 +1,4 @@
-import { startStandaloneServer } from "../../utils/standalone-server";
+import { startStandaloneServer, getDefaultPort } from "../../utils/standalone-server";
 import { setupMcpMiddleware } from "../../middleware/mcproute-middleware";
 import { setupInspectorMiddleware } from "../../middleware/inspector-middleware";
 import { setupAcpMiddleware } from "../../middleware/acp-middleware";
@@ -10,7 +10,7 @@ export async function runServerCommand() {
   const args = process.argv.slice(3); // Skip 'node', 'cli.js', 'server'
 
   // Parse CLI arguments
-  let port = 8888;
+  let port = getDefaultPort();
   let host = "localhost";
   const allowedHosts: string[] = [];
 
@@ -44,7 +44,7 @@ Usage:
   npx dev-inspector-server [options]
 
 Options:
-  --port <number>   Port to run the server on (default: 8888)
+  --port <number>   Port to run the server on (default: 6137)
   --host <string>   Host to bind to (default: localhost)
   --allowed-hosts <string>  Comma-separated list of allowed hosts (e.g. "example.com,.my-ide.com")
   --help, -h        Show this help message

@@ -121,14 +121,14 @@ export interface DevInspectorOptions extends McpConfigOptions, AcpOptions {
   /**
    * Disable Chrome DevTools integration entirely (chrome_devtools tool + related prompts).
    * Can also be controlled via DEV_INSPECTOR_DISABLE_CHROME=1
-   * @default false
+   * @default true
    */
   disableChrome?: boolean;
 
   /**
    * Custom browser launch URL
-   * If not specified, uses the MCP server URL (e.g., http://localhost:5172)
-   * @example "http://localhost:5173/dashboard"
+   * If not specified, uses the MCP server URL (e.g., http://localhost:6137)
+   * @example "http://localhost:3000/dashboard"
    */
   browserUrl?: string;
 
@@ -455,8 +455,6 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
         },
 
         async configureServer(server) {
-          if (!enabled) return;
-
           if (!enabled) return;
 
           // Start standalone server for MCP/Inspector

@@ -259,7 +259,7 @@ async function handleSseConnection(
 
     // Use injected serverContext for local dev server address
     const host = serverContext?.host || "localhost";
-    const port = serverContext?.port || 5173;
+    const port = serverContext?.port || 6137;
     const url = new URL(req.url ?? "", `http://${host}:${port}`);
     const transport = new SSEServerTransport("/__mcp__/messages", res);
     const sessionId = transport.sessionId;
@@ -328,7 +328,7 @@ async function handleSseMessage(
   try {
     // Use injected serverContext for local dev server address
     const host = serverContext?.host || "localhost";
-    const port = serverContext?.port || 5173;
+    const port = serverContext?.port || 6137;
     const url = new URL(req.url || "", `http://${host}:${port}`);
     const sessionId = url.searchParams.get("sessionId");
 
