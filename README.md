@@ -16,9 +16,8 @@ AI can read your code, but can't see what's happening at runtime. DevInspector p
 - [Key Features](#key-features)
 - [Quick Start](#quick-start)
   - [Installation](#installation)
-  - [Automated Setup](#-automated-setup-recommended)
-  - [Manual Configuration](#manual-configuration)
-- [Framework Support](#framework-support)
+  - [Automated Setup](#automated-setup-recommended)
+  - [Framework Setup](#framework-setup)
 - [Configuration](#configuration)
   - [Auto-Update MCP Config](#auto-update-mcp-config)
   - [Agent Installation](#agent-installation)
@@ -84,7 +83,7 @@ yarn add -D @mcpc-tech/unplugin-dev-inspector-mcp
 
 ### Automated Setup (Recommended)
 
-Run the setup command to automatically configure your `vite.config.ts`, `webpack.config.js`, or `next.config.js`:
+Run the setup command to automatically configure your `vite.config.ts`, `webpack.config.js`, or `next.config.ts`:
 
 ```bash
 npx @mcpc-tech/unplugin-dev-inspector-mcp setup
@@ -118,135 +117,54 @@ This will:
 - Add the plugin to your configuration
 - Create a backup of your config file
 
-### Manual Configuration
+### Framework Setup
 
-If you prefer to configure it manually:
+Pick your framework below. Each section is self-contained -- just copy the config.
 
-### Vite
+<details>
+<summary><b>Vite</b> (React / Vue / Svelte / Solid / Preact)</summary>
 
-```diff
+```ts
 // vite.config.ts
-+import DevInspector from '@mcpc-tech/unplugin-dev-inspector-mcp';
- import react from '@vitejs/plugin-react'; // or vue(), svelte(), solid(), preact()
+import DevInspector from '@mcpc-tech/unplugin-dev-inspector-mcp';
+import react from '@vitejs/plugin-react'; // or vue(), svelte(), solid(), preact()
 
- export default {
-   plugins: [
-+    DevInspector.vite({
-+      enabled: true,
-       showInspectorBar: true, // Default: true. Set to false to hide the UI.
-+      autoOpenBrowser: false, // Default: false. Automatically open browser when server starts.
-+      // Disable Chrome DevTools integration (useful in CI/headless/cloud environments)
-+      // disableChrome: true,
-     }),
-     react(), // or vue(), svelte(), solid(), preact()
-   ],
- };
-```
-
-> 📴 **Disable Chrome DevTools integration:** set `disableChrome: true` in plugin options or export `DEV_INSPECTOR_DISABLE_CHROME=1`.
-
-> ⚠️ **Plugin order matters:** Place `DevInspector.vite()` **before** `react()`, `vue()`, `svelte()`, `solid()`, or `preact()`. Otherwise source locations may show `unknown:0:0`.
-
-#### For Non-HTML Projects (Miniapps, Library Bundles)
-
-If your project doesn't use HTML files (e.g., miniapp platforms that only bundle JS):
-
-````typescript
-// vite.config.ts
-```typescript
-// vite.config.ts
-DevInspector.vite({
-  enabled: true,
-  autoInject: false,  // Disable HTML injection
-  entry: 'src/main.ts' // Inject inspector into entry file
-})
-````
-
-##### TypeScript Types (Required for `virtual:dev-inspector-mcp`)
-
-If you use TypeScript and import `virtual:dev-inspector-mcp`, make sure your TS config includes the plugin client types:
-
-```jsonc
-// tsconfig.json / tsconfig.app.json
-{
-  "compilerOptions": {
-    "types": [
-      "vite/client",
-      "@mcpc-tech/unplugin-dev-inspector-mcp/client"
-    ]
-  }
-}
-```
-
-**✅ Zero Production Impact:** In production builds, `virtual:dev-inspector-mcp` becomes a no-op module. The inspector runtime is guarded by `if (import.meta.env.DEV)`, which bundlers statically replace with `false` during production builds.
-
-##### Custom Virtual Module Name
-
-If `virtual:dev-inspector-mcp` conflicts with your project, you can customize it:
-
-```typescript
-// vite.config.ts
-DevInspector.vite({
-  enabled: true,
-  autoInject: false,
-  virtualModuleName: 'virtual:my-custom-inspector'  // ← Custom name
-})
-```
-
-```typescript
-// main.ts
-import 'virtual:my-custom-inspector';  // ← Use your custom name
-```
-
-### Webpack
-
-```diff
-// webpack.config.js
-+const DevInspector = require('@mcpc-tech/unplugin-dev-inspector-mcp');
-
-module.exports = {
+export default {
   plugins: [
-+    DevInspector.webpack({
-+      enabled: true,
-+    }),
+    DevInspector.vite({ enabled: true }),
+    react(),
   ],
 };
 ```
 
-### Next.js
+> **Plugin order matters:** Place `DevInspector.vite()` **before** framework plugins. Otherwise source locations may show `unknown:0:0`.
 
-Next.js supports **both Webpack and Turbopack** modes:
+</details>
 
-```diff
-// next.config.ts
-+import DevInspector, { turbopackDevInspector } from '@mcpc-tech/unplugin-dev-inspector-mcp';
+<details>
+<summary><b>Next.js</b> (Webpack + Turbopack)</summary>
 
-const nextConfig: NextConfig = {
-+  // Webpack configuration (default mode: `next dev`)
-+  webpack: (config) => {
-+    config.plugins.push(
-+      DevInspector.webpack({
-+        enabled: true,
-+      })
-+    );
-+    return config;
-+  },
-+
-+  // Turbopack configuration (`next dev --turbopack`)
-+  turbopack: {
-+    rules: turbopackDevInspector({
-+      enabled: true,
-+    }),
-+  },
+**Step 1 -- next.config.ts:**
+
+```ts
+import DevInspector, { turbopackDevInspector } from '@mcpc-tech/unplugin-dev-inspector-mcp';
+
+const nextConfig = {
+  webpack: (config) => {
+    config.plugins.push(DevInspector.webpack({ enabled: true }));
+    return config;
+  },
+  turbopack: {
+    rules: turbopackDevInspector({ enabled: true }),
+  },
 };
 
 export default nextConfig;
 ```
 
-Then add to your root layout:
+**Step 2 -- app/layout.tsx (required):**
 
 ```tsx
-// app/layout.tsx
 import { DevInspector } from "@mcpc-tech/unplugin-dev-inspector-mcp/next";
 
 export default function RootLayout({ children }) {
@@ -261,43 +179,90 @@ export default function RootLayout({ children }) {
 }
 ```
 
-**Running modes:**
+Run with `next dev` (webpack) or `next dev --turbopack` (turbopack).
 
-- **Webpack mode:** `next dev` (uses webpack configuration)
-- **Turbopack mode:** `next dev --turbopack` (uses turbopack configuration, Next.js 16+ default)
+</details>
 
-### React Router v7+
+<details>
+<summary><b>React Router v7+</b> (Remix)</summary>
 
-```typescript
+```ts
 // vite.config.ts
 import { reactRouter } from "@react-router/dev/vite";
 import DevInspector from '@mcpc-tech/unplugin-dev-inspector-mcp';
 
 export default defineConfig({
   plugins: [
-    DevInspector.vite({
-      enabled: true,
-      entry: "app/root.tsx" // Inject inspector into root layout
-    }),
+    DevInspector.vite({ enabled: true, entry: "app/root.tsx" }),
     reactRouter(),
   ],
 });
 ```
 
-## Framework Support
+</details>
 
-### ✅ Fully Supported
+<details>
+<summary><b>Webpack</b> (standalone)</summary>
 
-- **React** - `.jsx` and `.tsx` files (Vite, Webpack, Next.js)
-- **Vue** - `.vue` single-file components (Vite, Webpack)
-- **Svelte** - `.svelte` components (Vite, Webpack)
-- **SolidJS** - `.jsx` and `.tsx` files (Vite, Webpack)
-- **Preact** - `.jsx` and `.tsx` files (Vite, Webpack)
-- **Next.js** - React with Webpack and Turbopack modes
+```js
+// webpack.config.js
+const DevInspector = require('@mcpc-tech/unplugin-dev-inspector-mcp');
 
-### 🚧 In Progress
+module.exports = {
+  plugins: [
+    DevInspector.webpack({ enabled: true }),
+  ],
+};
+```
 
-- **Angular** - Support coming soon
+</details>
+
+<details>
+<summary><b>Advanced options</b></summary>
+
+#### Non-HTML Projects (Miniapps, Library Bundles)
+
+```ts
+DevInspector.vite({
+  enabled: true,
+  autoInject: false,
+  entry: 'src/main.ts',
+})
+```
+
+#### TypeScript Types
+
+If you import `virtual:dev-inspector-mcp`, add to your tsconfig:
+
+```jsonc
+{
+  "compilerOptions": {
+    "types": ["vite/client", "@mcpc-tech/unplugin-dev-inspector-mcp/client"]
+  }
+}
+```
+
+#### Custom Virtual Module Name
+
+```ts
+DevInspector.vite({
+  enabled: true,
+  autoInject: false,
+  virtualModuleName: 'virtual:my-custom-inspector',
+})
+```
+
+#### Disable Chrome DevTools
+
+Set `disableChrome: true` in plugin options or `DEV_INSPECTOR_DISABLE_CHROME=1` env var.
+
+**Zero Production Impact:** In production builds, `virtual:dev-inspector-mcp` becomes a no-op module.
+
+</details>
+
+### Supported Frameworks
+
+React, Vue, Svelte, SolidJS, Preact, Next.js (Webpack + Turbopack), React Router v7+. Angular support in progress.
 
 ## Configuration
 
