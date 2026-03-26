@@ -208,14 +208,26 @@ export async function runSetupCommand() {
       console.log(`\n✅ ${result.message}`);
     }
 
-    // Handle Next.js layout transformation if entry is provided
-    if (selectedBundler === "nextjs" && entryPath) {
-      const layoutPath = resolve(cwd, entryPath);
-      if (!existsSync(layoutPath)) {
-        console.warn(`\n⚠️  Layout file not found: ${layoutPath}`);
-        console.warn(`   Skipping layout transformation. Please add <DevInspector /> manually.`);
+    // Handle Next.js layout transformation
+    if (selectedBundler === "nextjs") {
+      // Auto-detect layout file if --entry not provided
+      const layoutCandidates = entryPath
+        ? [resolve(cwd, entryPath)]
+        : [
+            resolve(cwd, "src/app/layout.tsx"),
+            resolve(cwd, "src/app/layout.jsx"),
+            resolve(cwd, "app/layout.tsx"),
+            resolve(cwd, "app/layout.jsx"),
+          ];
+
+      const layoutPath = layoutCandidates.find((p) => existsSync(p));
+
+      if (!layoutPath) {
+        console.warn(`\n⚠️  Layout file not found`);
+        console.warn(`   Please add <DevInspector /> to your root layout manually.`);
+        console.warn(`   Import: import { DevInspector } from "@mcpc-tech/unplugin-dev-inspector-mcp/next";`);
       } else {
-        console.log(`\n🔧 Transforming layout file...`);
+        console.log(`\n🔧 Transforming layout file: ${layoutPath}`);
         const layoutCode = readFileSync(layoutPath, "utf-8");
         const layoutResult = transformNextLayout(layoutCode);
 
