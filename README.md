@@ -16,7 +16,7 @@ AI can read your code, but can't see what's happening at runtime. DevInspector p
 - [Key Features](#key-features)
 - [Quick Start](#quick-start)
   - [Installation](#installation)
-  - [Automated Setup](#automated-setup-recommended)
+  - [Automated Setup](#-automated-setup-recommended)
   - [Manual Configuration](#manual-configuration)
 - [Framework Support](#framework-support)
 - [Configuration](#configuration)
@@ -143,9 +143,9 @@ If you prefer to configure it manually:
  };
 ```
 
-> **Disable Chrome DevTools integration:** set `disableChrome: true` in plugin options or export `DEV_INSPECTOR_DISABLE_CHROME=1`.
+> 📴 **Disable Chrome DevTools integration:** set `disableChrome: true` in plugin options or export `DEV_INSPECTOR_DISABLE_CHROME=1`.
 
-> **Plugin order matters:** Place `DevInspector.vite()` **before** `react()`, `vue()`, `svelte()`, `solid()`, or `preact()`. Otherwise source locations may show `unknown:0:0`.
+> ⚠️ **Plugin order matters:** Place `DevInspector.vite()` **before** `react()`, `vue()`, `svelte()`, `solid()`, or `preact()`. Otherwise source locations may show `unknown:0:0`.
 
 #### For Non-HTML Projects (Miniapps, Library Bundles)
 
@@ -178,7 +178,7 @@ If you use TypeScript and import `virtual:dev-inspector-mcp`, make sure your TS 
 }
 ```
 
-**Zero Production Impact:** In production builds, `virtual:dev-inspector-mcp` becomes a no-op module. The inspector runtime is guarded by `if (import.meta.env.DEV)`, which bundlers statically replace with `false` during production builds.
+**✅ Zero Production Impact:** In production builds, `virtual:dev-inspector-mcp` becomes a no-op module. The inspector runtime is guarded by `if (import.meta.env.DEV)`, which bundlers statically replace with `false` during production builds.
 
 ##### Custom Virtual Module Name
 
@@ -286,7 +286,7 @@ export default defineConfig({
 
 ## Framework Support
 
-### Fully Supported
+### ✅ Fully Supported
 
 - **React** - `.jsx` and `.tsx` files (Vite, Webpack, Next.js)
 - **Vue** - `.vue` single-file components (Vite, Webpack)
@@ -295,7 +295,7 @@ export default defineConfig({
 - **Preact** - `.jsx` and `.tsx` files (Vite, Webpack)
 - **Next.js** - React with Webpack and Turbopack modes
 
-### In Progress
+### 🚧 In Progress
 
 - **Angular** - Support coming soon
 
@@ -345,9 +345,9 @@ DevInspector.vite({
 
 DevInspector supports multiple AI agents via [ACP](https://agentclientprotocol.com).
 
-**For npm-based agents** (Claude Code, Codex CLI, CodeBuddy Code), you can pre-install them as dev dependencies for faster loading.
+**For npm-based agents** (Claude Code, Codex CLI, Cursor Agent, Droid), you can pre-install them as dev dependencies for faster loading.
 
-**For system-level agents** (Gemini CLI, Kimi CLI, Goose, Opencode, Cursor, Droid), install globally or ensure they're on your PATH:
+**For system-level agents**, install globally:
 
 #### Gemini CLI
 
@@ -381,28 +381,10 @@ curl -fsSL https://opencode.ai/install | bash
 
 [Documentation →](https://github.com/sst/opencode)
 
-#### Cursor Agent
-
-```bash
-# Cursor CLI with native ACP support
-cursor agent acp
-```
-
-[Documentation →](https://cursor.com/docs/cli/acp)
-
-#### Droid
-
-```bash
-# Factory's Droid CLI with native ACP support
-droid exec --output-format acp
-```
-
-[Documentation →](https://docs.factory.ai/droid/overview)
-
 #### CodeBuddy Code
 
 ```bash
-npm install -D @tencent-ai/codebuddy-code
+npm install -g @tencent-ai/codebuddy-code
 ```
 
 [Documentation →](https://copilot.tencent.com/docs/cli/acp)
@@ -417,10 +399,10 @@ Alternatively, install them later as dev dependencies:
 
 ```bash
 # npm
-npm i -D @agentclientprotocol/claude-agent-acp
+npm i -D @zed-industries/claude-code-acp
 
 # pnpm
-pnpm add -D @agentclientprotocol/claude-agent-acp
+pnpm add -D @zed-industries/claude-code-acp
 
 # Or add directly to package.json
 ```
@@ -428,9 +410,10 @@ pnpm add -D @agentclientprotocol/claude-agent-acp
 ```json
 {
   "devDependencies": {
-    "@agentclientprotocol/claude-agent-acp": "^0.24.0",
-    "@zed-industries/codex-acp": "^0.10.0",
-    "@tencent-ai/codebuddy-code": "^2.66.2"
+    "@zed-industries/claude-code-acp": "^0.12.4",
+    "@zed-industries/codex-acp": "^0.7.1",
+    "@blowmage/cursor-agent-acp": "^0.1.0",
+    "@yaonyan/droid-acp": "^0.0.8"
   }
 }
 ```
@@ -447,7 +430,7 @@ pnpm add -D @agentclientprotocol/claude-agent-acp
 
 This plugin uses the [Agent Client Protocol (ACP)](https://agentclientprotocol.com) to connect with AI agents.
 
-**Note:** Initial connection may be slow as agents are launched via `npx` (downloads packages on first run).
+⏱️ **Note:** Initial connection may be slow as agents are launched via `npx` (downloads packages on first run).
 
 Default agents: [View configuration →](https://github.com/mcpc-tech/dev-inspector-mcp/blob/main/packages/unplugin-dev-inspector/client/constants/agents.ts)
 
@@ -468,7 +451,7 @@ export default {
         {
           name: "Claude Code", // Matches default - auto-fills icon and env
           command: "npx",
-          args: ["-y", "@agentclientprotocol/claude-agent-acp"],
+          args: ["-y", "@zed-industries/claude-code-acp"],
         },
         {
           name: "My Custom Agent",
@@ -503,7 +486,7 @@ export default {
 - **`agents`**: Merges your custom agents with defaults. Agents with the **same name** as [default agents](https://agentclientprotocol.com/overview/agents) automatically inherit missing properties (icons, env)
 - **`visibleAgents`**: Filters which agents appear in the UI (applies after merging). Great for limiting options to only what your team uses
 - **`defaultAgent`**: Sets which agent is selected on startup
-- If no custom agents provided, defaults are: Claude Code, Codex CLI, GitHub Copilot, Gemini CLI, Kimi CLI, Goose, Opencode, Cursor Agent, Droid, CodeBuddy Code
+- If no custom agents provided, defaults are: Claude Code, Codex CLI, Gemini CLI, Kimi CLI, Goose, Opencode, Cursor Agent, Droid, CodeBuddy Code
 
 ### MCP Servers Configuration
 
