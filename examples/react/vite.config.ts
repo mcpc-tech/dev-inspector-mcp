@@ -7,8 +7,8 @@ export default defineConfig({
   plugins: [
     DevInspector.vite({
       enabled: true,
-      // disableChrome: true,
-      // autoOpenBrowser: true,
+      disableChrome: false,
+      autoOpenBrowser: true,
       // Only allow these specific default prompts
       // defaultPrompts: ['capture_element', 'view_inspections', 'get_network_requests'],
       // visibleAgents: ['Claude Code'],

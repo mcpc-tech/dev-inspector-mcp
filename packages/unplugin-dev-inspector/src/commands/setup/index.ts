@@ -225,7 +225,9 @@ export async function runSetupCommand() {
       if (!layoutPath) {
         console.warn(`\n⚠️  Layout file not found`);
         console.warn(`   Please add <DevInspector /> to your root layout manually.`);
-        console.warn(`   Import: import { DevInspector } from "@mcpc-tech/unplugin-dev-inspector-mcp/next";`);
+        console.warn(
+          `   Import: import { DevInspector } from "@mcpc-tech/unplugin-dev-inspector-mcp/next";`,
+        );
       } else {
         console.log(`\n🔧 Transforming layout file: ${layoutPath}`);
         const layoutCode = readFileSync(layoutPath, "utf-8");

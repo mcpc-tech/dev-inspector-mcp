@@ -1,3 +1,14 @@
+/**
+ * Inspector MCP server factory.
+ *
+ * Assembles the server from two independent modules:
+ *   - mcp-chrome.ts  – Chrome DevTools (cdp) tools  (optional)
+ *   - mcp-native.ts  – client-interceptor tools      (always available)
+ *
+ * Chrome mode is enabled unless `disableChrome` is set or the env var
+ * `DEV_INSPECTOR_DISABLE_CHROME=1` is present.
+ */
+
 import { createClientExecServer } from "@mcpc-tech/cmcp";
 import { mcpc } from "@mcpc-tech/core";
 import {
@@ -7,31 +18,40 @@ import {
   type JSONRPCMessage,
   ListPromptsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import path from "node:path";
-import { createRequire } from "node:module";
 import { PROMPT_SCHEMAS } from "./prompt-schemas.js";
 import { TOOL_SCHEMAS } from "./tool-schemas.js";
 import { isChromeDisabled, stripTrailingSlash } from "./utils/helpers.js";
+import { buildChromeDevToolsServerConfig, CHROME_TOOL } from "./mcp-chrome.js";
 import {
-  getLogById,
-  getLogs,
-  getNetworkRequests,
-  getRequestById,
-  getStdioById,
-  getStdioLogs,
-} from "./utils/log-storage.js";
+  registerNativeNetworkTool,
+  registerNativeConsoleTool,
+  registerStdioTool,
+  getNativeNetworkText,
+  getNativeConsoleText,
+  getStdioText,
+} from "./mcp-native.js";
+
 import type { Prompt } from "../client/constants/types";
 
-// Constants
-const TRUNCATE_URL_LENGTH = 60;
-const TRUNCATE_MESSAGE_LENGTH = 180;
+// ── Types ─────────────────────────────────────────────────────────────────────
 
-// Helper: Create text message for GetPromptResult
+export interface ServerContext {
+  host?: string;
+  port?: number;
+  /** The app dev server URL (e.g. http://localhost:5173). Used as default navigate target. */
+  appUrl?: string;
+  disableChrome?: boolean;
+  isAutomated?: boolean;
+  prompts?: Prompt[];
+  defaultPrompts?: boolean | string[];
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
 function textMessage(text: string): GetPromptResult {
   return { messages: [{ role: "user", content: { type: "text", text } }] };
 }
 
-// Helper: Convert CallToolResult content to GetPromptResult messages
 function toolResultToPrompt(result: CallToolResult | null | undefined): GetPromptResult {
   const content = result?.content;
   if (!content || !Array.isArray(content) || content.length === 0) {
@@ -40,19 +60,11 @@ function toolResultToPrompt(result: CallToolResult | null | undefined): GetPromp
   return { messages: content.map((item) => ({ role: "user" as const, content: item })) };
 }
 
-// Helper: Truncate string
-function truncate(str: string, maxLen: number): string {
-  return str.length > maxLen ? str.substring(0, maxLen - 3) + "..." : str;
-}
-
-// Get Chrome DevTools binary path
-function getChromeDevToolsBinPath(): string {
-  const require = createRequire(import.meta.url);
-  const pkgPath = require.resolve("chrome-devtools-mcp/package.json");
-  return path.join(path.dirname(pkgPath), "./build/src/index.js");
-}
-
-// Call MCP server method and wait for response
+/**
+ * Inject a synthetic JSONRPC request into the transport and resolve when the
+ * matching response arrives.  Used to call tools on the same server from
+ * prompt handlers.
+ */
 function callMcpMethod(
   mcpServer: Awaited<ReturnType<typeof mcpc>>,
   method: string,
@@ -81,63 +93,26 @@ function callMcpMethod(
   });
 }
 
-export interface ServerContext {
-  host?: string;
-  port?: number;
-  disableChrome?: boolean;
-  isAutomated?: boolean;
-  prompts?: Prompt[];
-  defaultPrompts?: boolean | string[];
-}
+// ── Factory ───────────────────────────────────────────────────────────────────
 
 export async function createInspectorMcpServer(serverContext?: ServerContext): Promise<any> {
   const { disableChrome, prompts: userPrompts = [], defaultPrompts = true } = serverContext || {};
 
   const chromeDisabled = isChromeDisabled(disableChrome);
   const isAutomated = serverContext?.isAutomated ?? false;
-  const getDefaultUrl = () =>
+
+  const getMcpUrl = () =>
     process.env.DEV_INSPECTOR_PUBLIC_BASE_URL
       ? stripTrailingSlash(process.env.DEV_INSPECTOR_PUBLIC_BASE_URL)
-      : `http://${serverContext?.host || "localhost"}:${serverContext?.port || 6137}`;
+      : `http://${serverContext?.host ?? "localhost"}:${serverContext?.port ?? 6137}`;
 
   console.log(`[dev-inspector] Chrome DevTools: ${chromeDisabled ? "disabled" : "enabled"}`);
 
-  // Chrome DevTools server config
-  const chromeDevToolsServers = chromeDisabled
+  // ── Create mcpc server ────────────────────────────────────────────────────
+
+  const chromeServerConfigs = chromeDisabled
     ? []
-    : [
-        {
-          name: "chrome_devtools",
-          description: `Chrome DevTools for browser diagnostics. ${
-            isAutomated ? "Chrome is connected." : "Ask user before navigating."
-          } Default URL: ${getDefaultUrl()}`,
-          options: {
-            refs: [
-              '<tool name="chrome.navigate_page"/>',
-              '<tool name="chrome.list_pages"/>',
-              '<tool name="chrome.select_page"/>',
-              '<tool name="chrome.close_page"/>',
-              '<tool name="chrome.new_page"/>',
-              '<tool name="chrome.click"/>',
-              '<tool name="chrome.hover"/>',
-              '<tool name="chrome.fill"/>',
-              '<tool name="chrome.fill_form"/>',
-              '<tool name="chrome.press_key"/>',
-              '<tool name="chrome.drag"/>',
-              '<tool name="chrome.wait_for"/>',
-            ] as unknown as any,
-          },
-          deps: {
-            mcpServers: {
-              chrome: {
-                transportType: "stdio" as const,
-                command: "node",
-                args: [getChromeDevToolsBinPath()],
-              },
-            },
-          },
-        },
-      ];
+    : [buildChromeDevToolsServerConfig({ isAutomated, defaultUrl: getMcpUrl() })];
 
   const mcpServer = await mcpc(
     [
@@ -145,94 +120,28 @@ export async function createInspectorMcpServer(serverContext?: ServerContext): P
       {
         capabilities: {
           tools: { listChanged: true },
-          sampling: {},
           prompts: { listChanged: true },
         },
       },
     ],
-    chromeDevToolsServers,
+    chromeServerConfigs,
   );
 
-  // Server-side tools (when Chrome is disabled, use local storage)
-  if (chromeDisabled) {
-    mcpServer.tool(
-      TOOL_SCHEMAS.get_network_requests.name,
-      TOOL_SCHEMAS.get_network_requests.description,
-      TOOL_SCHEMAS.get_network_requests.inputSchema,
-      async ({ reqid }: { reqid?: number }) => {
-        if (reqid !== undefined) {
-          const req = getRequestById(reqid);
-          return {
-            content: [
-              {
-                type: "text" as const,
-                text: req ? req.details || JSON.stringify(req, null, 2) : "Not found",
-              },
-            ],
-          };
-        }
-        const text = getNetworkRequests()
-          .map(
-            (r) =>
-              `reqid=${r.id} ${r.method} ${truncate(r.url, TRUNCATE_URL_LENGTH)} [${r.status}]`,
-          )
-          .reverse()
-          .join("\n");
-        return { content: [{ type: "text" as const, text: text || "No network requests" }] };
-      },
-    );
+  // ── Register server-side tools ────────────────────────────────────────────
 
-    mcpServer.tool(
-      TOOL_SCHEMAS.get_console_messages.name,
-      TOOL_SCHEMAS.get_console_messages.description,
-      TOOL_SCHEMAS.get_console_messages.inputSchema,
-      async ({ msgid }: { msgid?: number }) => {
-        if (msgid !== undefined) {
-          const log = getLogById(msgid);
-          return {
-            content: [
-              { type: "text" as const, text: log ? JSON.stringify(log, null, 2) : "Not found" },
-            ],
-          };
-        }
-        const text = getLogs()
-          .map((l) => {
-            const msg = l.args
-              .map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a)))
-              .join(" ");
-            return `msgid=${l.id} [${l.type}] ${truncate(msg, TRUNCATE_MESSAGE_LENGTH)}`;
-          })
-          .reverse()
-          .join("\n");
-        return { content: [{ type: "text" as const, text: text || "No console messages" }] };
-      },
-    );
+  // Network & console: native (interceptor) when Chrome is off; Chrome handles
+  // them directly when Chrome is on (they are exposed via the agentic tool).
+  if (chromeDisabled) {
+    registerNativeNetworkTool(mcpServer);
+    registerNativeConsoleTool(mcpServer);
   }
 
-  // Stdio tool (always available)
-  mcpServer.tool(
-    TOOL_SCHEMAS.get_stdio_messages.name,
-    TOOL_SCHEMAS.get_stdio_messages.description,
-    TOOL_SCHEMAS.get_stdio_messages.inputSchema,
-    async ({ stdioid }: { stdioid?: number }) => {
-      if (stdioid !== undefined) {
-        const log = getStdioById(stdioid);
-        return {
-          content: [
-            { type: "text" as const, text: log ? JSON.stringify(log, null, 2) : "Not found" },
-          ],
-        };
-      }
-      const text = getStdioLogs()
-        .map((l) => `stdioid=${l.id} [${l.stream}] ${truncate(l.data, TRUNCATE_MESSAGE_LENGTH)}`)
-        .reverse()
-        .join("\n");
-      return { content: [{ type: "text" as const, text: text || "No stdio messages" }] };
-    },
-  );
+  // Stdio is always native (dev server stdout/stderr, not a browser concept).
+  registerStdioTool(mcpServer);
 
-  // Client tools (executed in browser)
-  const mcpClientExecServer = createClientExecServer(mcpServer, "inspector");
+  // ── Register client-side (CMCP) tools ─────────────────────────────────────
+
+  const mcpClientExecServer = createClientExecServer(mcpServer as any, "inspector");
   mcpClientExecServer.registerClientToolSchemas([
     TOOL_SCHEMAS.capture_element_context,
     TOOL_SCHEMAS.capture_area_context,
@@ -242,11 +151,11 @@ export async function createInspectorMcpServer(serverContext?: ServerContext): P
     TOOL_SCHEMAS.get_page_info,
   ]);
 
-  // Helper: Map user prompts
+  // ── Prompt helpers ────────────────────────────────────────────────────────
+
   const mapUserPrompts = () =>
     userPrompts.map((p) => ({ name: p.name, description: p.description, arguments: p.arguments }));
 
-  // Helper: Filter prompts by config
   const filterPrompts = <T extends { name: string }>(prompts: T[]): T[] => {
     if (defaultPrompts === true) return prompts;
     if (defaultPrompts === false) return [];
@@ -255,49 +164,43 @@ export async function createInspectorMcpServer(serverContext?: ServerContext): P
     return prompts;
   };
 
-  // Helper: Call Chrome DevTools tool
-  const callChromeTool = async (toolName: string, args: Record<string, unknown> = {}) => {
-    return (await callMcpMethod(mcpServer, "tools/call", {
-      name: "chrome_devtools",
-      arguments: { useTool: toolName, hasDefinitions: [toolName], [toolName]: args },
-    })) as CallToolResult;
-  };
-
-  // Helper: Call client tool
-  const callClientTool = async (name: string, args: Record<string, unknown> = {}) => {
-    return (await callMcpMethod(mcpServer, "tools/call", {
+  /** Call a tool on the mcpc server (including agentic Chrome sub-tools). */
+  const callTool = async (name: string, args: Record<string, unknown> = {}) =>
+    (await callMcpMethod(mcpServer, "tools/call", {
       name,
       arguments: args,
     })) as CallToolResult;
-  };
 
-  // Prompts list handler
+  /**
+   * Call a Chrome DevTools sub-tool through the agentic `chrome_devtools` wrapper.
+   * New mcpc format (0.3.42+): { tool: "<name>", args: { ...params } }
+   */
+  const callChromeTool = async (toolName: string, args: Record<string, unknown> = {}) =>
+    (await callMcpMethod(mcpServer, "tools/call", {
+      name: "chrome_devtools",
+      arguments: { tool: toolName, args },
+    })) as CallToolResult;
+
+  // ── Prompt list ───────────────────────────────────────────────────────────
+
   mcpServer.setRequestHandler(ListPromptsRequestSchema, async () => {
-    const defaultUrl = getDefaultUrl();
     const builtInPrompts = [
       PROMPT_SCHEMAS.capture_element_context,
       PROMPT_SCHEMAS.capture_area_context,
       PROMPT_SCHEMAS.list_inspections,
       PROMPT_SCHEMAS.get_stdio_messages,
-      ...(!chromeDisabled
-        ? [
-            {
-              ...PROMPT_SCHEMAS.launch_chrome_devtools,
-              description: `Launch Chrome DevTools. Default: ${defaultUrl}`,
-            },
-            PROMPT_SCHEMAS.get_network_requests,
-            PROMPT_SCHEMAS.get_console_messages,
-          ]
-        : [PROMPT_SCHEMAS.get_network_requests, PROMPT_SCHEMAS.get_console_messages]),
+      PROMPT_SCHEMAS.get_network_requests,
+      PROMPT_SCHEMAS.get_console_messages,
     ];
     return { prompts: [...filterPrompts(builtInPrompts), ...mapUserPrompts()] };
   });
 
-  // Prompt handler
+  // ── Prompt handler ────────────────────────────────────────────────────────
+
   mcpServer.setRequestHandler(GetPromptRequestSchema, async (request) => {
     const { name: promptName, arguments: args } = request.params;
 
-    // User prompt
+    // User-defined prompts
     const userPrompt = userPrompts.find((p) => p.name === promptName);
     if (userPrompt) {
       let text = userPrompt.template || userPrompt.description || userPrompt.name;
@@ -309,108 +212,54 @@ export async function createInspectorMcpServer(serverContext?: ServerContext): P
       return textMessage(text);
     }
 
-    // Built-in prompts
     switch (promptName) {
-      case "capture_element_context": {
-        const result = await callClientTool("capture_element_context", {
-          selector: args?.selector,
-        });
-        return toolResultToPrompt(result);
-      }
+      case "capture_element_context":
+        return toolResultToPrompt(
+          await callTool("capture_element_context", { selector: args?.selector }),
+        );
 
-      case "capture_area_context": {
-        const result = await callClientTool("capture_area_context", {
-          containerSelector: args?.containerSelector,
-        });
-        return toolResultToPrompt(result);
-      }
+      case "capture_area_context":
+        return toolResultToPrompt(
+          await callTool("capture_area_context", { containerSelector: args?.containerSelector }),
+        );
 
       case "list_inspections":
-        return toolResultToPrompt(await callClientTool("list_inspections"));
+        return toolResultToPrompt(await callTool("list_inspections"));
 
-      case "get_stdio_messages": {
-        const stdioid = args?.stdioid;
-        if (stdioid) {
-          const log = getStdioById(parseInt(stdioid as string));
-          return textMessage(log ? JSON.stringify(log, null, 2) : "Not found");
-        }
-        const text = getStdioLogs()
-          .map((l) => `stdioid=${l.id} [${l.stream}] ${truncate(l.data, TRUNCATE_MESSAGE_LENGTH)}`)
-          .reverse()
-          .join("\n");
-        return textMessage(`Stdio Messages:\n${text || "No messages"}`);
-      }
-
-      case "launch_chrome_devtools": {
-        if (chromeDisabled) return textMessage("Chrome integration is disabled.");
-        const url = (args?.url as string) || getDefaultUrl();
-        try {
-          new URL(url);
-        } catch {
-          return textMessage(`Invalid URL: "${url}"`);
-        }
-        try {
-          const result = await callChromeTool("chrome_navigate_page", { url });
-          return toolResultToPrompt(result);
-        } catch (e) {
-          return textMessage(`Error: ${e instanceof Error ? e.message : String(e)}`);
-        }
-      }
+      case "get_stdio_messages":
+        return textMessage(getStdioText(args?.stdioid as string | undefined));
 
       case "get_network_requests": {
-        const reqid = args?.reqid;
-        if (chromeDisabled) {
+        const reqid = args?.reqid as string | undefined;
+        if (!chromeDisabled) {
+          // Chrome mode — delegate to Chrome DevTools
           if (reqid) {
-            const req = getRequestById(parseInt(reqid as string));
-            return textMessage(req ? req.details || JSON.stringify(req, null, 2) : "Not found");
+            return toolResultToPrompt(
+              await callChromeTool(CHROME_TOOL.get_network_request, {
+                reqid: parseInt(reqid),
+              }),
+            );
           }
-          const text = getNetworkRequests()
-            .map(
-              (r) =>
-                `reqid=${r.id} ${r.method} ${truncate(r.url, TRUNCATE_URL_LENGTH)} [${r.status}]`,
-            )
-            .reverse()
-            .join("\n");
-          return textMessage(`Network Requests:\n${text || "No requests"}`);
+          return toolResultToPrompt(await callChromeTool(CHROME_TOOL.list_network_requests));
         }
-        // Chrome mode
-        if (reqid) {
-          return toolResultToPrompt(
-            await callChromeTool("chrome_get_network_request", {
-              reqid: parseInt(reqid as string),
-            }),
-          );
-        }
-        return toolResultToPrompt(await callChromeTool("chrome_list_network_requests"));
+        // Native mode
+        return textMessage(getNativeNetworkText(reqid));
       }
 
       case "get_console_messages": {
-        const msgid = args?.msgid;
-        if (chromeDisabled) {
+        const msgid = args?.msgid as string | undefined;
+        if (!chromeDisabled) {
           if (msgid) {
-            const log = getLogById(parseInt(msgid as string));
-            return textMessage(log ? JSON.stringify(log, null, 2) : "Not found");
+            return toolResultToPrompt(
+              await callChromeTool(CHROME_TOOL.get_console_message, {
+                msgid: parseInt(msgid),
+              }),
+            );
           }
-          const text = getLogs()
-            .map((l) => {
-              const msg = l.args
-                .map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a)))
-                .join(" ");
-              return `msgid=${l.id} [${l.type}] ${truncate(msg, TRUNCATE_MESSAGE_LENGTH)}`;
-            })
-            .reverse()
-            .join("\n");
-          return textMessage(`Console Messages:\n${text || "No messages"}`);
+          return toolResultToPrompt(await callChromeTool(CHROME_TOOL.list_console_messages));
         }
-        // Chrome mode
-        if (msgid) {
-          return toolResultToPrompt(
-            await callChromeTool("chrome_get_console_message", {
-              msgid: parseInt(msgid as string),
-            }),
-          );
-        }
-        return toolResultToPrompt(await callChromeTool("chrome_list_console_messages"));
+        // Native mode
+        return textMessage(getNativeConsoleText(msgid));
       }
 
       default:

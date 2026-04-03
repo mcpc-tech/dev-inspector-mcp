@@ -182,7 +182,7 @@ export const createDevInspectorPlugin = (
     const chromeDisabled = isChromeDisabled(options.disableChrome);
 
     // Start standalone server for MCP/Inspector (unified for all bundlers)
-    const ensureStandaloneServer = async (root: string) => {
+    const ensureStandaloneServer = async (root: string, appUrl?: string) => {
       if (standaloneServerStarted) return;
       standaloneServerStarted = true;
 
@@ -194,14 +194,6 @@ export const createDevInspectorPlugin = (
       resolvedHost = host;
       resolvedPort = port;
 
-      const serverContext = {
-        host: resolvedHost,
-        port: resolvedPort,
-        disableChrome: chromeDisabled,
-        prompts: options.prompts,
-        defaultPrompts: options.defaultPrompts,
-      };
-
       const displayHost = host === "0.0.0.0" ? "localhost" : host;
       const publicBase = getPublicBaseUrl({
         publicBaseUrl: options.publicBaseUrl,
@@ -210,6 +202,15 @@ export const createDevInspectorPlugin = (
       });
       const baseUrl = `${publicBase}/__mcp__/sse`;
       console.log(`[dev-inspector] 📡 MCP: ${baseUrl}\n`);
+
+      const serverContext = {
+        host: resolvedHost,
+        port: resolvedPort,
+        appUrl: appUrl ?? options.browserUrl ?? publicBase,
+        disableChrome: chromeDisabled,
+        prompts: options.prompts,
+        defaultPrompts: options.defaultPrompts,
+      };
 
       // Initialize console/stdio interception
       initStdioInterceptor();
@@ -234,7 +235,7 @@ export const createDevInspectorPlugin = (
       // Auto-open browser with Chrome DevTools
       const autoOpenBrowser = options.autoOpenBrowser ?? false;
       if (autoOpenBrowser && !chromeDisabled) {
-        const targetUrl = options.browserUrl ?? publicBase;
+        const targetUrl = serverContext.appUrl ?? publicBase;
         setTimeout(async () => {
           const success = await launchBrowserWithDevTools({
             url: targetUrl,
@@ -457,8 +458,16 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
         async configureServer(server) {
           if (!enabled) return;
 
+          // Derive app URL from vite server config (port defaults to 5173)
+          const vitePort = server.config.server.port ?? 5173;
+          const viteHost =
+            typeof server.config.server.host === "string" ? server.config.server.host : "localhost";
+          const appUrl =
+            options.browserUrl ??
+            `http://${viteHost === "0.0.0.0" ? "localhost" : viteHost}:${vitePort}`;
+
           // Start standalone server for MCP/Inspector
-          await ensureStandaloneServer(server.config.root);
+          await ensureStandaloneServer(server.config.root, appUrl);
         },
       },
 

@@ -97,13 +97,13 @@ export async function launchBrowserWithDevTools(options: BrowserLaunchOptions): 
   try {
     const client = await getOrCreateClient(sseUrl);
 
-    // Call chrome_devtools tool to navigate
+    // Call chrome_devtools agentic tool — new mcpc format: { tool, args }
+    // Tool names are sanitized by mcpc (dots → underscores), so use chrome_navigate_page
     await client.callTool({
       name: "chrome_devtools",
       arguments: {
-        useTool: "chrome_navigate_page",
-        hasDefinitions: ["chrome_navigate_page"],
-        chrome_navigate_page: { url },
+        tool: "chrome_navigate_page",
+        args: { url },
       },
     });
     return true;

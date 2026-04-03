@@ -10,6 +10,7 @@ AI can read your code, but can't see what's happening at runtime. DevInspector p
 **Two modes**: Use with your IDE's AI (Cursor, VSCode) via MCP, or run AI agents directly in the browser via ACP (**Claude Code**, **Codex CLI**, **Gemini CLI**, **OpenCode**, [more](https://agentclientprotocol.com/overview/agents)).
 
 > **Using Claude Code or another AI agent?** Install the DevInspector skill so your agent knows how to set up and troubleshoot the inspector:
+>
 > ```bash
 > npx skills add mcpc-tech/dev-inspector-mcp
 > ```

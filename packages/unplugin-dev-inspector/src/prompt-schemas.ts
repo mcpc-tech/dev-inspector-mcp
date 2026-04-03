@@ -39,20 +39,6 @@ export const PROMPT_SCHEMAS = {
     arguments: [],
   },
 
-  launch_chrome_devtools: {
-    name: "launch_chrome_devtools",
-    title: "Launch Chrome DevTools",
-    description:
-      "Launch Chrome DevTools and navigate to a specified URL for debugging and inspection.",
-    arguments: [
-      {
-        name: "url",
-        description: "The URL to navigate to (e.g., http://localhost:3000)",
-        required: true,
-      },
-    ],
-  },
-
   get_network_requests: {
     name: "get_network_requests",
     title: "Get Network Requests",

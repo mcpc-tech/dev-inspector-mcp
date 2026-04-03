@@ -666,14 +666,14 @@ importers:
         specifier: ^1.3.0
         version: 1.3.0
       '@mcpc-tech/acp-ai-provider':
-        specifier: ^0.1.56
-        version: 0.1.56
+        specifier: ^0.1.57
+        version: 0.1.57
       '@mcpc-tech/cmcp':
         specifier: ^0.0.15
         version: 0.0.15
       '@mcpc-tech/core':
-        specifier: ^0.3.30
-        version: 0.3.30(hono@4.12.8)(zod@3.25.76)
+        specifier: ^0.3.42
+        version: 0.3.42(zod@3.25.76)
       '@modelcontextprotocol/ext-apps':
         specifier: ^1.0.1
         version: 1.0.1(@modelcontextprotocol/sdk@1.20.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod@3.25.76)
@@ -768,8 +768,8 @@ importers:
         specifier: ^1.2.6
         version: 1.2.6
       chrome-devtools-mcp:
-        specifier: ^0.12.1
-        version: 0.12.1
+        specifier: ^0.20.3
+        version: 0.20.3
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -890,22 +890,22 @@ importers:
         version: 4.0.16(@opentelemetry/api@1.9.0)(@types/node@24.10.1)(jiti@2.6.1)(jsdom@27.3.0(bufferutil@4.0.9)(postcss@8.5.6))(lightningcss@1.30.2)(msw@2.12.3(@types/node@24.10.1)(typescript@5.9.3))(sass@1.93.2)(terser@5.44.0)(yaml@2.8.1)
     optionalDependencies:
       '@agentclientprotocol/claude-agent-acp':
-        specifier: ^0.24.0
-        version: 0.24.0
+        specifier: ^0.24.2
+        version: 0.24.2
       '@tencent-ai/codebuddy-code':
-        specifier: ^2.66.2
-        version: 2.66.2
+        specifier: ^2.76.0
+        version: 2.76.0
       '@zed-industries/codex-acp':
-        specifier: ^0.10.0
-        version: 0.10.0
+        specifier: ^0.11.1
+        version: 0.11.1
 
 packages:
 
   '@acemir/cssom@0.9.28':
     resolution: {integrity: sha512-LuS6IVEivI75vKN8S04qRD+YySP0RmU/cV8UNukhQZvprxF+76Z43TNo/a08eCodaGhT1Us8etqS1ZRY9/Or0A==}
 
-  '@agentclientprotocol/claude-agent-acp@0.24.0':
-    resolution: {integrity: sha512-hT2RfYIvn4ofEu09LJPTkocdOH2aFTz7l8Z1whGgRR4Gl8DpjF9A4B00cDs+xVdTt/KFCWXnUhCCy2790MRApA==}
+  '@agentclientprotocol/claude-agent-acp@0.24.2':
+    resolution: {integrity: sha512-/qRaecc/Hj0nL1jPIaYwCtVOIOZ6z7YBNf8uG4TGesI9YjGXixgo+xT1iAH4Gz0tyo3Q8+LmIv37oQlzOxI1/w==}
     hasBin: true
 
   '@agentclientprotocol/sdk@0.17.0':
@@ -1110,8 +1110,8 @@ packages:
   '@antfu/utils@9.3.0':
     resolution: {integrity: sha512-9hFT4RauhcUzqOE4f1+frMKLZrgNog5b06I7VmZQV1BkvwvqrbC8EBZf3L1eEL2AKb6rNKjER0sEvJiSP1FXEA==}
 
-  '@anthropic-ai/claude-agent-sdk@0.2.83':
-    resolution: {integrity: sha512-O8g56htGMxrwbjCbqUqRBMNC0O98B7SkPnfQC7vmo3w2DVnUrBj3qat/IBLB8SI4sjVSZHeJrcK7+ozsCzStSw==}
+  '@anthropic-ai/claude-agent-sdk@0.2.84':
+    resolution: {integrity: sha512-rvp3kZJM4IgDBE1zwj30H3N0bI3pYRF28tDJoyAVuWTLiWls7diNVCyFz7GeXZEAYYD87lCBE3vnQplLLluNHg==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       zod: ^4.0.0
@@ -2062,12 +2062,6 @@ packages:
     peerDependencies:
       hono: ^4
 
-  '@hono/node-server@1.19.9':
-    resolution: {integrity: sha512-vHL6w3ecZsky+8P5MD+eFfaGTyCeOHUIFYMGpQGbrBTSmNNoxv0if69rEZ5giu36weC5saFuznL411gRX7bJDw==}
-    engines: {node: '>=18.14.1'}
-    peerDependencies:
-      hono: ^4
-
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
     engines: {node: '>=18.18.0'}
@@ -2373,14 +2367,17 @@ packages:
   '@mcpc-tech/acp-ai-provider@0.1.56':
     resolution: {integrity: sha512-5XQGOXJf6zrHCVw3v1htZ9czpbYTAJpxsiGZy+NBIfJT+c4auAn5YwAEj8CqrADU9582lnkkWCtbZV5Nw+JzSQ==}
 
+  '@mcpc-tech/acp-ai-provider@0.1.57':
+    resolution: {integrity: sha512-dWuweQSsjS7G/IOVzJjnbytvGnbu+u4AEs80iROcmD3ZZvWJr0jqZJLULm8iMHE9eqZ2tD4MTZtiUWqbgNJ/Cg==}
+
   '@mcpc-tech/cmcp@0.0.15':
     resolution: {integrity: sha512-o03iDZpacozvQTn5F0e2UvwPMinJSUZKzoGIQ1HzXnfkYdBvvrKCsU+xN3coMZ7NKMKt3iU+OMXio7u1Pud3YQ==}
 
   '@mcpc-tech/cmcp@0.0.9':
     resolution: {integrity: sha512-xYxB0DvzibeVr81OrVNXRnF2uQkVmggkuU/f3aNBE60eB52A4mTH4Y30XtW6HA/PybCMTqB0FDTuYW8+CwaopA==}
 
-  '@mcpc-tech/core@0.3.30':
-    resolution: {integrity: sha512-yu9nSjTgYxWBBN/KsYBRCJV9SpbJHqgXZRBMxkdqu0sqVLztiewEZwe2gtw2TEVh4xhtw3EPGc0iefYr5mVrvg==}
+  '@mcpc-tech/core@0.3.42':
+    resolution: {integrity: sha512-reKIhmmiMrOC+8JkUBM4yeIEB6VQFWW9l8KiUMev/dINmwZjgok1fp0eTam3UmvjkB90Pzyllk2mEWoCYmWhBA==}
 
   '@mcpc-tech/ripgrep-napi-android-arm-eabi@0.0.4':
     resolution: {integrity: sha512-Y52S9IdbqMYvet7hDGk/DRdKFM7ED6tSQmBtrWVzdeqVWPMayZvrKdlcceBykdKjbmgnlqtulzEtHBF2iXmXwA==}
@@ -2494,16 +2491,6 @@ packages:
 
   '@modelcontextprotocol/sdk@1.24.3':
     resolution: {integrity: sha512-YgSHW29fuzKKAHTGe9zjNoo+yF8KaQPzDC2W9Pv41E7/57IfY+AMGJ/aDFlgTLcVVELoggKE4syABCE75u3NCw==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      '@cfworker/json-schema': ^4.1.1
-      zod: ^3.25 || ^4.0
-    peerDependenciesMeta:
-      '@cfworker/json-schema':
-        optional: true
-
-  '@modelcontextprotocol/sdk@1.25.3':
-    resolution: {integrity: sha512-vsAMBMERybvYgKbg/l4L1rhS7VXV1c0CtyJg72vwxONVX0l4ZfKVAnZEWTQixJGTzKnELjQ59e4NbdFDALRiAQ==}
     engines: {node: '>=18'}
     peerDependencies:
       '@cfworker/json-schema': ^4.1.1
@@ -4368,8 +4355,8 @@ packages:
     peerDependencies:
       vite: ^5.2.0 || ^6 || ^7
 
-  '@tencent-ai/codebuddy-code@2.66.2':
-    resolution: {integrity: sha512-E2fFnnDgkmpEoJklX6+2vuDUNSJ2OASrtKrcoCVZYaiESf9UOS5sP9uoMfFTtoR0aKlZURRdz0T4DTIfs5FPbw==}
+  '@tencent-ai/codebuddy-code@2.76.0':
+    resolution: {integrity: sha512-ASQDhvJyGvmtZUtcu42LIsg7sHFZeUGWrOkeUBFRbDs4yX8lCA3MqwLiu1F8FUXUhxL6AYCfEDOHC921bW/Jmg==}
     hasBin: true
 
   '@tokenlens/core@1.3.0':
@@ -5059,44 +5046,44 @@ packages:
   '@xyflow/system@0.0.73':
     resolution: {integrity: sha512-C2ymH2V4mYDkdVSiRx0D7R0s3dvfXiupVBcko6tXP5K4tVdSBMo22/e3V9yRNdn+2HQFv44RFKzwOyCcUUDAVQ==}
 
-  '@zed-industries/codex-acp-darwin-arm64@0.10.0':
-    resolution: {integrity: sha512-zlIZH+X2aEfxC5UgnIoYbX0cG3/MpRUsQAGJbrcBbgKp0mhuBFtMJHZ426JC5rb3pv8amo1MmDeARZUQ99U/CQ==}
+  '@zed-industries/codex-acp-darwin-arm64@0.11.1':
+    resolution: {integrity: sha512-zJ/CsOSH1NniKGF/liBtWokdkFtymTWeELV4lDlgMgzVSqMHQTB+t6fFSrxhwOcXHK86TErxAT81Z61e+bq5gg==}
     cpu: [arm64]
     os: [darwin]
     hasBin: true
 
-  '@zed-industries/codex-acp-darwin-x64@0.10.0':
-    resolution: {integrity: sha512-TFMF9YqfWplnYpWRaUauRbtps1ow1S47MVcBv21/Sd55gRMWWYWSogRLDyAcoMC4y9pdI2bYhx33u7jYhJnj5w==}
+  '@zed-industries/codex-acp-darwin-x64@0.11.1':
+    resolution: {integrity: sha512-UZjIsEZPLeYMk+fj2ot1oT+tWuJpw+iZS9awnbmJYxTEEXMpY8BE6xQXMy7iyyxJ346We5MEpAdxg730vcem5Q==}
     cpu: [x64]
     os: [darwin]
     hasBin: true
 
-  '@zed-industries/codex-acp-linux-arm64@0.10.0':
-    resolution: {integrity: sha512-tIm0uGKZuirZyqx9KAgIgh6cimVXdh+BMTFyUfH1xnez5Y3B6oFxzup/ZIP34OZ/W59Cnfi4wcIL3No0VV6Kmw==}
+  '@zed-industries/codex-acp-linux-arm64@0.11.1':
+    resolution: {integrity: sha512-I1f6WoSLbLlsWq4zH+vtwdoc4Y41mqRXPpSkfgIifxBw34QmWJmi37etZ7lKTYp6R+J/Z4PUN0rsmnsmKpBZTw==}
     cpu: [arm64]
     os: [linux]
     hasBin: true
 
-  '@zed-industries/codex-acp-linux-x64@0.10.0':
-    resolution: {integrity: sha512-oiiN35wsecX1OwesV/KIu72o1OSw+OWFL86vQUUZTdfMXr9eyYFP1uZYLMxIx+tkhlJnm7KHC5L4raDg/MLVtA==}
+  '@zed-industries/codex-acp-linux-x64@0.11.1':
+    resolution: {integrity: sha512-30vSoZuW1DP6Nuz24Gg3jgVC37IYe0bZ/Fgc5+372gc0h72NN4zHYAbu5bRd/gUJ9GdwABKrrEPCoFPlOTVTnQ==}
     cpu: [x64]
     os: [linux]
     hasBin: true
 
-  '@zed-industries/codex-acp-win32-arm64@0.10.0':
-    resolution: {integrity: sha512-dfybabjibQQpXUs9TjwLjg+mrj8tGSopVcwkFy8u3XG4hrBZVCri91dtVhm7hs98lZlawxwiiPuj4Pmg+4hHyQ==}
+  '@zed-industries/codex-acp-win32-arm64@0.11.1':
+    resolution: {integrity: sha512-yisGPG7JMJBtOTOB6qwzroOLfiQebDrBnybzvjOfWiSIHeha25Jf1nTlWrlZcEiV/eeX3/lERuU1MxftjK3Vgg==}
     cpu: [arm64]
     os: [win32]
     hasBin: true
 
-  '@zed-industries/codex-acp-win32-x64@0.10.0':
-    resolution: {integrity: sha512-xCm3xsE3lD66DlbaLKBqHahPY1Lhb+rGu2IIq60qUsBGiYcSXtpRjQ1LXI/Sym6iCKrPo+eQP0j6rg7CPh1AGw==}
+  '@zed-industries/codex-acp-win32-x64@0.11.1':
+    resolution: {integrity: sha512-nOdlp/xHQGzqt+GnB2rrpk0sT7pPJVKkL9M+UhmoFPSFwjWrkzAOJukbT4P59wU1mVBTe84dEW6UnzydWIrGJw==}
     cpu: [x64]
     os: [win32]
     hasBin: true
 
-  '@zed-industries/codex-acp@0.10.0':
-    resolution: {integrity: sha512-vzwAUSHR7TaJh62JoE+6UD/HVm8fJbmMGsMBBMcHrKBIL7MF8yevlPDWVdoaDaGOsgqVZYRv9KhdT8ari0I4mg==}
+  '@zed-industries/codex-acp@0.11.1':
+    resolution: {integrity: sha512-My2VSlBtvJipJhImHjFDej2ut/p00QqOISRnZgLgLrSIzjgvdcQvAhaZviWj7XPhk4UIdIb0OoA+Lrls824uiQ==}
     hasBin: true
 
   accepts@1.3.8:
@@ -5495,8 +5482,8 @@ packages:
     resolution: {integrity: sha512-+IxzY9BZOQd/XuYPRmrvEVjF/nqj5kgT4kEq7VofrDoM1MxoRjEWkrCC3EtLi59TVawxTAn+orJwFQcrqEN1+g==}
     engines: {node: '>=18'}
 
-  chrome-devtools-mcp@0.12.1:
-    resolution: {integrity: sha512-QREfGxJVVlBrjKdyis9px6UHyXix+Rre9nCkqX7CY7GsU8c6azOwwV8inQB8E3h2/QGqi4sCSF8fmjfAvmE07Q==}
+  chrome-devtools-mcp@0.20.3:
+    resolution: {integrity: sha512-6MlNKlKa+J1FX9w4SUnFERF4MRGWLlrnZvIJGhhsuuMPM7qUG0F4SwheRyjwl0+tsTemxMCBHiib8mXkg5j6og==}
     engines: {node: ^20.19.0 || ^22.12.0 || >=23}
     hasBin: true
 
@@ -9776,10 +9763,10 @@ snapshots:
 
   '@acemir/cssom@0.9.28': {}
 
-  '@agentclientprotocol/claude-agent-acp@0.24.0':
+  '@agentclientprotocol/claude-agent-acp@0.24.2':
     dependencies:
       '@agentclientprotocol/sdk': 0.17.0(zod@3.25.76)
-      '@anthropic-ai/claude-agent-sdk': 0.2.83(zod@3.25.76)
+      '@anthropic-ai/claude-agent-sdk': 0.2.84(zod@3.25.76)
       zod: 3.25.76
     optional: true
 
@@ -9990,7 +9977,7 @@ snapshots:
 
   '@antfu/utils@9.3.0': {}
 
-  '@anthropic-ai/claude-agent-sdk@0.2.83(zod@3.25.76)':
+  '@anthropic-ai/claude-agent-sdk@0.2.84(zod@3.25.76)':
     dependencies:
       zod: 3.25.76
     optionalDependencies:
@@ -10808,10 +10795,6 @@ snapshots:
     dependencies:
       hono: 4.12.8
 
-  '@hono/node-server@1.19.9(hono@4.12.8)':
-    dependencies:
-      hono: 4.12.8
-
   '@humanfs/core@0.19.1': {}
 
   '@humanfs/node@0.16.7':
@@ -11069,6 +11052,17 @@ snapshots:
       - '@cfworker/json-schema'
       - supports-color
 
+  '@mcpc-tech/acp-ai-provider@0.1.57':
+    dependencies:
+      '@agentclientprotocol/sdk': 0.4.9
+      '@ai-sdk/provider': 2.0.1
+      '@modelcontextprotocol/sdk': 1.27.1(zod@3.25.76)
+      ai: 5.0.113(zod@3.25.76)
+      zod: 3.25.76
+    transitivePeerDependencies:
+      - '@cfworker/json-schema'
+      - supports-color
+
   '@mcpc-tech/cmcp@0.0.15':
     dependencies:
       '@modelcontextprotocol/sdk': 1.24.3(zod@3.25.76)
@@ -11084,29 +11078,28 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@mcpc-tech/core@0.3.30(hono@4.12.8)(zod@3.25.76)':
+  '@mcpc-tech/core@0.3.42(zod@3.25.76)':
     dependencies:
-      '@ai-sdk/provider': 2.0.0
-      '@mcpc-tech/acp-ai-provider': 0.1.56
+      '@ai-sdk/provider': 2.0.1
+      '@mcpc-tech/acp-ai-provider': 0.1.57
       '@mcpc-tech/ripgrep-napi': 0.0.4
-      '@modelcontextprotocol/sdk': 1.25.3(hono@4.12.8)(zod@3.25.76)
+      '@modelcontextprotocol/sdk': 1.27.1(zod@3.25.76)
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/exporter-trace-otlp-http': 0.56.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/resources': 1.30.1(@opentelemetry/api@1.9.0)
       '@opentelemetry/sdk-trace-base': 1.30.1(@opentelemetry/api@1.9.0)
       '@opentelemetry/sdk-trace-node': 1.30.1(@opentelemetry/api@1.9.0)
       '@opentelemetry/semantic-conventions': 1.38.0
-      '@segment/ajv-human-errors': 2.15.0(ajv@8.17.1)
+      '@segment/ajv-human-errors': 2.15.0(ajv@8.18.0)
       ai: 5.0.113(zod@3.25.76)
-      ajv: 8.17.1
-      ajv-errors: 3.0.0(ajv@8.17.1)
-      ajv-formats: 3.0.1(ajv@8.17.1)
+      ajv: 8.18.0
+      ajv-errors: 3.0.0(ajv@8.18.0)
+      ajv-formats: 3.0.1(ajv@8.18.0)
       cheerio: 1.1.2
       json-schema-traverse: 1.0.0
       jsonrepair: 3.13.1
     transitivePeerDependencies:
       - '@cfworker/json-schema'
-      - hono
       - supports-color
       - zod
 
@@ -11236,28 +11229,6 @@ snapshots:
       zod: 3.25.76
       zod-to-json-schema: 3.25.0(zod@3.25.76)
     transitivePeerDependencies:
-      - supports-color
-
-  '@modelcontextprotocol/sdk@1.25.3(hono@4.12.8)(zod@3.25.76)':
-    dependencies:
-      '@hono/node-server': 1.19.9(hono@4.12.8)
-      ajv: 8.17.1
-      ajv-formats: 3.0.1(ajv@8.17.1)
-      content-type: 1.0.5
-      cors: 2.8.5
-      cross-spawn: 7.0.6
-      eventsource: 3.0.7
-      eventsource-parser: 3.0.6
-      express: 5.1.0
-      express-rate-limit: 7.5.1(express@5.1.0)
-      jose: 6.1.3
-      json-schema-typed: 8.0.2
-      pkce-challenge: 5.0.0
-      raw-body: 3.0.1
-      zod: 3.25.76
-      zod-to-json-schema: 3.25.0(zod@3.25.76)
-    transitivePeerDependencies:
-      - hono
       - supports-color
 
   '@modelcontextprotocol/sdk@1.27.1(zod@3.25.76)':
@@ -12686,9 +12657,9 @@ snapshots:
 
   '@rtsao/scc@1.1.0': {}
 
-  '@segment/ajv-human-errors@2.15.0(ajv@8.17.1)':
+  '@segment/ajv-human-errors@2.15.0(ajv@8.18.0)':
     dependencies:
-      ajv: 8.17.1
+      ajv: 8.18.0
 
   '@shikijs/core@3.15.0':
     dependencies:
@@ -12916,7 +12887,7 @@ snapshots:
       tailwindcss: 4.1.17
       vite: 7.3.0(@types/node@24.10.1)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.93.2)(terser@5.44.0)(yaml@2.8.1)
 
-  '@tencent-ai/codebuddy-code@2.66.2':
+  '@tencent-ai/codebuddy-code@2.76.0':
     optionalDependencies:
       '@lydell/node-pty': 1.1.0
       '@lydell/node-pty-darwin-arm64': 1.1.0
@@ -13816,32 +13787,32 @@ snapshots:
       d3-selection: 3.0.0
       d3-zoom: 3.0.0
 
-  '@zed-industries/codex-acp-darwin-arm64@0.10.0':
+  '@zed-industries/codex-acp-darwin-arm64@0.11.1':
     optional: true
 
-  '@zed-industries/codex-acp-darwin-x64@0.10.0':
+  '@zed-industries/codex-acp-darwin-x64@0.11.1':
     optional: true
 
-  '@zed-industries/codex-acp-linux-arm64@0.10.0':
+  '@zed-industries/codex-acp-linux-arm64@0.11.1':
     optional: true
 
-  '@zed-industries/codex-acp-linux-x64@0.10.0':
+  '@zed-industries/codex-acp-linux-x64@0.11.1':
     optional: true
 
-  '@zed-industries/codex-acp-win32-arm64@0.10.0':
+  '@zed-industries/codex-acp-win32-arm64@0.11.1':
     optional: true
 
-  '@zed-industries/codex-acp-win32-x64@0.10.0':
+  '@zed-industries/codex-acp-win32-x64@0.11.1':
     optional: true
 
-  '@zed-industries/codex-acp@0.10.0':
+  '@zed-industries/codex-acp@0.11.1':
     optionalDependencies:
-      '@zed-industries/codex-acp-darwin-arm64': 0.10.0
-      '@zed-industries/codex-acp-darwin-x64': 0.10.0
-      '@zed-industries/codex-acp-linux-arm64': 0.10.0
-      '@zed-industries/codex-acp-linux-x64': 0.10.0
-      '@zed-industries/codex-acp-win32-arm64': 0.10.0
-      '@zed-industries/codex-acp-win32-x64': 0.10.0
+      '@zed-industries/codex-acp-darwin-arm64': 0.11.1
+      '@zed-industries/codex-acp-darwin-x64': 0.11.1
+      '@zed-industries/codex-acp-linux-arm64': 0.11.1
+      '@zed-industries/codex-acp-linux-x64': 0.11.1
+      '@zed-industries/codex-acp-win32-arm64': 0.11.1
+      '@zed-industries/codex-acp-win32-x64': 0.11.1
     optional: true
 
   accepts@1.3.8:
@@ -13884,9 +13855,9 @@ snapshots:
       '@opentelemetry/api': 1.9.0
       zod: 3.25.76
 
-  ajv-errors@3.0.0(ajv@8.17.1):
+  ajv-errors@3.0.0(ajv@8.18.0):
     dependencies:
-      ajv: 8.17.1
+      ajv: 8.18.0
 
   ajv-formats@2.1.1(ajv@8.17.1):
     optionalDependencies:
@@ -14338,7 +14309,7 @@ snapshots:
 
   chownr@3.0.0: {}
 
-  chrome-devtools-mcp@0.12.1: {}
+  chrome-devtools-mcp@0.20.3: {}
 
   chrome-trace-event@1.0.4: {}
 
